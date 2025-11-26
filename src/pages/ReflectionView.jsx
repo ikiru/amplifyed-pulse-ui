@@ -1,0 +1,24 @@
+// src/pages/ReflectionView.jsx
+import React, { useState } from "react";
+import useSocket from "../socket/useSocket";
+import MessageList from "../shared/MessageList";
+
+export default function ReflectionView() {
+  const [messages, setMessages] = useState([]);
+
+  useSocket({
+    onTrainerMessage: (payload) =>
+      setMessages((m) => [...m, payload.message]),
+
+    onAudienceMessage: (payload) =>
+      setMessages((m) => [...m, payload.message]),
+  });
+
+  return (
+    <section className="reflection-view page">
+      <div className="scroll-area">
+        <MessageList messages={messages} />
+      </div>
+    </section>
+  );
+}
