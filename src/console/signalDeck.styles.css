@@ -1,0 +1,26 @@
+/* src/console/signalDeck.styles.css */
+
+.signalDeckContainer {
+  width: 100%;
+  padding: 1.25rem 1rem;
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.signalDeckHeader {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 0.75rem;
+  padding-left: 2px;
+}
+
+.signalDeckSection {
+  margin-bottom: 1.25rem;
+}
+
+.insightSection {
+  margin-top: 0.75rem;
+}

@@ -7,10 +7,10 @@ export default function ReflectionView() {
   const [messages, setMessages] = useState([]);
 
   useSocket({
-    onTrainerMessage: (payload) =>
+    "trainer:message": (payload) =>
       setMessages((m) => [...m, payload.message]),
 
-    onAudienceMessage: (payload) =>
+    "audience:message": (payload) =>
       setMessages((m) => [...m, payload.message]),
   });
 

@@ -8,13 +8,12 @@ export default function DebugTools() {
   const push = (label, payload) =>
     setLog((l) => [...l, { ts: Date.now(), label, payload }]);
 
-  // Subscribe to ALL socket events defined in Patch 11
   useSocket({
-    onTrainerMessage: (p) => push("trainer:message", p),
-    onAudienceMessage: (p) => push("audience:message", p),
-    onEngineMove: (p) => push("engine:move", p),
-    onPulseUpdate: (p) => push("pulse:update", p),
-    onFocusChange: (p) => push("focus:change", p),
+    "trainer:message": (p) => push("trainer:message", p),
+    "audience:message": (p) => push("audience:message", p),
+    "engine:move": (p) => push("engine:move", p),
+    "pulse:update": (p) => push("pulse:update", p),
+    "focus:change": (p) => push("focus:change", p),
   });
 
   return (

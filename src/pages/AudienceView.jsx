@@ -8,7 +8,7 @@ export default function AudienceView() {
   const [messages, setMessages] = useState([]);
 
   const socket = useSocket({
-    onAudienceMessage: (payload) =>
+    "audience:message": (payload) =>
       setMessages((m) => [...m, payload.message]),
   });
 

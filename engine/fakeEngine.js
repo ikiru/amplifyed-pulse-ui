@@ -1,65 +1,27 @@
 // engine/fakeEngine.js
-export async function fakeEngine(event) {
-  const { type, payload } = event;
+// -----------------------------------------
+// Fake engine that generates live pulse data
+// -----------------------------------------
 
-  const responses = [];
+export function startFakeEngine(io) {
+  console.log("⚙️ Fake Engine: STARTED");
 
-  // 1. Trainer messages
-  if (type === "trainerMessage") {
-    responses.push({
-      type: "move",
-      move: "reflect",
-      reasoning: "Trainer message acknowledged in simulation mode."
+  let t = 0;
+
+  setInterval(() => {
+    t += 1;
+
+    // 4 simulated pulse channels
+    const pulseValues = [
+      Math.sin(t / 6) * 0.4 + 0.6, // calm channel
+      Math.sin(t / 4 + 2) * 0.5 + 0.5, // stress channel
+      Math.sin(t / 9 + 5) * 0.5 + 0.5, // confusion channel
+      Math.random() * 0.3 + 0.7        // noise channel
+    ];
+
+    io.emit("pulse:update", {
+      values: pulseValues
     });
 
-    responses.push({
-      type: "pulse",
-      values: randomPulse()
-    });
-  }
-
-  // 2. Audience messages
-  if (type === "audienceMessage") {
-    responses.push({
-      type: "pulse",
-      values: randomPulse()
-    });
-  }
-
-  // 3. Audience signals
-  if (type === "audienceSignal") {
-    responses.push({
-      type: "move",
-      move: "nudge",
-      reasoning: "Audience signal triggered a nudge."
-    });
-
-    responses.push({
-      type: "pulse",
-      values: randomPulse()
-    });
-  }
-
-  // 4. Trainer focus
-  if (type === "trainerFocus") {
-    responses.push({
-      type: "focus",
-      activeTurnId: payload.targetTurnId
-    });
-  }
-
-  // 5. Move request
-  if (type === "moveRequest") {
-    responses.push({
-      type: "move",
-      move: payload.requestedMove,
-      reasoning: "Simulated move returned by fake engine."
-    });
-  }
-
-  return responses;
-}
-
-function randomPulse() {
-  return Array.from({ length: 4 }, () => Number((Math.random() * 0.9 + 0.1).toFixed(2)));
+  }, 200);
 }

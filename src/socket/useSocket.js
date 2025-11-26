@@ -4,7 +4,9 @@ import { useSocketContext } from "./SocketContext.jsx";
 
 export default function useSocket(handlers = {}) {
   const ctx = useSocketContext();
-  if (!ctx) throw new Error("useSocket must be used inside <SocketProvider>");
+  if (!ctx) {
+    throw new Error("useSocket must be used inside <SocketProvider>");
+  }
 
   const { socket, emit, on, off } = ctx;
 
