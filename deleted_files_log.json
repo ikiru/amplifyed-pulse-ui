@@ -1,0 +1,32 @@
+{
+  "deletedAt": "2025-11-28T05:41:46Z",
+  "deletedFiles": [
+    "src/console/SignalDeck.jsx",
+    "src/console/InsightLine.jsx",
+    "src/console/PulseTimeline.jsx",
+    "src/console/MoveToolkit.jsx",
+    "src/console/FocusOverlay.jsx",
+    "src/console/MessageStream.jsx",
+    "src/console/ThreadView.jsx",
+    "src/console/MessageList.jsx",
+    "src/console/InterpreterPanel.jsx",
+    "src/components/ui/InterpreterPanel.jsx",
+    "src/components/ui/MessageBubble.jsx",
+    "src/components/ui/MessageInput.jsx",
+    "src/components/ui/MessageList.jsx",
+    "src/components/styles/interpreterPanel.styles.js",
+    "src/components/styles/messageList.styles.js",
+    "src/components/styles/messageBubble.styles.js",
+    "src/components/styles/messageInput.styles.js",
+    "src/stores/usePulseHistory.js",
+    "src/stores/useEngineStore.js",
+    "src/stores/useFocusStore.js",
+    "src/stores/usePulseStore.js",
+    "src/stores/useSignalStore.js",
+    "src/stores/useUIStore.js",
+    "src/stores/usePresenceStore.js",
+    "src/socket/useFacilitator.js",
+    "src/socket/useEngine.js",
+    "src/socket/useFocus.js"
+  ]
+}

@@ -1,40 +1,45 @@
-// src/socket/SocketProvider.jsx
-import React, { useMemo, useEffect, useState } from "react";
+import React, { createContext, useEffect, useState } from "react";
 import { io } from "socket.io-client";
-import { SocketContext } from "./SocketContext.jsx";
+
+export const SocketContext = createContext(null);
+export const handlers = {};
+
+function enhanceSocket(s) {
+  if (!s) return s;
+
+  if (!s.listen) {
+    s.listen = (event, listener) => {
+      s.on(event, listener);
+      return () => {
+        s.off(event, listener);
+      };
+    };
+  }
+
+  s.on("message:update", (payload) => {
+    handlers["message:update"]?.(payload);
+  });
+
+  return s;
+}
 
 export default function SocketProvider({ children }) {
-  const [socket, setSocket] = useState(null);
+  const [socket] = useState(() => {
+    const s = io("http://localhost:3000", {
+      transports: ["websocket"],
+    });
+
+    return enhanceSocket(s);
+  });
 
   useEffect(() => {
-    const s = io("http://localhost:5174");
-    setSocket(s);
-
     return () => {
-      s.disconnect();
-    };
-  }, []);
-
-  const value = useMemo(() => {
-    if (!socket) {
-      return {
-        socket: null,
-        emit: () => {},
-        on: () => {},
-        off: () => {},
-      };
-    }
-
-    return {
-      socket,
-      emit: (event, payload) => socket.emit(event, payload),
-      on: (event, handler) => socket.on(event, handler),
-      off: (event, handler) => socket.off(event, handler),
+      socket.disconnect();
     };
   }, [socket]);
 
   return (
-    <SocketContext.Provider value={value}>
+    <SocketContext.Provider value={socket}>
       {children}
     </SocketContext.Provider>
   );
