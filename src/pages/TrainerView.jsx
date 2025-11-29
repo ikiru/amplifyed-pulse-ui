@@ -1,57 +1,50 @@
-// src/pages/TrainerView.jsx
-import React, { useState } from "react";
-import useSocket from "../socket/useSocket";
-
-import MessageStream from "../console/MessageStream";
-import InterpreterPanel from "../console/InterpreterPanel";
-import MoveToolkit from "../console/MoveToolkit";
-import PulseTimeline from "../console/PulseTimeline";
-import FocusOverlay from "../console/FocusOverlay";
+import React, { useEffect, useState } from "react";
+import { useSocket } from "../socket/useSocket";
 
 export default function TrainerView() {
+  const socket = useSocket();
+
+  const [pulses, setPulses] = useState([]);
   const [messages, setMessages] = useState([]);
-  const [engineMove, setEngineMove] = useState(null);
-  const [pulse, setPulse] = useState(null);
-  const [focus, setFocus] = useState(null);
 
-const socket = useSocket({
-  "trainer:message": (payload) =>
-    setMessages((m) => [...m, payload.message]),
+  useEffect(() => {
+    if (!socket) return undefined;
 
-  "engine:move": (payload) =>
-    setEngineMove({ move: payload.move, reasoning: payload.reasoning }),
+    const cleanups = [
+      socket.listen("pulse:update", (payload) => {
+        setPulses((p) => [...p, payload]);
+      }),
+      socket.listen("message:update", (payload) => {
+        setMessages((m) => [...m, payload]);
+      }),
+    ];
 
-  "pulse:update": (payload) =>
-    setPulse(payload.values),
-
-  "focus:change": (payload) =>
-    setFocus(payload.activeTurnId),
-});
-
-
-  const sendMessage = (text) =>
-    socket.sendTrainerMessage({ text, timestamp: Date.now() });
-
-  const requestMove = (moveName) =>
-    socket.requestEngineMove({ requestedMove: moveName });
+    return () => {
+      cleanups.forEach((cleanup) => cleanup && cleanup());
+    };
+  }, [socket]);
 
   return (
-    <div>
-      <FocusOverlay focus={focus} />
+    <div style={{ padding: "40px" }}>
+      <h1>Trainer View</h1>
 
-      <PulseTimeline
-        data={pulse}
-        onSelect={(turnId) => socket.setFocus({ targetTurnId: turnId })}
-      />
+      <h2>Pulses</h2>
+      {pulses.length === 0 && <p>(none yet)</p>}
+      {pulses.map((p, i) => (
+        <div key={i}>
+          Emotion: {p.emotion} | Value: {p.value} | Time: {p.timestamp}
+        </div>
+      ))}
 
-      <InterpreterPanel engineMove={engineMove} />
+      <br />
 
-      <MoveToolkit onRequestMove={requestMove} />
-
-      <MessageStream
-        messages={messages}
-        onSend={sendMessage}
-      />
+      <h2>Messages</h2>
+      {messages.length === 0 && <p>(none yet)</p>}
+      {messages.map((msg, i) => (
+        <div key={i}>
+          {msg.text} — {msg.timestamp}
+        </div>
+      ))}
     </div>
   );
 }

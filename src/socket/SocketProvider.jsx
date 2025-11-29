@@ -1,41 +1,46 @@
-// src/socket/SocketProvider.jsx
-import React, { useRef, useEffect, useMemo } from "react";
-import io from "socket.io-client";
-import { SocketContext } from "./SocketContext.jsx";
+import React, { createContext, useEffect, useState } from "react";
+import { io } from "socket.io-client";
+
+export const SocketContext = createContext(null);
+export const handlers = {};
+
+function enhanceSocket(s) {
+  if (!s) return s;
+
+  if (!s.listen) {
+    s.listen = (event, listener) => {
+      s.on(event, listener);
+      return () => {
+        s.off(event, listener);
+      };
+    };
+  }
+
+  s.on("message:update", (payload) => {
+    handlers["message:update"]?.(payload);
+  });
+
+  return s;
+}
 
 export default function SocketProvider({ children }) {
-  const socketRef = useRef(null);
-
-  useEffect(() => {
-    const socket = io("http://localhost:4000", {
-      autoConnect: true,
-      reconnection: true,
+  const [socket] = useState(() => {
+    const s = io("http://localhost:3000", {
+      transports: ["websocket"],
     });
 
-    socketRef.current = socket;
+    return enhanceSocket(s);
+  });
 
-    return () => socket.disconnect();
-  }, []);
-
-  const socket = socketRef.current;
-
-  const value = useMemo(() => {
-    if (!socket) return null;  // first render returns null
-    return {
-      socket,
-      emit: (...args) => socket.emit(...args),
-      on: (...args) => socket.on(...args),
-      off: (...args) => socket.off(...args),
+  useEffect(() => {
+    return () => {
+      socket.disconnect();
     };
   }, [socket]);
 
-  // 🔥 STRICT-MODE fix: always provide non-null value
-  const safeValue = value || {};
-
   return (
-    <SocketContext.Provider value={safeValue}>
+    <SocketContext.Provider value={socket}>
       {children}
     </SocketContext.Provider>
   );
 }
-
