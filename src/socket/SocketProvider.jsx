@@ -1,42 +1,42 @@
-import React, { createContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { io } from "socket.io-client";
-
-export const SocketContext = createContext(null);
-export const handlers = {};
-
-function enhanceSocket(s) {
-  if (!s) return s;
-
-  if (!s.listen) {
-    s.listen = (event, listener) => {
-      s.on(event, listener);
-      return () => {
-        s.off(event, listener);
-      };
-    };
-  }
-
-  s.on("message:update", (payload) => {
-    handlers["message:update"]?.(payload);
-  });
-
-  return s;
-}
+import { SocketContext } from "./SocketContext.jsx";
 
 export default function SocketProvider({ children }) {
-  const [socket] = useState(() => {
-    const s = io("http://localhost:3000", {
-      transports: ["websocket"],
-    });
-
-    return enhanceSocket(s);
-  });
+  const [socket, setSocket] = useState(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    return () => {
-      socket.disconnect();
+    const s = io("http://localhost:3000", {
+      transports: ["websocket"],
+      reconnectionAttempts: 5,
+    });
+
+    const handleConnect = () => {
+      setReady(true);
     };
-  }, [socket]);
+
+    const handleError = (err) => {
+      console.warn("[Socket] connection error →", err?.message);
+    };
+
+    s.on("connect", handleConnect);
+    s.on("connect_error", handleError);
+
+    setSocket(s);
+
+    return () => {
+      s.off("connect", handleConnect);
+      s.off("connect_error", handleError);
+      s.disconnect();
+      setReady(false);
+      setSocket(null);
+    };
+  }, []);
+
+  if (!socket || !ready) {
+    return null;
+  }
 
   return (
     <SocketContext.Provider value={socket}>

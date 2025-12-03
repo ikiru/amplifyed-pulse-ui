@@ -1,22 +1,24 @@
+// src/socket/useSocket.js
 import { useContext, useEffect } from "react";
-import { SocketContext } from "./SocketProvider";
+import { SocketContext } from "./SocketContext.jsx";
 
-export function useSocket(handlers = {}) {
+// Shared socket hook: wires optional event handlers and exposes the socket instance.
+export function useSocket(eventHandlers = {}) {
   const socket = useContext(SocketContext);
 
   useEffect(() => {
     if (!socket) return;
 
-    Object.entries(handlers).forEach(([event, fn]) => {
-      socket.on(event, fn);
+    const cleanups = Object.entries(eventHandlers).map(([event, handler]) => {
+      if (typeof handler !== "function") return null;
+      socket.on(event, handler);
+      return () => socket.off(event, handler);
     });
 
     return () => {
-      Object.entries(handlers).forEach(([event, fn]) => {
-        socket.off(event, fn);
-      });
+      cleanups.forEach((cleanup) => cleanup && cleanup());
     };
-  }, [socket]);
+  }, [socket, eventHandlers]);
 
   return socket;
 }
