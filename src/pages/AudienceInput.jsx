@@ -1,29 +1,37 @@
 // src/pages/AudienceInput.jsx
 import React, { useState } from "react";
 import { useSocket } from "../socket/useSocket";
+import EVENTS from "../socket/events";
+import ConnectionStatus from "../components/system/ConnectionStatus";
+import "../components/system/ConnectionStatus.css";
+import guard from "../utils/guard";
+
+// Future: ingestion hook for local echo or LiveRoom merge
+// import usePulseIngestion from "../utils/usePulseIngestion";
+// const { ingest } = usePulseIngestion();
 
 export default function AudienceInput() {
   const [message, setMessage] = useState("");
+  const [currentEmotion, setCurrentEmotion] = useState(null);
   const [sentMessages, setSentMessages] = useState([]);
 
-  const socket = useSocket({
-    "audience:message:ack": (payload) => {
-      console.log("[Audience] ack:", payload);
-    },
+  const { emit, connectionStatus } = useSocket({
+    [EVENTS.AUDIENCE_MESSAGE_ACK]: (payload) =>
+      guard(() => console.log("[Audience] ack:", payload), "AUDIENCE_MESSAGE_ACK"),
   });
 
   const handleSend = (evt) => {
     evt?.preventDefault();
     const trimmed = message.trim();
-    if (!trimmed || !socket) return;
+    if (!trimmed || !emit) return;
 
     const payload = {
-      text: trimmed,
-      timestamp: new Date().toISOString(),
-      sender: "audience",
+      message: trimmed,
+      timestamp: Date.now(),
+      author: "audience",
     };
 
-    socket.emit("audience:message", payload);
+    emit(EVENTS.AUDIENCE_MESSAGE, payload);
 
     // ONLY store real text messages
     setSentMessages((prev) => [...prev, payload]);
@@ -32,23 +40,24 @@ export default function AudienceInput() {
   };
 
   const sendPulse = (emotion) => {
-    if (!socket) return;
+    if (!emit) return;
+    if (emotion === currentEmotion) return;
 
-    const payload = {
+    setCurrentEmotion(emotion);
+
+    emit(EVENTS.AUDIENCE_PULSE, {
       emotion,
-      timestamp: new Date().toISOString(),
-      sender: "audience",
-    };
-
-    // Emit the pulse normally
-    socket.emit("audience:pulse", payload);
+      timestamp: Date.now(),
+      author: "audience",
+    });
 
     // ❌ DO NOT append pulses to the message list
     // (This is the fix)
   };
 
   return (
-    <div style={{ padding: "1rem" }}>
+    <div className="audience-input" style={{ padding: "1rem" }}>
+      <ConnectionStatus status={connectionStatus} />
       <h1>Audience Input</h1>
 
       <div style={{ marginBottom: "1rem" }}>
@@ -72,7 +81,7 @@ export default function AudienceInput() {
       <ul>
         {sentMessages.map((m, idx) => (
           <li key={idx}>
-            {m.text} — {m.timestamp}
+            {(m.message ?? m.text ?? "").trim()} — {m.timestamp}
           </li>
         ))}
       </ul>

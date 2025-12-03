@@ -3,6 +3,7 @@ import http from "http";
 import { Server } from "socket.io";
 import crypto from "crypto";
 import { normalizeEmotionValue } from "../src/config/pulseLogic.js";
+import EVENTS from "../src/socket/events.js";
 
 // ===============================================
 //  ENGINE INSIGHT PACKET MUTE SWITCH (GLOBAL)
@@ -16,6 +17,9 @@ function setEngineMute(value) {
 
 const AUDIENCE_PULSE_HISTORY_LIMIT = 240;
 const audiencePulseHistory = [];
+
+// North Star: Each user has one emotional state (no decay)
+const userStates = new Map();
 
 const normalizeAudiencePulse = (payload = {}) => {
   const emotion =
@@ -46,17 +50,20 @@ const normalizeAudiencePulse = (payload = {}) => {
 };
 
 const buildTrainerMessage = (payload = {}) => {
-  const text =
-    typeof payload.text === "string"
+  const candidateText =
+    typeof payload.message === "string" && payload.message.trim().length
+      ? payload.message.trim()
+      : typeof payload.text === "string" && payload.text.trim().length
       ? payload.text.trim()
       : typeof payload === "string"
       ? payload.trim()
       : "";
-  if (!text) return null;
+  if (!candidateText) return null;
 
   return {
     id: payload.id ?? crypto.randomUUID(),
-    text,
+    text: candidateText,
+    message: candidateText,
     role: payload.role ?? "participant",
     timestamp: Number.isFinite(payload.timestamp)
       ? payload.timestamp
@@ -108,43 +115,76 @@ io.on("connection", (socket) => {
     };
   }
 
-  socket.on("audience:pulse", (payload) => {
+  socket.on(EVENTS.AUDIENCE_PULSE, (payload) => {
     console.log("[SERVER] audience:pulse IN:", payload);
-    const packet = normalizePulse(payload);
-    if (!packet) {
-      console.warn("[SERVER] invalid audience pulse payload:", payload);
-      return;
-    }
+    try {
+      if (!payload || !payload.emotion) {
+        console.warn("[SERVER] missing emotion in audience pulse:", payload);
+        return;
+      }
 
-    io.emit("pulse:update", packet);
-    console.log("[SERVER] pulse:update OUT:", packet);
+      userStates.set(socket.id, payload.emotion);
+
+      const packet = normalizePulse(payload);
+      if (!packet) {
+        console.warn("[SERVER] invalid audience pulse payload:", payload);
+        return;
+      }
+
+      const enriched = {
+        ...packet,
+        userId: socket.id,
+        emotion: payload.emotion,
+      };
+
+      io.emit(EVENTS.PULSE_UPDATE, enriched);
+      console.log("[SERVER] pulse:update OUT:", enriched);
+    } catch (err) {
+      console.error("🔥 Failed to process AUDIENCE_PULSE", err);
+    }
   });
 
-  socket.on("audience:message", (payload) => {
+  socket.on(EVENTS.AUDIENCE_MESSAGE, (payload) => {
     console.log("[SERVER] audience:message IN:", payload);
+    try {
+      if (!payload || typeof payload.message !== "string") {
+        console.warn(
+          "[SERVER] audience:message skipping invalid payload:",
+          payload
+        );
+        return;
+      }
 
-    const message = {
-      type: "message",
-      text: payload.text,
-      timestamp: Date.now(),
-      source: "audience",
-    };
+      const timestamp = Number.isFinite(payload.timestamp)
+        ? payload.timestamp
+        : Date.now();
+      const message = {
+        type: "message",
+        text: payload.message,
+        message: payload.message,
+        timestamp,
+        source: payload.source || "audience",
+        author: payload.author || payload.sender || "audience",
+      };
 
-    io.emit("message:update", message);
+      io.emit("message:update", message);
 
-    console.log("[SERVER] message:update OUT:", message);
-  });
+      console.log("[SERVER] message:update OUT:", message);
 
-  // REAL Audience Messages → Trainer
-  socket.on("audience:message", (msg) => {
-    console.log("[SERVER] audience:message IN:", msg);
-    const packet = normalizeMessage(msg);
-    if (!packet) {
-      console.warn("[SERVER] invalid audience message payload:", msg);
-      return;
+      const packet = normalizeMessage(payload);
+      if (!packet) {
+        console.warn(
+          "[SERVER] invalid audience message payload for trainer:",
+          payload
+        );
+        return;
+      }
+
+      io.emit("trainer:message", packet);
+      console.log("[SERVER] trainer:message OUT:", packet);
+    } catch (err) {
+      console.error("🔥 Server failed to relay AUDIENCE_MESSAGE", err);
     }
-    io.emit("trainer:message", packet);
-    console.log("[SERVER] trainer:message OUT:", packet);
   });
 
   // REAL Trainer Messages → Everyone

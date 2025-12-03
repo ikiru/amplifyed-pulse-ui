@@ -3,7 +3,7 @@ import useSocket from "../socket/useSocket";
 import useEmotionalStream from "../state/useEmotionalStream";
 
 export default function useEmotionalFeed() {
-  const socket = useSocket();
+  const { socket } = useSocket();
   const emotional = useEmotionalStream();
 
   useEffect(() => {

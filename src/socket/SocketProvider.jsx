@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { io } from "socket.io-client";
-import { SocketContext } from "./SocketContext.jsx";
+import { SocketContext } from "./SocketContext";
 
 export default function SocketProvider({ children }) {
   const [socket, setSocket] = useState(null);
-  const [ready, setReady] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState("connecting");
 
   useEffect(() => {
     const s = io("http://localhost:3000", {
@@ -13,33 +13,47 @@ export default function SocketProvider({ children }) {
     });
 
     const handleConnect = () => {
-      setReady(true);
+      setConnectionStatus("connected");
+    };
+
+    const handleDisconnect = () => {
+      setConnectionStatus("disconnected");
     };
 
     const handleError = (err) => {
       console.warn("[Socket] connection error →", err?.message);
+      setConnectionStatus("error");
     };
 
     s.on("connect", handleConnect);
+    s.on("disconnect", handleDisconnect);
     s.on("connect_error", handleError);
 
     setSocket(s);
 
     return () => {
       s.off("connect", handleConnect);
+      s.off("disconnect", handleDisconnect);
       s.off("connect_error", handleError);
       s.disconnect();
-      setReady(false);
       setSocket(null);
+      setConnectionStatus("disconnected");
     };
   }, []);
 
-  if (!socket || !ready) {
+  const isReady = socket && connectionStatus === "connected";
+
+  const contextValue = useMemo(
+    () => ({ socket, connectionStatus }),
+    [connectionStatus, socket]
+  );
+
+  if (!isReady) {
     return null;
   }
 
   return (
-    <SocketContext.Provider value={socket}>
+    <SocketContext.Provider value={contextValue}>
       {children}
     </SocketContext.Provider>
   );
