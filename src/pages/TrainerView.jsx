@@ -1,149 +1,149 @@
-// src/pages/TrainerView.jsx
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import EVENTS from "../socket/events";
-import ConnectionStatus from "../components/system/ConnectionStatus";
-import "../components/system/ConnectionStatus.css";
-import guard from "../utils/guard";
-import sanitizeMessage from "../utils/sanitizeMessage";
-import usePulseIngestion from "../utils/usePulseIngestion";
-import useSocket from "../socket/useSocket";
-import ROUTES from "../paths";
+import React, { useMemo } from "react";
+import { useSocket } from "../socket/useSocket";
 
-const INITIAL_LEVELS = {
-  engaged: 0,
-  neutral: 0,
-  frustrated: 0,
-};
+// Left Column Components
+import SignalDeck from "../components/console/SignalDeck.jsx";
+import PulseTimeline from "../components/console/PulseTimeline.jsx";
+import InsightLine from "../components/console/InsightLine.jsx";
 
-const INITIAL_HISTORY = {
-  engaged: 0,
-  neutral: 0,
-  frustrated: 0,
-};
+// Center Column Components
+import SessionFocus from "../components/trainer/SessionFocus.jsx";
+import SlidesPanel from "../components/trainer/SlidesPanel.jsx";
+import MessageStream from "../components/trainer/MessageStream.jsx";
+import TrainerComposer from "../components/trainer/TrainerComposer.jsx";
 
-const VALID_EMOTIONS = Object.keys(INITIAL_LEVELS);
+// Right Column Components
+import CameraPanel from "../components/trainer/CameraPanel.jsx";
+import SetFocusInput from "../components/trainer/SetFocusInput.jsx";
+import QuickActions from "../components/trainer/QuickActions.jsx";
 
-const formatTimestamp = (value) =>
-  new Date(Number.isFinite(value) ? value : Date.now()).toISOString();
+// Correct Stores
+import usePulseHistory from "../utils/usePulseHistory";
+import useMessageStream from "../state/useMessageStream";
+import useSessionFocus from "../state/useSessionFocus";
+
+// Styles
+import "./TrainerView.css";
 
 export default function TrainerView() {
-  const [levels, setLevels] = useState(INITIAL_LEVELS);
-  const [pulseHistory, setPulseHistory] = useState(INITIAL_HISTORY);
-  // Filter out null/empty/echo messages for clarity & safety
-  const [messages, setMessages] = useState([]);
-  const [roomState, setRoomState] = useState({});
-  const [engineMove, setEngineMove] = useState(null);
-  const [focus, setFocus] = useState("audience");
 
-  const { ingest } = usePulseIngestion();
+  /* -------------------------------
+     STATE STORES
+  --------------------------------*/
+  const addPulse = usePulseHistory((s) => s.addPulse);
+  const pulses = usePulseHistory((s) => s.pulses);
 
-  useEffect(() => {
-    console.debug("[TrainerView] pulse + message systems online");
-  }, []);
+  const addMessage = useMessageStream((s) => s.addMessage);
+  const messages = useMessageStream((s) => s.messages);
 
-  const appendMessage = useCallback((rawMessage) => {
-    const clean = sanitizeMessage(rawMessage);
-    if (!clean) return;
+  const focus = useSessionFocus((s) => s.focus);
+  const setFocus = useSessionFocus((s) => s.setFocus);
 
-    setMessages((prev) => [...prev, clean]);
-  }, []);
+  /* -------------------------------
+     SOCKET HANDLERS
+  --------------------------------*/
+  const handlePulse = (payload) => {
+    console.log("[TRAINER] audience:pulse IN:", payload);
+    addPulse(payload);
+  };
 
-  const handlePulseUpdate = useCallback(
-    (payload) => {
-      if (!payload || typeof payload !== "object") return;
-      const normalized = ingest(payload);
-      if (!normalized) return;
+  const handlePulseUpdate = (payload) => {
+    console.log("[TRAINER] pulse:update IN:", payload);
+    addPulse(payload);
+  };
 
-      const emotion = normalized.emotion;
-      const safeEmotion =
-        typeof emotion === "string" ? emotion.toLowerCase() : null;
-      if (!safeEmotion || !VALID_EMOTIONS.includes(safeEmotion)) return;
+  const handleAudienceMessage = (payload) => {
+    console.log("[TRAINER] audience:message IN:", payload);
+    addMessage(payload);
+  };
 
-      const value = Number.isFinite(normalized.value)
-        ? normalized.value
-        : 0;
+  // NEW — handles server-side trainer messages
+  const handleTrainerMessage = (payload) => {
+    console.log("[TRAINER] trainer:message IN:", payload);
 
-      setLevels((prev) => ({
-        ...prev,
-        [safeEmotion]: value,
-      }));
+    // Normalize: ensure a consistent shape
+    const normalized = {
+      id: payload.id ?? Date.now(),
+      author: payload.author ?? "Trainer",
+      text: payload.text ?? payload.message ?? "",
+      timestamp: payload.timestamp ?? Date.now(),
+    };
 
-      setPulseHistory((prev) => ({
-        ...prev,
-        [safeEmotion]: (prev[safeEmotion] ?? 0) + 1,
-      }));
-    },
-    [ingest]
-  );
+    addMessage(normalized);
+  };
 
-  const eventHandlers = useMemo(
+  // NEW — handles audience messages relayed by server
+  const handleMessageUpdate = (payload) => {
+    console.log("[TRAINER] message:update IN:", payload);
+
+    const normalized = {
+      id: payload.id ?? Date.now(),
+      author: payload.author ?? "Audience",
+      text: payload.text ?? payload.message ?? "",
+      timestamp: payload.timestamp ?? Date.now(),
+    };
+
+    addMessage(normalized);
+  };
+
+  // NEW: handle trainer:setFocus
+  const handleTrainerSetFocus = (payload) => {
+    console.log("[TRAINER] trainer:setFocus IN:", payload);
+    if (payload?.focus) setFocus(payload.focus);
+  };
+
+  /* -------------------------------
+     REGISTER SOCKET
+  --------------------------------*/
+  const handlers = useMemo(
     () => ({
-      [EVENTS.PULSE_UPDATE]: (payload) =>
-        guard(() => {
-          if (!payload || !payload.userId || !payload.emotion) return;
-          setRoomState((prev) => ({
-            ...prev,
-            [payload.userId]: payload.emotion,
-          }));
-          handlePulseUpdate(payload);
-        }, "PULSE_UPDATE"),
-      [EVENTS.TRAINER_MESSAGE]: (payload) =>
-        guard(() => appendMessage(payload), "TRAINER_MESSAGE"),
-      [EVENTS.ENGINE_MOVE]: (payload) =>
-        guard(
-          () =>
-            setEngineMove({
-              move: payload?.move ?? null,
-              reasoning: payload?.reasoning ?? null,
-            }),
-          "ENGINE_MOVE"
-        ),
-      [EVENTS.FOCUS_CHANGE]: (payload) =>
-        guard(() => {
-          if (payload?.focus) setFocus(payload.focus);
-        }, "FOCUS_CHANGE"),
-      "message:update": (payload) =>
-        guard(() => appendMessage(payload), "MESSAGE_UPDATE"),
+      "audience:pulse": handlePulse,
+      "pulse:update": handlePulseUpdate,
+      // OLD EVENT (kept for backward compatibility)
+      "audience:message": handleAudienceMessage,
+
+      // NEW: correct active events
+      "trainer:message": handleTrainerMessage,
+      "message:update": handleMessageUpdate,
+      "trainer:setFocus": handleTrainerSetFocus,  // <-- FIX ADDED HERE
     }),
-    [appendMessage, handlePulseUpdate]
+    []
   );
 
-  const { connectionStatus } = useSocket(eventHandlers);
+  const { connectionStatus } = useSocket(handlers);
 
+  /* -------------------------------
+     RENDER LAYOUT
+  --------------------------------*/
   return (
-    <div className="trainer-view" style={{ padding: "20px" }}>
-      <ConnectionStatus status={connectionStatus} />
-      <Link to={ROUTES.AUDIENCE}>Trainer Audience Input</Link>
+    <div className="trainer-view">
+      <div className="socket-status">Socket: {connectionStatus}</div>
 
-      <h1>Trainer View</h1>
+      <div className="trainer-grid">
 
-      <h2>Emotional Levels</h2>
-      <p>Engaged: {levels.engaged.toFixed(2)}</p>
-      <p>Neutral: {levels.neutral.toFixed(2)}</p>
-      <p>Frustrated: {levels.frustrated.toFixed(2)}</p>
+        {/* LEFT COLUMN — Signals */}
+        <aside className="col-left">
+          <SignalDeck pulses={pulses} />
+          <PulseTimeline pulses={pulses} />
+          <InsightLine pulses={pulses} />
+        </aside>
 
-      <h2>Pulse History</h2>
-      <p>Engaged Count: {pulseHistory.engaged}</p>
-      <p>Neutral Count: {pulseHistory.neutral}</p>
-      <p>Frustrated Count: {pulseHistory.frustrated}</p>
+        {/* CENTER COLUMN — Focus + Slides + Messages */}
+        <main className="col-center">
+          <SessionFocus focus={focus} />
+          <SlidesPanel />
+          <MessageStream messages={messages} />
+          <TrainerComposer />
+        </main>
 
-      <h2>Spotlight</h2>
-      <p>Focus: {focus}</p>
-      <p>
-        Latest move: {engineMove?.move ?? "waiting for insights"}
-        {engineMove?.reasoning ? ` (${engineMove.reasoning})` : ""}
-      </p>
-      <p>Participants tracked: {Object.keys(roomState).length}</p>
+        {/* RIGHT COLUMN — Trainer Console */}
+        <aside className="col-right">
+          <CameraPanel />
+          <SetFocusInput />
+          <QuickActions />
+        </aside>
 
-      <h2>Messages</h2>
-      <ul>
-        {messages.map((msg) => (
-          <li key={msg.id}>
-            {msg.body} — {formatTimestamp(msg.timestamp)}
-          </li>
-        ))}
-      </ul>
+      </div>
     </div>
   );
 }

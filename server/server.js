@@ -81,6 +81,18 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("[SERVER] client connected", socket.id);
 
+  // -------------------------------
+  // TRAINER SET FOCUS
+  // -------------------------------
+  socket.on("trainer:setFocus", (payload = {}) => {
+    try {
+      console.log("[SERVER] trainer:setFocus IN:", payload);
+      io.emit("trainer:setFocus", payload);
+    } catch (err) {
+      console.error("[SERVER] trainer:setFocus error:", err);
+    }
+  });
+
   function normalizePulse(payload = {}) {
     const normalized = normalizeAudiencePulse(payload);
     if (!normalized) return null;

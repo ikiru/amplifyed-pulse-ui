@@ -1,0 +1,157 @@
+/* ----------------------------------------------------
+   Phase 1-D — Structural Spacing & Baseline Layout
+   No design. No colors. Pure layout and readability.
+   ---------------------------------------------------- */
+
+/* Global baseline inside TrainerView */
+.trainer-view {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  font-family: system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+/* Three-column strict grid */
+.trainer-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 280px;  /* Left | Center | Right */
+  grid-template-rows: 100%;
+  width: 100%;
+  height: 100%;
+}
+
+/* Shared column styles */
+.col-left,
+.col-center,
+.col-right {
+  padding: 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+/* Structural borders */
+.col-left {
+  border-right: 1px solid #e0e0e0;
+}
+.col-right {
+  border-left: 1px solid #e0e0e0;
+}
+
+/* ====================================================
+   CORRECTED CENTER COLUMN RULES (class-based & safe)
+   ==================================================== */
+
+/* 1. SessionFocus stays pinned to the top */
+.session-focus-frame {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 2;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+/* 2. SlidesPanel sits under SessionFocus */
+.slides-panel {
+  flex-shrink: 0;
+  min-height: 60px;
+}
+
+/* 3. MessageStream takes all remaining vertical space */
+.message-stream {
+  flex-grow: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* 4. TrainerComposer stays pinned at the bottom */
+.trainer-composer {
+  flex-shrink: 0;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+/* ---------- LEFT COLUMN RULES ---------- */
+.col-left > * {
+  min-height: 24px;
+  display: block;
+}
+
+/* ---------- RIGHT COLUMN RULES ---------- */
+.col-right > * {
+  min-height: 40px;
+  display: block;
+}
+
+/* ----------------------------------------------------
+   Phase 1-E — Column Visibility & Layout Safety Rules
+   ---------------------------------------------------- */
+
+/* 1. Safety: prevent collapsing layout */
+.trainer-grid {
+  min-width: 720px;
+}
+
+/* 2. Hide empty right column */
+.col-right:empty {
+  width: 0;
+  padding: 0;
+  border-left: none;
+}
+
+/* 3. Hide empty left column */
+.col-left:empty {
+  width: 0;
+  padding: 0;
+  border-right: none;
+}
+
+/* 4. Structural minimum widths */
+.col-left {
+  min-width: 240px;
+}
+.col-right {
+  min-width: 240px;
+}
+.col-center {
+  min-width: 240px;
+  flex: 1;
+}
+
+/* 5. Collapse right column first on narrow viewports */
+@media (max-width: 1024px) {
+  .trainer-grid {
+    grid-template-columns: 240px 1fr 0px;
+  }
+  .col-right {
+    display: none;
+  }
+}
+
+/* 6. At very narrow widths, hide left as well */
+@media (max-width: 760px) {
+  .trainer-grid {
+    grid-template-columns: 1fr;
+  }
+  .col-left,
+  .col-right {
+    display: none;
+  }
+}
+
+/* 7. Center column owns scroll context */
+.col-center {
+  overflow-y: auto;
+  position: relative;
+}

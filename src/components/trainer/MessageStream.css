@@ -1,0 +1,41 @@
+.message-stream.empty {
+  opacity: 0.5;
+  padding: 12px;
+  font-style: italic;
+}
+
+.message-bubble {
+  background: #f1f1f1;
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: inline-flex;
+  flex-direction: column;
+  max-width: 320px;
+}
+
+.message-text {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.message-meta {
+  font-size: 11px;
+  opacity: 0.6;
+  display: flex;
+  gap: 12px;              /* Increased spacing between time + author */
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.author-tag {
+  font-weight: bold;
+}
+
+.message-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;              /* nice spacing between messages */
+  padding: 12px 0;        /* top & bottom breathing room */
+  align-items: flex-start; /* bubbles hug the left */
+  min-height: 200px;       /* ensures area has presence even when empty */
+}

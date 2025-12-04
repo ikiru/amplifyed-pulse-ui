@@ -3,8 +3,8 @@ import React from "react";
 import "./PulseTimeline.css";
 
 export default function PulseTimeline({ pulses }) {
-  // Guarantee pulses is always a valid array
-  const safePulses = Array.isArray(pulses) ? pulses : [];
+  // Provide a fallback array so the component never short-circuits
+  const list = pulses ?? [];
 
   // DEBUG GUARD: stop component from exploding
   if (!Array.isArray(pulses)) {
@@ -13,11 +13,11 @@ export default function PulseTimeline({ pulses }) {
 
   return (
     <div className="pulse-timeline">
-      {safePulses.length === 0 && (
+      {list.length === 0 && (
         <div className="pulse-timeline-empty">No pulses yet</div>
       )}
 
-      {safePulses.map((p, idx) => {
+      {list.map((p, idx) => {
         const value = typeof p.value === "number" ? p.value : 0;
         const emotion = p.emotion || "neutral";
 

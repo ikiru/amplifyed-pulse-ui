@@ -26,6 +26,23 @@ export const useEmotionalStream = create((set, get) => ({
 
   lastUpdate: Date.now(),
 
+  // NEW: message storage
+  messages: [],
+
+  // NEW: message reducer
+  addMessage(msg) {
+    set((state) => ({
+      messages: [
+        ...state.messages,
+        {
+          text: msg?.text ?? "",
+          timestamp: msg?.timestamp ?? Date.now(),
+          author: msg?.author ?? "audience",
+        }
+      ]
+    }));
+  },
+
   levels() {
     const state = get();
     const current = state?.current ?? DEFAULT_CURRENT;
