@@ -1,50 +1,119 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useSocket } from "../socket/useSocket";
 
-export default function TrainerView() {
-  const socket = useSocket();
+// Left Column Components
+import SignalDeck from "../components/console/SignalDeck.jsx";
+import PulseTimeline from "../components/console/PulseTimeline.jsx";
+import InsightLine from "../components/console/InsightLine.jsx";
 
-  const [pulses, setPulses] = useState([]);
-  const [messages, setMessages] = useState([]);
+// Center Column Components
+import SessionFocus from "../components/trainer/SessionFocus.jsx";
+import SlidesPanel from "../components/trainer/SlidesPanel.jsx";
+import MessageStream from "../components/trainer/MessageStream.jsx";
+import TrainerComposer from "../components/trainer/TrainerComposer.jsx";
+
+// Right Column Components
+import CameraPanel from "../components/trainer/CameraPanel.jsx";
+import SetFocusInput from "../components/trainer/SetFocusInput.jsx";
+import QuickActions from "../components/trainer/QuickActions.jsx";
+
+// Correct Stores
+import usePulseHistory from "../utils/usePulseHistory";
+import useMessageStream from "../state/useMessageStream";
+import useSessionFocus from "../state/useSessionFocus";
+
+// Styles
+import "./TrainerView.css";
+
+export default function TrainerView() {
+
+  /* -------------------------------
+     STATE STORES
+  --------------------------------*/
+  const pulses = usePulseHistory((s) => s.pulses);
+  const addPulse = usePulseHistory((s) => s.addPulse);
+
+  const addMessage = useMessageStream((s) => s.addMessage);
+  const messages = useMessageStream((s) => s.messages);
+
+  const focus = useSessionFocus((s) => s.focus);
+  const setFocus = useSessionFocus((s) => s.setFocus);
+
+  const { socket, connectionStatus } = useSocket();
 
   useEffect(() => {
     if (!socket) return undefined;
 
-    const cleanups = [
-      socket.listen("pulse:update", (payload) => {
-        setPulses((p) => [...p, payload]);
-      }),
-      socket.listen("message:update", (payload) => {
-        setMessages((m) => [...m, payload]);
-      }),
-    ];
+    const handleMessageNew = (msg) => {
+      console.log("[TRAINER] message:new", msg);
+      addMessage(msg);
+    };
+
+    const handleFocusUpdate = (focusPayload) => {
+      console.log("[TRAINER] focus:update", focusPayload);
+      setFocus(focusPayload?.id ?? focusPayload?.messageId ?? null);
+    };
+
+    const handleRoomState = (packet) => {
+      console.log("[TRAINER] pulse:roomstate", packet);
+      addPulse({
+        counts: packet.counts ?? {},
+        score: packet.score ?? 0,
+        timestamp: packet.timestamp ?? Date.now(),
+      });
+    };
+
+    socket.on("message:new", handleMessageNew);
+    socket.on("focus:update", handleFocusUpdate);
+    socket.on("pulse:roomstate", handleRoomState);
 
     return () => {
-      cleanups.forEach((cleanup) => cleanup && cleanup());
+      socket.off("message:new", handleMessageNew);
+      socket.off("focus:update", handleFocusUpdate);
+      socket.off("pulse:roomstate", handleRoomState);
     };
-  }, [socket]);
+  }, [socket, addMessage, setFocus, addPulse]);
 
+  /* -------------------------------
+     RENDER LAYOUT
+  --------------------------------*/
   return (
-    <div style={{ padding: "40px" }}>
-      <h1>Trainer View</h1>
+    <div className="trainer-view">
+      <div className="socket-status">Socket: {connectionStatus}</div>
 
-      <h2>Pulses</h2>
-      {pulses.length === 0 && <p>(none yet)</p>}
-      {pulses.map((p, i) => (
-        <div key={i}>
-          Emotion: {p.emotion} | Value: {p.value} | Time: {p.timestamp}
-        </div>
-      ))}
+      <div className="trainer-grid">
 
-      <br />
+        {/* LEFT COLUMN — Signals */}
+        <aside className="col-left">
+          <SignalDeck pulses={pulses} />
+          <PulseTimeline pulses={pulses} />
+          <InsightLine pulses={pulses} />
+        </aside>
 
-      <h2>Messages</h2>
-      {messages.length === 0 && <p>(none yet)</p>}
-      {messages.map((msg, i) => (
-        <div key={i}>
-          {msg.text} — {msg.timestamp}
-        </div>
-      ))}
+        {/* CENTER COLUMN — Focus + Slides + Messages */}
+        <main className="col-center">
+          <div className="session-focus-frame">
+            <SessionFocus focus={focus} />
+          </div>
+          <div className="slides-panel">
+            <SlidesPanel />
+          </div>
+          <div className="message-stream">
+            <MessageStream messages={messages} />
+          </div>
+          <div className="trainer-composer">
+            <TrainerComposer />
+          </div>
+        </main>
+
+        {/* RIGHT COLUMN — Trainer Console */}
+        <aside className="col-right">
+          <CameraPanel />
+          <SetFocusInput />
+          <QuickActions />
+        </aside>
+
+      </div>
     </div>
   );
 }

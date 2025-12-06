@@ -1,8 +1,6 @@
 // server/server.js
 import http from "http";
 import { Server } from "socket.io";
-import crypto from "crypto";
-import { normalizeEmotionValue } from "../src/config/pulseLogic.js";
 
 // ===============================================
 //  ENGINE INSIGHT PACKET MUTE SWITCH (GLOBAL)
@@ -14,55 +12,35 @@ function setEngineMute(value) {
   console.log(`[ENGINE] mute = ${ENGINE_MUTE}`);
 }
 
-const AUDIENCE_PULSE_HISTORY_LIMIT = 240;
-const audiencePulseHistory = [];
+// ================= ROOM EMOTIONAL STATE ENGINE ===================
+// Track each participant’s CURRENT emotional vote (1, 0, -1)
+const roomState = new Map(); // socket.id -> { emotion, value }
 
-const normalizeAudiencePulse = (payload = {}) => {
-  const emotion =
-    typeof payload.emotion === "string" && payload.emotion.trim().length
-      ? payload.emotion.trim().toLowerCase()
-      : "neutral";
-  const timestamp = Number.isFinite(payload.timestamp)
-    ? payload.timestamp
-    : Date.now();
-  const valueCandidate =
-    typeof payload.value === "number" && Number.isFinite(payload.value)
-      ? payload.value
-      : undefined;
-  const normalizedValue = normalizeEmotionValue(emotion, valueCandidate);
-  audiencePulseHistory.push(normalizedValue);
-  if (audiencePulseHistory.length > AUDIENCE_PULSE_HISTORY_LIMIT) {
-    audiencePulseHistory.shift();
+function normalizeEmotion(emotion) {
+  if (emotion === "engaged") return { emotion, value: +1 };
+  if (emotion === "frustrated") return { emotion, value: -1 };
+  return { emotion: "neutral", value: 0 };
+}
+
+function computeRoomState() {
+  let engaged = 0;
+  let neutral = 0;
+  let frustrated = 0;
+  let score = 0;
+
+  for (const { emotion, value } of roomState.values()) {
+    if (emotion === "engaged") engaged++;
+    else if (emotion === "frustrated") frustrated++;
+    else neutral++;
+    score += value;
   }
 
   return {
-    emotion,
-    value: normalizedValue,
-    values: [...audiencePulseHistory],
-    timestamp,
-    source: "audience",
-    signal: "audience",
+    counts: { engaged, neutral, frustrated },
+    score,
+    timestamp: Date.now(),
   };
-};
-
-const buildTrainerMessage = (payload = {}) => {
-  const text =
-    typeof payload.text === "string"
-      ? payload.text.trim()
-      : typeof payload === "string"
-      ? payload.trim()
-      : "";
-  if (!text) return null;
-
-  return {
-    id: payload.id ?? crypto.randomUUID(),
-    text,
-    role: payload.role ?? "participant",
-    timestamp: Number.isFinite(payload.timestamp)
-      ? payload.timestamp
-      : Date.now(),
-  };
-};
+}
 
 const server = http.createServer();
 const io = new Server(server, {
@@ -72,89 +50,59 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-  console.log("[SERVER] client connected", socket.id);
+  console.log("[SERVER] CONNECTED:", socket.id);
+  console.log("[SERVER] TOTAL CLIENTS:", io.engine.clientsCount);
 
-  function normalizePulse(payload = {}) {
-    const normalized = normalizeAudiencePulse(payload);
-    if (!normalized) return null;
-    return {
-      type: "pulse",
-      emotion: normalized.emotion,
-      value: Number.isFinite(normalized.value) ? normalized.value : 0,
-      timestamp: Number.isFinite(normalized.timestamp)
-        ? normalized.timestamp
-        : Date.now(),
-      source: normalized.source || "audience",
-      signal: normalized.signal || "audience",
-      values: Array.isArray(normalized.values) ? normalized.values : [],
-      color: normalized.color,
-      level: normalized.level ?? normalized.value,
-    };
-  }
+  // -------------------------------
+  // AUDIENCE PULSE HANDLING (NEW ROOM ENGINE)
+  // -------------------------------
+  socket.on("audience:pulse", (payload = {}) => {
+    const raw = payload?.emotion ?? "neutral";
+    const normalized = normalizeEmotion(raw);
 
-  function normalizeMessage(payload = {}) {
-    const message = buildTrainerMessage(payload);
-    if (!message) return null;
-    return {
-      type: "message",
-      sender: message.role || "participant",
-      role: message.role,
-      id: message.id,
-      message: message.text,
-      text: message.text,
-      time: Number.isFinite(message.timestamp)
-        ? message.timestamp
-        : Date.now(),
-    };
-  }
+    roomState.set(socket.id, normalized);
 
-  socket.on("audience:pulse", (payload) => {
-    console.log("[SERVER] audience:pulse IN:", payload);
-    const packet = normalizePulse(payload);
-    if (!packet) {
-      console.warn("[SERVER] invalid audience pulse payload:", payload);
-      return;
-    }
-
-    io.emit("pulse:update", packet);
-    console.log("[SERVER] pulse:update OUT:", packet);
+    const summary = computeRoomState();
+    io.emit("pulse:roomstate", summary);
   });
 
-  socket.on("audience:message", (payload) => {
-    console.log("[SERVER] audience:message IN:", payload);
+  // On disconnect → remove vote and recompute
+  socket.on("disconnect", () => {
+    roomState.delete(socket.id);
+    const summary = computeRoomState();
+    io.emit("pulse:roomstate", summary);
 
-    const message = {
-      type: "message",
-      text: payload.text,
+    console.log("[SERVER] DISCONNECTED:", socket.id);
+    console.log("[SERVER] TOTAL CLIENTS:", io.engine.clientsCount);
+  });
+
+  // -------------------------------
+  // MESSAGE RELAY
+  // -------------------------------
+  socket.on("audience:message", (payload = {}) => {
+    io.emit("message:new", {
+      from: "audience",
+      text: payload?.text ?? payload?.message ?? "",
       timestamp: Date.now(),
-      source: "audience",
-    };
-
-    io.emit("message:update", message);
-
-    console.log("[SERVER] message:update OUT:", message);
+    });
   });
 
-  // REAL Audience Messages → Trainer
-  socket.on("audience:message", (msg) => {
-    console.log("[SERVER] audience:message IN:", msg);
-    const packet = normalizeMessage(msg);
-    if (!packet) {
-      console.warn("[SERVER] invalid audience message payload:", msg);
-      return;
-    }
-    io.emit("trainer:message", packet);
-    console.log("[SERVER] trainer:message OUT:", packet);
+  socket.on("trainer:message", (payload = {}) => {
+    io.emit("message:new", {
+      from: "trainer",
+      text: payload?.text ?? payload?.message ?? "",
+      timestamp: Date.now(),
+    });
   });
 
-  // REAL Trainer Messages → Everyone
-  socket.on("trainer:message", (msg) => {
-    console.log("[SERVER] received trainer message:", msg);
-    if (!msg || typeof msg.text !== "string") {
-      console.log("[SERVER] invalid trainer message:", msg);
-      return;
-    }
-    io.emit("trainer:message", msg);
+  // -------------------------------
+  // FOCUS TRACKING
+  // -------------------------------
+  socket.on("trainer:setfocus", (payload = {}) => {
+    io.emit("focus:update", {
+      id: payload?.id ?? payload?.messageId ?? null,
+      timestamp: Date.now(),
+    });
   });
 
   socket.on("debug:setEngineMute", (value) => {
@@ -162,10 +110,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("message:new", (msg = {}) => {
-    // Phase 3.5 safety placeholder:
-    // if (isBlockedContent(msg.text)) { ... }
-
-    io.emit("message:new", msg);
+    io.emit("message:new", {
+      ...msg,
+      text: msg.text ?? msg.message ?? "",
+    });
   });
 
   // -----------------------------------------------------
@@ -186,6 +134,7 @@ io.on("connection", (socket) => {
       }
     }, 500);
   }
+
 });
 
 const PORT = 3000;

@@ -6,5 +6,5 @@ export function processEmotionEvent(io, event) {
 
   const map = updateStateMap(event);
 
-  io.emit(EMOTION_MAP_EVENT, map);
+  //io.emit(EMOTION_MAP_EVENT, map);
 }

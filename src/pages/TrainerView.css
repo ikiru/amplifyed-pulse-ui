@@ -1,0 +1,237 @@
+/* ----------------------------------------------------
+   Phase 1-D — Structural Spacing & Baseline Layout
+   No design. No colors. Pure layout and readability.
+   ---------------------------------------------------- */
+
+/* Global baseline inside TrainerView */
+.trainer-view {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  font-family: system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+/* Three-column strict grid */
+.trainer-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 280px;  /* Left | Center | Right */
+  grid-template-rows: 100%;
+  width: 100%;
+  height: 100%;
+}
+
+/* Shared column styles */
+.col-left,
+.col-center,
+.col-right {
+  padding: 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+/* Structural borders */
+.col-left {
+  border-right: 1px solid #e0e0e0;
+}
+.col-right {
+  border-left: 1px solid #e0e0e0;
+}
+
+/* ====================================================
+   CORRECTED CENTER COLUMN RULES (class-based & safe)
+   ==================================================== */
+
+/* 1. SessionFocus stays pinned to the top */
+.session-focus-frame {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 2;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+/* 2. SlidesPanel sits under SessionFocus */
+.slides-panel {
+  flex-shrink: 0;
+  min-height: 60px;
+}
+
+/* 3. MessageStream takes all remaining vertical space */
+.message-stream {
+  flex-grow: 1;
+  min-height: 0;
+  overflow-y: scroll;
+  padding-right: 4px;
+}
+
+/* 4. TrainerComposer stays pinned at the bottom */
+.trainer-composer {
+  flex-shrink: 0;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+/* ---------- LEFT COLUMN RULES ---------- */
+.col-left > * {
+  min-height: 24px;
+  display: block;
+}
+
+/* ---------- RIGHT COLUMN RULES ---------- */
+.col-right > * {
+  min-height: 40px;
+  display: block;
+}
+
+/* ----------------------------------------------------
+   Phase 1-E — Column Visibility & Layout Safety Rules
+   ---------------------------------------------------- */
+
+/* 1. Safety: prevent collapsing layout */
+.trainer-grid {
+  min-width: 620px; /* Prevent early overflow but keep layout stable */
+}
+
+/* 2. Hide empty right column */
+.col-right:empty {
+  width: 0;
+  padding: 0;
+  border-left: none;
+}
+
+/* 3. Hide empty left column */
+.col-left:empty {
+  width: 0;
+  padding: 0;
+  border-right: none;
+}
+
+/* 4. Structural minimum widths */
+.col-left {
+  min-width: 240px;
+}
+.col-right {
+  min-width: 240px;
+}
+.col-center {
+  min-width: 240px;
+  flex: 1;
+}
+
+/* 5. Collapse right column first on narrow viewports */
+@media (max-width: 1024px) {
+  .trainer-grid {
+    grid-template-columns: 240px 1fr 0px;
+  }
+  .col-right {
+    display: none;
+  }
+}
+
+/* 6. At very narrow widths, hide left as well */
+@media (max-width: 760px) {
+  .trainer-grid {
+    grid-template-columns: 1fr;
+  }
+  .col-left,
+  .col-right {
+    display: none;
+  }
+}
+
+/* left & right columns stronger scroll isolation */
+.col-left,
+.col-right {
+  overflow-y: scroll;
+  min-height: 0;
+}
+
+/* 7. Center column owns scroll context */
+.col-center {
+  overflow: hidden; /* Column itself should NOT scroll */
+  position: relative;
+}
+/* ----------------------------------------------------
+   Phase 1-H — Visual Foundation Layer (Neutral styling)
+   ---------------------------------------------------- */
+
+/* Mild background separation for left + right columns */
+.col-left,
+.col-right {
+  background: #fafafa;
+}
+
+/* Subtle center panel background */
+.col-center {
+  background: #ffffff;
+}
+
+/* Region separators */
+.session-focus-frame {
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.slides-panel {
+  border-bottom: 1px solid #e5e5e5;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+/* Message stream region: light divider above composer */
+.trainer-composer {
+  border-top: 1px solid #e2e2e2;
+  background: #fafafa;
+}
+
+/* Improve readability by tightening vertical rhythm */
+.trainer-view {
+  line-height: 1.45;
+}
+
+/* Optional subtle shadow separation (no brand styling) */
+.col-left {
+  box-shadow: inset -1px 0 0 #e3e3e3;
+}
+.col-right {
+  box-shadow: inset 1px 0 0 #e3e3e3;
+}
+
+/* Slight optical padding adjustment for center column */
+.col-center {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+/* Ensure sticky SessionFocus stays visually anchored */
+.session-focus-frame {
+  background: #ffffff;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+}
+
+/* Slides panel subtle "band" effect */
+.slides-panel {
+  background: #fcfcfc;
+}
+
+/* Message scroll rail tweak */
+.message-stream::-webkit-scrollbar {
+  width: 6px;
+}
+.message-stream::-webkit-scrollbar-thumb {
+  background: #cfcfcf;
+  border-radius: 3px;
+}
+.message-stream::-webkit-scrollbar-track {
+  background: transparent;
+}

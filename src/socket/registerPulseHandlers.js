@@ -1,4 +1,4 @@
-import { usePulseHistory } from "../utils/usePulseHistory.js";
+import usePulseHistory from "../utils/usePulseHistory.js";
 
 const ENGINE_INSIGHT_FLAG = Symbol("engine:insight:handled");
 

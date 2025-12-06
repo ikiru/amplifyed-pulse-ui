@@ -1,0 +1,21 @@
+.set-focus-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.set-focus-input input {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.set-focus-input button {
+  padding: 6px 10px;
+  font-size: 14px;
+  background: #eaeaea;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+}
