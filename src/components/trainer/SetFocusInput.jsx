@@ -1,25 +1,42 @@
+// src/components/trainer/SetFocusInput.jsx
 import React, { useState } from "react";
-import { useSocket } from "../../socket/useSocket";
+import useSocket from "../../socket/useSocket";
+import useSessionFocus from "../../state/useSessionFocus";
 
 export default function SetFocusInput() {
-  const [text, setText] = useState("");
+  const [value, setValue] = useState("");
+  const { emit } = useSocket();
+  const setFocus = useSessionFocus((s) => s.setFocus);
 
-  const { emit } = useSocket({});
+  const handleApply = (evt) => {
+    evt?.preventDefault();
+    const trimmed = value.trim();
+    if (!trimmed || !emit) return;
 
-  const applyFocus = () => {
-    emit("trainer:setFocus", { focus: text });
-    setText("");
+    // This is the critical part: send `id`
+    emit("trainer:setfocus", { id: trimmed });
+
+    // Update local store so SessionFocus reflects it immediately
+    setFocus(trimmed);
+
+    setValue("");
   };
 
   return (
-    <div>
-      <label>Set Focus</label>
-      <input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Enter session focus..."
-      />
-      <button onClick={applyFocus}>Apply</button>
-    </div>
+    <form onSubmit={handleApply} style={{ marginTop: "1rem" }}>
+      <label style={{ display: "block", marginBottom: "0.25rem" }}>
+        Set Focus
+      </label>
+      <div>
+        <input
+          type="text"
+          placeholder="Enter session focus..."
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          style={{ marginRight: "0.5rem", minWidth: "200px" }}
+        />
+        <button type="submit">Apply</button>
+      </div>
+    </form>
   );
 }

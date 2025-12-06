@@ -1,17 +1,49 @@
 import { create } from "zustand";
 
 const usePulseHistory = create((set, get) => ({
-  // Always initialize as an empty array
   pulses: [],
+  score: 0,
 
-  // Add new pulse safely
-  addPulse: (pulse) =>
-    set((state) => ({
-      pulses: [...state.pulses, pulse]
-    })),
+  addPulse: (pulse = {}) => {
+    const { pulses, score } = get();
 
-  // Optional: clear pulses (for future buttons or debugging)
-  clear: () => set({ pulses: [] })
+    const incomingScore =
+      typeof pulse.score === "number" ? pulse.score : score;
+    const delta = incomingScore - score;
+
+    const counts = pulse.counts ?? {};
+
+    const engaged = counts.engaged ?? 0;
+    const neutral = counts.neutral ?? 0;
+    const frustrated = counts.frustrated ?? 0;
+
+    let dominantEmotion = "neutral";
+    if (engaged >= neutral && engaged >= frustrated) dominantEmotion = "engaged";
+    else if (frustrated > engaged && frustrated >= neutral)
+      dominantEmotion = "frustrated";
+
+    const entry = {
+      ...pulse,
+      counts,
+      delta,
+      emotion: dominantEmotion,
+      score: incomingScore,
+    };
+
+    console.log(
+      "[PULSE_HISTORY] delta:",
+      delta,
+      "new score:",
+      incomingScore,
+      "counts:",
+      counts
+    );
+
+    set({
+      pulses: [...pulses, entry],
+      score: incomingScore,
+    });
+  },
 }));
 
 export default usePulseHistory;

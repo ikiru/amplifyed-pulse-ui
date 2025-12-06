@@ -70,7 +70,7 @@
 .message-stream {
   flex-grow: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow-y: scroll;
   padding-right: 4px;
 }
 
@@ -100,7 +100,7 @@
 
 /* 1. Safety: prevent collapsing layout */
 .trainer-grid {
-  min-width: 720px;
+  min-width: 620px; /* Prevent early overflow but keep layout stable */
 }
 
 /* 2. Hide empty right column */
@@ -150,8 +150,88 @@
   }
 }
 
+/* left & right columns stronger scroll isolation */
+.col-left,
+.col-right {
+  overflow-y: scroll;
+  min-height: 0;
+}
+
 /* 7. Center column owns scroll context */
 .col-center {
-  overflow-y: auto;
+  overflow: hidden; /* Column itself should NOT scroll */
   position: relative;
+}
+/* ----------------------------------------------------
+   Phase 1-H — Visual Foundation Layer (Neutral styling)
+   ---------------------------------------------------- */
+
+/* Mild background separation for left + right columns */
+.col-left,
+.col-right {
+  background: #fafafa;
+}
+
+/* Subtle center panel background */
+.col-center {
+  background: #ffffff;
+}
+
+/* Region separators */
+.session-focus-frame {
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.slides-panel {
+  border-bottom: 1px solid #e5e5e5;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+/* Message stream region: light divider above composer */
+.trainer-composer {
+  border-top: 1px solid #e2e2e2;
+  background: #fafafa;
+}
+
+/* Improve readability by tightening vertical rhythm */
+.trainer-view {
+  line-height: 1.45;
+}
+
+/* Optional subtle shadow separation (no brand styling) */
+.col-left {
+  box-shadow: inset -1px 0 0 #e3e3e3;
+}
+.col-right {
+  box-shadow: inset 1px 0 0 #e3e3e3;
+}
+
+/* Slight optical padding adjustment for center column */
+.col-center {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+/* Ensure sticky SessionFocus stays visually anchored */
+.session-focus-frame {
+  background: #ffffff;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+}
+
+/* Slides panel subtle "band" effect */
+.slides-panel {
+  background: #fcfcfc;
+}
+
+/* Message scroll rail tweak */
+.message-stream::-webkit-scrollbar {
+  width: 6px;
+}
+.message-stream::-webkit-scrollbar-thumb {
+  background: #cfcfcf;
+  border-radius: 3px;
+}
+.message-stream::-webkit-scrollbar-track {
+  background: transparent;
 }

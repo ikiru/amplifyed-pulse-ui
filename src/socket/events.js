@@ -3,13 +3,13 @@
 
 export const EVENTS = {
   AUDIENCE_MESSAGE: "audience:message",
-  AUDIENCE_MESSAGE_ACK: "audience:message:ack",
   AUDIENCE_PULSE: "audience:pulse",
 
-  TRAINER_MESSAGE: "trainer:message",
+  // Deprecated events removed
+  TRAINER_MESSAGE: "message:new",
+  FOCUS_CHANGE: "focus:update",
 
   ENGINE_MOVE: "engine:move",
-  FOCUS_CHANGE: "focus:change",
 
   PULSE_UPDATE: "pulse:update",
 };

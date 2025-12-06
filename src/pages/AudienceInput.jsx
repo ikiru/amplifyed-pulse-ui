@@ -1,10 +1,8 @@
 // src/pages/AudienceInput.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSocket } from "../socket/useSocket";
-import EVENTS from "../socket/events";
 import ConnectionStatus from "../components/system/ConnectionStatus";
 import "../components/system/ConnectionStatus.css";
-import guard from "../utils/guard";
 
 // Future: ingestion hook for local echo or LiveRoom merge
 // import usePulseIngestion from "../utils/usePulseIngestion";
@@ -12,13 +10,31 @@ import guard from "../utils/guard";
 
 export default function AudienceInput() {
   const [message, setMessage] = useState("");
-  const [currentEmotion, setCurrentEmotion] = useState(null);
   const [sentMessages, setSentMessages] = useState([]);
+  const [lastEmotion, setLastEmotion] = useState(null);
 
-  const { emit, connectionStatus } = useSocket({
-    [EVENTS.AUDIENCE_MESSAGE_ACK]: (payload) =>
-      guard(() => console.log("[Audience] ack:", payload), "AUDIENCE_MESSAGE_ACK"),
-  });
+  const { emit, socket, connectionStatus } = useSocket();
+
+  useEffect(() => {
+    if (!socket) return undefined;
+
+    const handleMessageNew = (msg) => {
+      console.log("[AUDIENCE] message:new", msg);
+      setSentMessages((prev) => [...prev, msg]);
+    };
+
+    const handleFocusUpdate = (focus) => {
+      console.log("[AUDIENCE] focus:update", focus);
+    };
+
+    socket.on("message:new", handleMessageNew);
+    socket.on("focus:update", handleFocusUpdate);
+
+    return () => {
+      socket.off("message:new", handleMessageNew);
+      socket.off("focus:update", handleFocusUpdate);
+    };
+  }, [socket]);
 
   const handleSend = (evt) => {
     evt?.preventDefault();
@@ -31,28 +47,47 @@ export default function AudienceInput() {
       author: "audience",
     };
 
-    emit(EVENTS.AUDIENCE_MESSAGE, payload);
-
-    // ONLY store real text messages
-    setSentMessages((prev) => [...prev, payload]);
+    emit("audience:message", payload);
 
     setMessage("");
   };
 
-  const sendPulse = (emotion) => {
+  const emotionToValue = (emotion) => {
+    switch (emotion) {
+      case "engaged":
+        return 1;
+      case "neutral":
+        return 0;
+      case "frustrated":
+        return -1;
+      default:
+        return 0;
+    }
+  };
+
+  const sendDeltaPulse = (newEmotion) => {
     if (!emit) return;
-    if (emotion === currentEmotion) return;
+    const oldValue = emotionToValue(lastEmotion);
+    const newValue = emotionToValue(newEmotion);
+    const delta = newValue - oldValue;
 
-    setCurrentEmotion(emotion);
+    if (delta === 0) {
+      console.log("[AUDIENCE] No delta — ignoring duplicate pulse.");
+      return;
+    }
 
-    emit(EVENTS.AUDIENCE_PULSE, {
-      emotion,
-      timestamp: Date.now(),
-      author: "audience",
+    console.log("[AUDIENCE] Sending delta pulse:", {
+      newEmotion,
+      oldValue,
+      newValue,
+      delta,
     });
 
-    // ❌ DO NOT append pulses to the message list
-    // (This is the fix)
+    emit("audience:pulse", {
+      emotion: newEmotion,
+    }); // send only emotion
+
+    setLastEmotion(newEmotion);
   };
 
   return (
@@ -61,9 +96,9 @@ export default function AudienceInput() {
       <h1>Audience Input</h1>
 
       <div style={{ marginBottom: "1rem" }}>
-        <PulseButton emotion="engaged" label="Engaged" onClick={sendPulse} />
-        <PulseButton emotion="neutral" label="Neutral" onClick={sendPulse} />
-        <PulseButton emotion="frustrated" label="Frustrated" onClick={sendPulse} />
+        <PulseButton emotion="engaged" label="Engaged" onClick={sendDeltaPulse} />
+        <PulseButton emotion="neutral" label="Neutral" onClick={sendDeltaPulse} />
+        <PulseButton emotion="frustrated" label="Frustrated" onClick={sendDeltaPulse} />
       </div>
 
       <form onSubmit={handleSend} style={{ marginBottom: "1rem" }}>

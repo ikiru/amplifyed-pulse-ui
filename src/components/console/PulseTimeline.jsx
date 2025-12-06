@@ -1,12 +1,10 @@
-// src/components/console/PulseTimeline.jsx
 import React from "react";
 import "./PulseTimeline.css";
 
 export default function PulseTimeline({ pulses }) {
-  // Provide a fallback array so the component never short-circuits
-  const list = pulses ?? [];
+  // Ensure always an array
+  const list = Array.isArray(pulses) ? pulses : [];
 
-  // DEBUG GUARD: stop component from exploding
   if (!Array.isArray(pulses)) {
     console.warn("PulseTimeline received non-array pulses:", pulses);
   }
@@ -18,7 +16,7 @@ export default function PulseTimeline({ pulses }) {
       )}
 
       {list.map((p, idx) => {
-        const value = typeof p.value === "number" ? p.value : 0;
+        const value = typeof p.delta === "number" ? p.delta : 0;
         const emotion = p.emotion || "neutral";
 
         return (
@@ -32,7 +30,7 @@ export default function PulseTimeline({ pulses }) {
                   : emotion === "neutral"
                   ? "#CCCCCC"
                   : "#E57373",
-              opacity: 0.4 + value * 0.6,
+              opacity: 0.4 + Math.abs(value) * 0.6,
             }}
           />
         );

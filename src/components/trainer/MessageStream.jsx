@@ -1,27 +1,33 @@
-// MessageStream.jsx
-import React from "react";
+// src/components/trainer/MessageStream.jsx
+import React, { useEffect, useRef } from "react";
 import "./MessageStream.css";
 
 export default function MessageStream({ messages = [] }) {
-  if (!Array.isArray(messages) || messages.length === 0) {
-    return (
-      <div className="message-stream empty">
-        <p>No messages yet</p>
-      </div>
-    );
-  }
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   return (
-    <div className="message-stream">
-      {messages.map((m) => (
-        <div key={m.id} className="message-bubble">
-          <div className="message-text">{m.message}</div>
-          <div className="message-meta">
-            <span>{new Date(m.timestamp).toLocaleTimeString()}</span>
-            <span className="author-tag">{m.author}</span>
+    <div className="message-stream-container">
+      {messages.map((msg, idx) => {
+        const text = msg.text ?? msg.message ?? msg.msg ?? msg.content ?? "";
+        const author = msg.author ?? msg.sender ?? msg.from ?? "unknown";
+        return (
+          <div key={idx} className="message-bubble">
+            <div className="message-author">{author}</div>
+            <div className="message-text">{text}</div>
+            <div className="message-timestamp">
+              {new Date(msg.timestamp).toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
+      <div ref={bottomRef} />
     </div>
   );
 }

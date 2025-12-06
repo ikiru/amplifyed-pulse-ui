@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import { useSocket } from "../../socket/useSocket";
 import useMessageStream from "../../state/useMessageStream";
+import "./TrainerComposer.css";
 
 export default function TrainerComposer() {
   const [text, setText] = useState("");
   const { emit } = useSocket({});
   const addMessage = useMessageStream((s) => s.addMessage);
 
-  const send = () => {
+  const handleSend = () => {
     if (!text.trim()) return;
 
     const msg = {
@@ -28,13 +29,16 @@ export default function TrainerComposer() {
   };
 
   return (
-    <div className="trainer-composer">
+    <div className="trainer-composer-bar">
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Type message…"
+        placeholder="Type message..."
+        className="composer-input"
       />
-      <button onClick={send}>Send</button>
+      <button className="composer-send-btn" onClick={handleSend}>
+        Send
+      </button>
     </div>
   );
 }

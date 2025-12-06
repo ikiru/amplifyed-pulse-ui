@@ -1,5 +1,5 @@
 // src/socket/useSocket.js
-import { useCallback, useContext, useEffect } from "react";
+import { useContext, useEffect } from "react";
 import { SocketContext } from "./SocketContext.jsx";
 
 // Shared socket hook: wires optional event handlers and exposes the socket instance.
@@ -22,13 +22,8 @@ export function useSocket(eventHandlers = {}) {
     };
   }, [socket, eventHandlers]);
 
-  const emit = useCallback(
-    (event, payload) => {
-      if (!socket || !event) return;
-      socket.emit(event, payload);
-    },
-    [socket]
-  );
+  // Use emit provided by SocketProvider instead of creating a new one
+  const emit = context?.emit;
 
   return { socket, emit, connectionStatus };
 }

@@ -5,13 +5,11 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import SocketProvider from "./socket/SocketProvider.jsx";
 
+// REMOVE <React.StrictMode>
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    {/* Router outside so the socket provider shares the same history context */}
-    <BrowserRouter>
-      <SocketProvider>
-        <App />
-      </SocketProvider>
-    </BrowserRouter>
-  </React.StrictMode>
+  <BrowserRouter>
+    <SocketProvider>
+      <App />
+    </SocketProvider>
+  </BrowserRouter>
 );

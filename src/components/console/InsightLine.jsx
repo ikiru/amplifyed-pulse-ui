@@ -1,32 +1,31 @@
 import React from "react";
 
-export default function InsightLine({ pulses }) {
-  const points = pulses ?? [];
-
-  if (!Array.isArray(pulses)) {
-    console.warn("InsightLine received non-array pulses:", pulses);
+export default function InsightLine({ pulses = [] }) {
+  if (!pulses.length) {
+    return <div className="insight-line-empty">No data yet</div>;
   }
 
-  const recent = points.slice(-6).reverse();
+  const values = pulses.map((p) => p.score ?? 0);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+
+  const scale = (v) => {
+    if (max === min) return 0.5;
+    return (v - min) / (max - min);
+  };
+
+  const points = values
+    .map((v, i) => `${i},${1 - scale(v)}`)
+    .join(" ");
 
   return (
-    <div className="insight-line">
-      <header className="insight-line__header">Insight Line</header>
-      {recent.length === 0 ? (
-        <div className="insight-line__empty">Waiting for audience signals…</div>
-      ) : (
-        <div className="insight-line__points">
-          {recent.map((pulse, idx) => {
-            const emotion = typeof pulse?.emotion === "string" ? pulse.emotion : "neutral";
-            const value = Number.isFinite(pulse?.value) ? pulse.value : 0;
-            return (
-              <span key={idx} className="insight-line__point">
-                {emotion} ({value.toFixed(2)})
-              </span>
-            );
-          })}
-        </div>
-      )}
-    </div>
+    <svg className="insight-line" viewBox={`0 0 ${values.length} 1`}>
+      <polyline
+        points={points}
+        fill="none"
+        stroke="#0077FF"
+        strokeWidth="0.02"
+      />
+    </svg>
   );
 }

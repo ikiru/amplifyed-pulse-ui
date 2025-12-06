@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect } from "react";
 import { useSocket } from "../socket/useSocket";
 
 // Left Column Components
@@ -30,8 +30,8 @@ export default function TrainerView() {
   /* -------------------------------
      STATE STORES
   --------------------------------*/
-  const addPulse = usePulseHistory((s) => s.addPulse);
   const pulses = usePulseHistory((s) => s.pulses);
+  const addPulse = usePulseHistory((s) => s.addPulse);
 
   const addMessage = useMessageStream((s) => s.addMessage);
   const messages = useMessageStream((s) => s.messages);
@@ -39,78 +39,40 @@ export default function TrainerView() {
   const focus = useSessionFocus((s) => s.focus);
   const setFocus = useSessionFocus((s) => s.setFocus);
 
-  /* -------------------------------
-     SOCKET HANDLERS
-  --------------------------------*/
-  const handlePulse = (payload) => {
-    console.log("[TRAINER] audience:pulse IN:", payload);
-    addPulse(payload);
-  };
+  const { socket, connectionStatus } = useSocket();
 
-  const handlePulseUpdate = (payload) => {
-    console.log("[TRAINER] pulse:update IN:", payload);
-    addPulse(payload);
-  };
+  useEffect(() => {
+    if (!socket) return undefined;
 
-  const handleAudienceMessage = (payload) => {
-    console.log("[TRAINER] audience:message IN:", payload);
-    addMessage(payload);
-  };
-
-  // NEW — handles server-side trainer messages
-  const handleTrainerMessage = (payload) => {
-    console.log("[TRAINER] trainer:message IN:", payload);
-
-    // Normalize: ensure a consistent shape
-    const normalized = {
-      id: payload.id ?? Date.now(),
-      author: payload.author ?? "Trainer",
-      text: payload.text ?? payload.message ?? "",
-      timestamp: payload.timestamp ?? Date.now(),
+    const handleMessageNew = (msg) => {
+      console.log("[TRAINER] message:new", msg);
+      addMessage(msg);
     };
 
-    addMessage(normalized);
-  };
-
-  // NEW — handles audience messages relayed by server
-  const handleMessageUpdate = (payload) => {
-    console.log("[TRAINER] message:update IN:", payload);
-
-    const normalized = {
-      id: payload.id ?? Date.now(),
-      author: payload.author ?? "Audience",
-      text: payload.text ?? payload.message ?? "",
-      timestamp: payload.timestamp ?? Date.now(),
+    const handleFocusUpdate = (focusPayload) => {
+      console.log("[TRAINER] focus:update", focusPayload);
+      setFocus(focusPayload?.id ?? focusPayload?.messageId ?? null);
     };
 
-    addMessage(normalized);
-  };
+    const handleRoomState = (packet) => {
+      console.log("[TRAINER] pulse:roomstate", packet);
+      addPulse({
+        counts: packet.counts ?? {},
+        score: packet.score ?? 0,
+        timestamp: packet.timestamp ?? Date.now(),
+      });
+    };
 
-  // NEW: handle trainer:setFocus
-  const handleTrainerSetFocus = (payload) => {
-    console.log("[TRAINER] trainer:setFocus IN:", payload);
-    if (payload?.focus) setFocus(payload.focus);
-  };
+    socket.on("message:new", handleMessageNew);
+    socket.on("focus:update", handleFocusUpdate);
+    socket.on("pulse:roomstate", handleRoomState);
 
-  /* -------------------------------
-     REGISTER SOCKET
-  --------------------------------*/
-  const handlers = useMemo(
-    () => ({
-      "audience:pulse": handlePulse,
-      "pulse:update": handlePulseUpdate,
-      // OLD EVENT (kept for backward compatibility)
-      "audience:message": handleAudienceMessage,
-
-      // NEW: correct active events
-      "trainer:message": handleTrainerMessage,
-      "message:update": handleMessageUpdate,
-      "trainer:setFocus": handleTrainerSetFocus,  // <-- FIX ADDED HERE
-    }),
-    []
-  );
-
-  const { connectionStatus } = useSocket(handlers);
+    return () => {
+      socket.off("message:new", handleMessageNew);
+      socket.off("focus:update", handleFocusUpdate);
+      socket.off("pulse:roomstate", handleRoomState);
+    };
+  }, [socket, addMessage, setFocus, addPulse]);
 
   /* -------------------------------
      RENDER LAYOUT
@@ -130,10 +92,18 @@ export default function TrainerView() {
 
         {/* CENTER COLUMN — Focus + Slides + Messages */}
         <main className="col-center">
-          <SessionFocus focus={focus} />
-          <SlidesPanel />
-          <MessageStream messages={messages} />
-          <TrainerComposer />
+          <div className="session-focus-frame">
+            <SessionFocus focus={focus} />
+          </div>
+          <div className="slides-panel">
+            <SlidesPanel />
+          </div>
+          <div className="message-stream">
+            <MessageStream messages={messages} />
+          </div>
+          <div className="trainer-composer">
+            <TrainerComposer />
+          </div>
         </main>
 
         {/* RIGHT COLUMN — Trainer Console */}

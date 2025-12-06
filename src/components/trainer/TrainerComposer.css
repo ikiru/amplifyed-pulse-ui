@@ -1,0 +1,39 @@
+/* src/components/trainer/TrainerComposer.css */
+
+.trainer-composer-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid #ddd;
+  background: #fafafa;
+}
+
+.composer-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.composer-input:focus {
+  outline: none;
+  border-color: #999;
+}
+
+.composer-send-btn {
+  padding: 8px 12px;
+  background: #e5e5e5;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.composer-send-btn:hover {
+  background: #dcdcdc;
+}
+
+.composer-send-btn:active {
+  background: #cfcfcf;
+}

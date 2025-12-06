@@ -1,5 +1,5 @@
 import React from "react";
-import { usePulseHistory } from "../../utils/usePulseHistory.js";
+import usePulseHistory from "../../utils/usePulseHistory.js";
 
 const COLORS = {
   engaged: "#4CAF50",
