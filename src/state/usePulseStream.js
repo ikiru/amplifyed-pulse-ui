@@ -1,89 +1,160 @@
-import { create } from "zustand";
+import create from "zustand";
 
-const DECAY = 0.85;
+/**
+ * Phase 2 — Full Analytics Pulse Engine
+ * --------------------------------------
+ * This store provides the canonical pulse state for the entire app.
+ *
+ * Scoring:
+ *   engaged    →  +1
+ *   neutral    →   0
+ *   frustrated →  -1
+ *
+ * Rules:
+ *  - One vote per participant (socketId)
+ *  - Changing your vote updates the score (no spamming)
+ *  - Participants tracked on connect/disconnect
+ *  - Non-voters are tracked separately for analytics
+ *  - History is event-based (not continuous)
+ */
 
-const DEFAULT_CURRENT = {
-  engaged: 0,
+const emotionToScore = {
+  engaged: +1,
   neutral: 0,
-  frustrated: 0,
+  frustrated: -1,
 };
-
-const DEFAULT_HISTORY = {
-  engaged: [],
-  neutral: [],
-  frustrated: [],
-};
-
-const safeNum = (value) =>
-  typeof value === "number" && Number.isFinite(value) ? value : 0;
 
 export const usePulseStream = create((set, get) => ({
-  current: { ...DEFAULT_CURRENT },
+  /** ACTIVE STATE ------------------------------------------------------- */
 
-  history: {
-    ...DEFAULT_HISTORY,
-  },
+  participants: new Set(),
+  votes: new Map(),
+  lastVoteAt: new Map(),
 
-  lastUpdate: Date.now(),
+  score: 0,
 
-  // NEW: message storage
-  messages: [],
+  /** HISTORY ------------------------------------------------------------ */
 
-  // NEW: message reducer
-  addMessage(msg) {
+  scoreHistory: [],
+  participantHistory: [],
+  nonVoterHistory: [],
+  eventLog: [],
+
+  /** INTERNAL HELPERS --------------------------------------------------- */
+
+  _recordEvent: (event) => {
     set((state) => ({
-      messages: [
-        ...state.messages,
-        {
-          text: msg?.text ?? "",
-          timestamp: msg?.timestamp ?? Date.now(),
-          author: msg?.author ?? "audience",
-        }
-      ]
+      eventLog: [...state.eventLog, { timestamp: Date.now(), ...event }],
     }));
   },
 
-  levels() {
+  _updateHistory: () => {
     const state = get();
-    const current = state?.current ?? DEFAULT_CURRENT;
-    return {
-      engaged: safeNum(current.engaged),
-      neutral: safeNum(current.neutral),
-      frustrated: safeNum(current.frustrated),
-    };
+    const timestamp = Date.now();
+
+    set((s) => ({
+      scoreHistory: [...s.scoreHistory, { timestamp, score: state.score }],
+    }));
+
+    const nonVoters = [...state.participants].filter(
+      (id) => !state.votes.has(id)
+    );
+
+    set((s) => ({
+      nonVoterHistory: [
+        ...s.nonVoterHistory,
+        { timestamp, nonVoters },
+      ],
+    }));
   },
 
-  applyPulse(emotion, value, timestamp) {
-    const state = get();
-    const now = timestamp ?? Date.now();
-    const previous = safeNum(state.current?.[emotion]);
-    const incoming = safeNum(value);
+  /** PUBLIC API --------------------------------------------------------- */
 
-    const nextValue = previous * DECAY + incoming * (1 - DECAY);
+  addParticipant: (socketId) => {
+    set((state) => {
+      const participants = new Set(state.participants);
+      participants.add(socketId);
 
-    set({
-      current: {
-        ...state.current,
-        [emotion]: nextValue,
-      },
-      lastUpdate: now,
+      return { participants };
     });
+
+    get()._recordEvent({ event: "join", socketId });
+    get()._updateHistory();
   },
 
-  appendHistory(emotion, point) {
-    const state = get();
-    const bucket = state.history?.[emotion] ?? [];
-    const updated = [...bucket, point];
-    const trimmed =
-      updated.length > 200 ? updated.slice(updated.length - 200) : updated;
+  removeParticipant: (socketId) => {
+    set((state) => {
+      const participants = new Set(state.participants);
+      participants.delete(socketId);
 
-    set({
-      history: {
-        ...state.history,
-        [emotion]: trimmed,
-      },
+      const votes = new Map(state.votes);
+      const lastVoteAt = new Map(state.lastVoteAt);
+
+      let newScore = state.score;
+      if (votes.has(socketId)) {
+        newScore -= votes.get(socketId);
+      }
+
+      votes.delete(socketId);
+      lastVoteAt.delete(socketId);
+
+      return {
+        participants,
+        votes,
+        lastVoteAt,
+        score: newScore,
+      };
     });
+
+    get()._recordEvent({ event: "leave", socketId });
+    get()._updateHistory();
   },
+
+  castVote: (socketId, emotion) => {
+    const scoreValue = emotionToScore[emotion] ?? 0;
+    const timestamp = Date.now();
+
+    set((state) => {
+      const votes = new Map(state.votes);
+      const lastVoteAt = new Map(state.lastVoteAt);
+
+      let newScore = state.score;
+
+      if (votes.has(socketId)) {
+        newScore -= votes.get(socketId);
+      }
+
+      votes.set(socketId, scoreValue);
+      newScore += scoreValue;
+
+      lastVoteAt.set(socketId, timestamp);
+
+      return {
+        votes,
+        lastVoteAt,
+        score: newScore,
+      };
+    });
+
+    get()._recordEvent({
+      event: "vote",
+      socketId,
+      emotion,
+      value: scoreValue,
+    });
+
+    get()._updateHistory();
+  },
+
+  reset: () =>
+    set({
+      participants: new Set(),
+      votes: new Map(),
+      lastVoteAt: new Map(),
+      score: 0,
+      scoreHistory: [],
+      participantHistory: [],
+      nonVoterHistory: [],
+      eventLog: [],
+    }),
 }));
-
-export default usePulseStream;
