@@ -2,20 +2,24 @@ import React, { useState } from "react";
 import { useSocket } from "../socket/useSocket";
 
 export default function AudienceInput() {
-  const socket = useSocket();
   const [text, setText] = useState("");
+
+  // Your socket emitter
+  const { emit } = useSocket({
+    "audience:message:ack": (payload) => console.log("ack", payload)
+  });
+
+  const sendPulse = (emotion) => {
+    emit("audience:pulse", { emotion });
+  };
 
   const sendMessage = () => {
     if (!text.trim()) return;
-    socket.emit("audience:message", {
+    emit("audience:message", {
       text,
       timestamp: Date.now(),
     });
     setText("");
-  };
-
-  const sendPulse = (emotion) => {
-    socket.emit("audience:pulse", { emotion });
   };
 
   return (

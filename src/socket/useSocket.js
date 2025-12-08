@@ -1,8 +1,15 @@
 import { useContext, useEffect } from "react";
-import { SocketContext } from "./SocketProvider";
+import { SocketContext } from "./SocketContext.jsx";
 
 export function useSocket(handlers = {}) {
-  const socket = useContext(SocketContext);
+  const ctx = useContext(SocketContext);
+
+  if (!ctx) {
+    console.warn("useSocket: No SocketContext found");
+    return { socket: null, emit: () => {}, connectionStatus: "disconnected" };
+  }
+
+  const { socket, emit, connectionStatus } = ctx;
 
   useEffect(() => {
     if (!socket) return;
@@ -18,7 +25,7 @@ export function useSocket(handlers = {}) {
     };
   }, [socket]);
 
-  return socket;
+  return { socket, emit, connectionStatus };
 }
 
 export default useSocket;

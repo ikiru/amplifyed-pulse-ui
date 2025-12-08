@@ -2,25 +2,27 @@ import React, { useEffect, useState } from "react";
 import { useSocket } from "../socket/useSocket";
 
 export default function TrainerView() {
-  const socket = useSocket();
+  const { socket } = useSocket();
 
   const [pulses, setPulses] = useState([]);
   const [messages, setMessages] = useState([]);
 
   useEffect(() => {
-    if (!socket) return undefined;
+    if (!socket) return;
 
-    const cleanups = [
-      socket.listen("pulse:update", (payload) => {
-        setPulses((p) => [...p, payload]);
-      }),
-      socket.listen("message:update", (payload) => {
-        setMessages((m) => [...m, payload]);
-      }),
-    ];
+    socket.on("audience:pulse", (payload) => {
+      console.log("[Trainer] pulse received", payload);
+      setPulses((prev) => [...prev, payload]);
+    });
+
+    socket.on("audience:message", (payload) => {
+      console.log("[Trainer] message received", payload);
+      setMessages((prev) => [...prev, payload]);
+    });
 
     return () => {
-      cleanups.forEach((cleanup) => cleanup && cleanup());
+      socket.off("audience:pulse");
+      socket.off("audience:message");
     };
   }, [socket]);
 
