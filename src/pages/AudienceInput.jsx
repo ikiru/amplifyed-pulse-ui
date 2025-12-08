@@ -10,6 +10,7 @@ export default function AudienceInput() {
   });
 
   const sendPulse = (emotion) => {
+    console.log("[AudienceInput] Sending pulse:", emotion);
     emit("audience:pulse", { emotion });
   };
 

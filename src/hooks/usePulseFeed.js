@@ -1,47 +1,24 @@
-import { useEffect } from "react";
 import { useSocket } from "../socket/useSocket";
 import { usePulseStream } from "../state/usePulseStream";
 
 export function usePulseFeed() {
-  const applyPulse = usePulseStream((s) => s.applyPulse);
-  const recordEvent = usePulseStream((s) => s.recordEvent);
-  const updateParticipant = usePulseStream((s) => s.updateParticipant);
+  const { applyPulseUpdate, recordEvent } = usePulseStream();
 
-  const scoreOf = (emotion) => {
-    switch (emotion) {
-      case "engaged":
-        return 1;
-      case "frustrated":
-        return -1;
-      default:
-        return 0;
-    }
+  const handlers = {};
+
+  handlers["pulse:update"] = (payload) => {
+    if (!payload) return;
+
+    console.log("[PulseFeed] pulse update:", payload);
+    applyPulseUpdate(payload);
   };
 
-  useSocket({
-    "audience:pulse": (payload) => {
-      if (!payload) return;
+  handlers["pulse:event"] = (evt) => {
+    console.log("[PulseFeed] event:", evt);
+    recordEvent(evt);
+  };
 
-      const { socketId, emotion } = payload;
-      const score = scoreOf(emotion);
-      const timestamp = Date.now();
-
-      updateParticipant(socketId, emotion);
-      applyPulse(socketId, emotion);
-
-      recordEvent({
-        type: "pulse",
-        socketId,
-        emotion,
-        score,
-        timestamp,
-      });
-    },
-  });
-
-  useEffect(() => {
-    return () => {};
-  }, []);
+  useSocket(handlers);
 
   return null;
 }

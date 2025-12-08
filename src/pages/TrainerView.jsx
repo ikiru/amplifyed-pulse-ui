@@ -5,42 +5,23 @@ import { usePulseStream } from "../state/usePulseStream";   // normalized server
 
 // Decay + Feed removed in Phase 2 — unified pulse engine handles state
 
-const scoreOf = (emotion) => {
-  switch (emotion) {
-    case "engaged":
-      return 1;
-    case "frustrated":
-      return -1;
-    default:
-      return 0;
-  }
-};
-
 export default function TrainerView() {
-  const applyPulse = usePulseStream((state) => state.applyPulse);
+  const applyPulseUpdate = usePulseStream((state) => state.applyPulseUpdate);
   const recordEvent = usePulseStream((state) => state.recordEvent);
-  const updateParticipant = usePulseStream((state) => state.updateParticipant);
-  const pulseHistory = usePulseStream();
+  const { votes, participants, eventLog } = usePulseStream();
 
   // No background tickers. No periodic feeds.
   // All pulse changes are driven by real-time socket events only.
   // 1. Live socket connection
   const { connectionStatus } = useSocket({
-    "audience:pulse": (payload) => {
+    "pulse:update": (payload) => {
       if (!payload) return;
 
-      const { socketId, emotion } = payload;
-      const timestamp = Date.now();
-      const score = scoreOf(emotion);
-
-      updateParticipant(socketId, emotion);
-      applyPulse(socketId, emotion);
+      applyPulseUpdate(payload);
       recordEvent({
-        type: "pulse",
-        socketId,
-        emotion,
-        score,
-        timestamp,
+        type: "pulse:update",
+        payload,
+        timestamp: Date.now(),
       });
     },
     "audience:message": (payload) => {
@@ -48,6 +29,8 @@ export default function TrainerView() {
       // Later: forward into message panel store
     },
   });
+
+  const score = votes.engaged - votes.frustrated;
 
   return (
     <div className="trainer-view">
@@ -62,7 +45,7 @@ export default function TrainerView() {
       <div style={{ marginBottom: "12px" }}>
         <strong>Pulses:</strong>
         <pre style={{ fontSize: "0.8rem", background: "#111", color: "#0f0", padding: "8px" }}>
-          {JSON.stringify(pulseHistory, null, 2)}
+          {JSON.stringify({ score, votes, participants, eventLog }, null, 2)}
         </pre>
       </div>
 
