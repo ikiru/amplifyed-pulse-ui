@@ -9,9 +9,9 @@ export default function AudienceInput() {
     "audience:message:ack": (payload) => console.log("ack", payload)
   });
 
-  const sendPulse = (emotion) => {
-    console.log("[AudienceInput] Sending pulse:", emotion);
-    emit("audience:pulse", { emotion });
+  const sendPulse = (pulse) => {
+    console.log("[AudienceInput] Sending pulse:", pulse);
+    emit("audience:pulse", { pulse });
   };
 
   const sendMessage = () => {

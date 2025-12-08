@@ -2,6 +2,8 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 
+import { registerPulseHandlers } from "./registerPulseHandlers.js";
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -15,21 +17,7 @@ const io = new Server(httpServer, {
   },
 });
 
-io.on("connection", (socket) => {
-  console.log("[Server] Client connected:", socket.id);
-
-  socket.on("audience:pulse", (payload) => {
-    const outbound = {
-      socketId: payload?.socketId ?? socket.id,
-      emotion: payload?.emotion ?? null,
-    };
-    io.emit("audience:pulse", outbound);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("[Server] Client disconnected:", socket.id);
-  });
-});
+registerPulseHandlers(io);
 
 const PORT = Number(process.env.PORT) || 3000;
 

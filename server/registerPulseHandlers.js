@@ -3,7 +3,7 @@ import { processSafetyEvent } from "./safety/index.js";
 import { processEmotionEvent } from "./emotion/index.js";
 
 const roomState = {
-  participants: {}, // socketId -> emotion
+  participants: {}, // socketId -> pulse
   participantStates: {},
   votes: { engaged: 0, neutral: 0, frustrated: 0 },
   lastVoteAt: null,
@@ -11,10 +11,11 @@ const roomState = {
 };
 
 function applyPulse(socketId, pulse) {
-  const emotion = pulse?.emotion;
-  if (!emotion) return roomState;
+  // In Phase 2, "pulse" is a simple string: "engaged" | "neutral" | "frustrated"
 
-  const prev = roomState.participants[socketId];
+  if (!pulse) return roomState;
+
+  const prev = roomState.participants[socketId]; // old pulse
 
   // decrement previous vote
   if (prev && roomState.votes[prev] !== undefined) {
@@ -22,10 +23,10 @@ function applyPulse(socketId, pulse) {
   }
 
   // assign new vote
-  roomState.participants[socketId] = emotion;
+  roomState.participants[socketId] = pulse;
 
-  if (roomState.votes[emotion] !== undefined) {
-    roomState.votes[emotion] += 1;
+  if (roomState.votes[pulse] !== undefined) {
+    roomState.votes[pulse] += 1;
   }
 
   // remove score logic completely
@@ -37,7 +38,6 @@ function applyPulse(socketId, pulse) {
     timestamp: roomState.lastVoteAt,
     type: "pulse",
     socketId,
-    emotion,
     pulse,
   });
 
@@ -49,20 +49,18 @@ export function registerPulseHandlers(io) {
     console.log(`[SERVER] client connected: ${socket.id}`);
 
     socket.on("audience:pulse", (payload = {}) => {
-      const legacyEmotion = payload?.emotion;
-      const pulse =
-        payload?.pulse ??
-        ({
-          emotion: legacyEmotion ?? "neutral",
-          value: payload?.value ?? 0,
-        });
-      const value = pulse.value ?? payload?.value ?? 0;
+      console.log("🔥 RAW SERVER PAYLOAD:", payload);
+
+      const pulse = payload.pulse; // pulse is a string
+
       const timestamp = Date.now();
 
-      console.log(`[SERVER] audience:pulse RECEIVED: ${pulse.emotion}`);
+      console.log("[SERVER] audience:pulse RECEIVED:", pulse);
 
-      // applyPulse() already updated roomState
+      // update canonical pulse state
       const updated = applyPulse(socket.id, pulse);
+
+      const value = 0; // Phase 2: value not used in pulse scoring
 
       // send FULL STATE to all clients
       io.emit("pulse:update", {
@@ -70,9 +68,11 @@ export function registerPulseHandlers(io) {
         timestamp,
       });
 
+      // Emotional engine receives pulse via "emotion" field
+      // This is the ONLY allowed use of "emotion" in the pipeline.
       processEmotionEvent(io, {
         type: "pulse",
-        emotion: pulse.emotion,
+        emotion: pulse,
         pulse,
         value,
         timestamp,
