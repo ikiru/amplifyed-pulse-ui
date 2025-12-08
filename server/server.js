@@ -1,197 +1,41 @@
-// server/server.js
-import http from "http";
+import express from "express";
+import { createServer } from "http";
 import { Server } from "socket.io";
-import crypto from "crypto";
-import { normalizeEmotionValue } from "../src/config/pulseLogic.js";
 
-// ===============================================
-//  ENGINE INSIGHT PACKET MUTE SWITCH (GLOBAL)
-// ===============================================
-let ENGINE_MUTE = true; // Default: engine muted
+const app = express();
+const httpServer = createServer(app);
 
-function setEngineMute(value) {
-  ENGINE_MUTE = Boolean(value);
-  console.log(`[ENGINE] mute = ${ENGINE_MUTE}`);
-}
+app.get("/", (_req, res) => {
+  res.send("AmplifyEd pulse backend is running.");
+});
 
-const AUDIENCE_PULSE_HISTORY_LIMIT = 240;
-const audiencePulseHistory = [];
-
-const normalizeAudiencePulse = (payload = {}) => {
-  const emotion =
-    typeof payload.emotion === "string" && payload.emotion.trim().length
-      ? payload.emotion.trim().toLowerCase()
-      : "neutral";
-  const timestamp = Number.isFinite(payload.timestamp)
-    ? payload.timestamp
-    : Date.now();
-  const valueCandidate =
-    typeof payload.value === "number" && Number.isFinite(payload.value)
-      ? payload.value
-      : undefined;
-  const normalizedValue = normalizeEmotionValue(emotion, valueCandidate);
-  audiencePulseHistory.push(normalizedValue);
-  if (audiencePulseHistory.length > AUDIENCE_PULSE_HISTORY_LIMIT) {
-    audiencePulseHistory.shift();
-  }
-
-  return {
-    emotion,
-    value: normalizedValue,
-    values: [...audiencePulseHistory],
-    timestamp,
-    source: "audience",
-    signal: "audience",
-  };
-};
-
-const buildTrainerMessage = (payload = {}) => {
-  const text =
-    typeof payload.text === "string"
-      ? payload.text.trim()
-      : typeof payload === "string"
-      ? payload.trim()
-      : "";
-  if (!text) return null;
-
-  return {
-    id: payload.id ?? crypto.randomUUID(),
-    text,
-    role: payload.role ?? "participant",
-    timestamp: Number.isFinite(payload.timestamp)
-      ? payload.timestamp
-      : Date.now(),
-  };
-};
-
-const server = http.createServer();
-const io = new Server(server, {
+const io = new Server(httpServer, {
   cors: {
     origin: "*",
   },
 });
 
 io.on("connection", (socket) => {
-  console.log("[SERVER] client connected", socket.id);
-
-  function normalizePulse(payload = {}) {
-    const normalized = normalizeAudiencePulse(payload);
-    if (!normalized) return null;
-    return {
-      type: "pulse",
-      emotion: normalized.emotion,
-      value: Number.isFinite(normalized.value) ? normalized.value : 0,
-      timestamp: Number.isFinite(normalized.timestamp)
-        ? normalized.timestamp
-        : Date.now(),
-      source: normalized.source || "audience",
-      signal: normalized.signal || "audience",
-      values: Array.isArray(normalized.values) ? normalized.values : [],
-      color: normalized.color,
-      level: normalized.level ?? normalized.value,
-    };
-  }
-
-  function normalizeMessage(payload = {}) {
-    const message = buildTrainerMessage(payload);
-    if (!message) return null;
-    return {
-      type: "message",
-      sender: message.role || "participant",
-      role: message.role,
-      id: message.id,
-      message: message.text,
-      text: message.text,
-      time: Number.isFinite(message.timestamp)
-        ? message.timestamp
-        : Date.now(),
-    };
-  }
+  console.log("[Server] Client connected:", socket.id);
 
   socket.on("audience:pulse", (payload) => {
-    console.log("[SERVER] audience:pulse IN:", payload);
-    const packet = normalizePulse(payload);
-    if (!packet) {
-      console.warn("[SERVER] invalid audience pulse payload:", payload);
-      return;
-    }
-
-    io.emit("pulse:update", packet);
-    console.log("[SERVER] pulse:update OUT:", packet);
-  });
-
-  socket.on("audience:message", (payload) => {
-    console.log("[SERVER] audience:message IN:", payload);
-
-    const message = {
-      type: "message",
-      text: payload.text,
-      timestamp: Date.now(),
-      source: "audience",
+    const outbound = {
+      socketId: payload?.socketId ?? socket.id,
+      emotion: payload?.emotion ?? null,
     };
-
-    io.emit("message:update", message);
-
-    console.log("[SERVER] message:update OUT:", message);
+    io.emit("audience:pulse", outbound);
   });
 
-  // REAL Audience Messages → Trainer
-  socket.on("audience:message", (msg) => {
-    console.log("[SERVER] audience:message IN:", msg);
-    const packet = normalizeMessage(msg);
-    if (!packet) {
-      console.warn("[SERVER] invalid audience message payload:", msg);
-      return;
-    }
-    io.emit("trainer:message", packet);
-    console.log("[SERVER] trainer:message OUT:", packet);
+  socket.on("disconnect", () => {
+    console.log("[Server] Client disconnected:", socket.id);
   });
-
-  // REAL Trainer Messages → Everyone
-  socket.on("trainer:message", (msg) => {
-    console.log("[SERVER] received trainer message:", msg);
-    if (!msg || typeof msg.text !== "string") {
-      console.log("[SERVER] invalid trainer message:", msg);
-      return;
-    }
-    io.emit("trainer:message", msg);
-  });
-
-  socket.on("debug:setEngineMute", (value) => {
-    setEngineMute(value);
-  });
-
-  socket.on("message:new", (msg = {}) => {
-    // Phase 3.5 safety placeholder:
-    // if (isBlockedContent(msg.text)) { ... }
-
-    io.emit("message:new", msg);
-  });
-
-  // -----------------------------------------------------
-  // TEMPORARY FAKE SIGNAL EMITTER (Phase 2.3 Testing Only)
-  // -----------------------------------------------------
-  if (!global.__signalEmitterStarted) {
-    global.__signalEmitterStarted = true;
-
-    setInterval(() => {
-      const payload = {
-        type: "insight",
-        value: Math.random(),
-        timestamp: Date.now(),
-      };
-
-      if (!ENGINE_MUTE) {
-        io.emit("engine:insight", payload);
-      }
-    }, 500);
-  }
 });
 
-const PORT = 3000;
-server.listen(PORT, () => {
+const PORT = Number(process.env.PORT) || 3000;
+
+httpServer.listen(PORT, () => {
   console.log("\n-------------------------------------------");
-  console.log(" 🛰️  AmplifyEd Backend is RUNNING ");
-  console.log(` 🌐  http://localhost:${PORT}`);
+  console.log(" AmplifyEd Backend is RUNNING ");
+  console.log(` http://localhost:${PORT}`);
   console.log("-------------------------------------------\n");
 });
