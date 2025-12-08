@@ -1,4 +1,5 @@
-import create from "zustand";
+import { create } from "zustand";
+
 
 /**
  * Phase 2 — Full Analytics Pulse Engine
@@ -30,6 +31,7 @@ export const usePulseStream = create((set, get) => ({
   participants: new Set(),
   votes: new Map(),
   lastVoteAt: new Map(),
+  participantStates: new Map(),
 
   score: 0,
 
@@ -70,6 +72,10 @@ export const usePulseStream = create((set, get) => ({
 
   /** PUBLIC API --------------------------------------------------------- */
 
+  recordEvent: (event) => {
+    get()._recordEvent(event);
+  },
+
   addParticipant: (socketId) => {
     set((state) => {
       const participants = new Set(state.participants);
@@ -89,6 +95,7 @@ export const usePulseStream = create((set, get) => ({
 
       const votes = new Map(state.votes);
       const lastVoteAt = new Map(state.lastVoteAt);
+      const participantStates = new Map(state.participantStates);
 
       let newScore = state.score;
       if (votes.has(socketId)) {
@@ -97,17 +104,28 @@ export const usePulseStream = create((set, get) => ({
 
       votes.delete(socketId);
       lastVoteAt.delete(socketId);
+      participantStates.delete(socketId);
 
       return {
         participants,
         votes,
         lastVoteAt,
         score: newScore,
+        participantStates,
       };
     });
 
     get()._recordEvent({ event: "leave", socketId });
     get()._updateHistory();
+  },
+
+  updateParticipant: (socketId, emotion) => {
+    set((state) => {
+      const participantStates = new Map(state.participantStates);
+      participantStates.set(socketId, emotion);
+
+      return { participantStates };
+    });
   },
 
   castVote: (socketId, emotion) => {
@@ -146,11 +164,41 @@ export const usePulseStream = create((set, get) => ({
     get()._updateHistory();
   },
 
+  applyPulse: (socketId, emotion) => {
+    const scoreValue = emotionToScore[emotion] ?? 0;
+    const timestamp = Date.now();
+
+    set((state) => {
+      const votes = new Map(state.votes);
+      const lastVoteAt = new Map(state.lastVoteAt);
+
+      let newScore = state.score;
+
+      if (votes.has(socketId)) {
+        newScore -= votes.get(socketId);
+      }
+
+      votes.set(socketId, scoreValue);
+      newScore += scoreValue;
+
+      lastVoteAt.set(socketId, timestamp);
+
+      return {
+        votes,
+        lastVoteAt,
+        score: newScore,
+      };
+    });
+
+    get()._updateHistory();
+  },
+
   reset: () =>
     set({
       participants: new Set(),
       votes: new Map(),
       lastVoteAt: new Map(),
+      participantStates: new Map(),
       score: 0,
       scoreHistory: [],
       participantHistory: [],
