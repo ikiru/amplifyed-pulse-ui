@@ -1,8 +1,9 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import eventRouter from "./routers/eventRouter.js";
-import { createPulsePipeline } from "./pulse/pulsePipeline.js";
+import registerEventRouter from "./routers/eventRouter.js";
+import { createMomentPipeline } from "./pipelines/moment/momentPipeline.js";
+import { createPulsePipeline } from "./pipelines/pulse/pulsePipeline.js";
 import { createMessagePipeline } from "./pipelines/message/messagePipeline.js";
 import { createTrainerPipeline } from "./pipelines/trainer/trainerPipeline.js";
 
@@ -19,9 +20,13 @@ const io = new Server(httpServer, {
   },
 });
 
-const pulsePipeline = createPulsePipeline(io);
+const momentPipeline = createMomentPipeline(io);
+
+const pulsePipeline = createPulsePipeline(io, { momentPipeline });
 const messagePipeline = createMessagePipeline(io, pulsePipeline.momentBuilder);
 const trainerPipeline = createTrainerPipeline(io, pulsePipeline.momentBuilder);
+const safetyPipeline = null;
+const sessionPipeline = null;
 // const emotionPipeline = createEmotionPipeline(io);
 // ----------------------------------------------------
 // FOCUS PIPELINE (Step 6.2 — Scaffold Only)
@@ -43,31 +48,17 @@ const trainerPipeline = createTrainerPipeline(io, pulsePipeline.momentBuilder);
 // TRAINER PIPELINE (Step 6.5 — Scaffold Only)
 // const trainerPipeline = createTrainerPipeline(io);
 
-/**
- * NEW unified event router
- * --------------------------------------------------
- * We forward all socket events into the router, and
- * the router decides which pipeline handles what.
- */
-eventRouter(io, {
-  pulsePipeline,
-  // emotionPipeline,
-  // focusPipeline,
-  
-  // Step 6.1 — message pipeline will be activated in Step 7
-  messagePipeline,
+io.on("connection", (socket) => {
+  console.log("[SERVER] connection received:", socket.id);
 
-  // Step 6.2 — focus pipeline wiring added but not activated
-  // focusPipeline,
-
-  // Step 6.3 — session pipeline prepared but not activated
-  // sessionPipeline,
-
-  // Step 6.4 — Safety pipeline prepared but not activated
-  // safetyPipeline,
-
-  // Step 6.5 — trainer pipeline prepared but not activated
-  trainerPipeline,
+  registerEventRouter(io, socket, {
+    pulsePipeline,
+    trainerPipeline,
+    messagePipeline,
+    safetyPipeline,
+    sessionPipeline,
+    momentPipeline, // Phase 2.4.2
+  });
 });
 
 const PORT = Number(process.env.PORT) || 3000;

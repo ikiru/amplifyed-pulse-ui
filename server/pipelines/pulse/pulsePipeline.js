@@ -23,7 +23,7 @@ import { createMomentBuilder } from "../moment/momentBuilder.js";
 
 export function createPulsePipeline(
   io,
-  { safetyPipeline, emotionPipeline, sessionPipeline } = {}
+  { safetyPipeline, emotionPipeline, sessionPipeline, momentPipeline } = {}
 ) {
 
   // Step 7.3.1 — Prepare Pulse State Module
@@ -40,7 +40,7 @@ export function createPulsePipeline(
   const { state: roomState } = pulseState;
 
   // Phase 2.3.3 — Initialize the Moment Builder
-  const momentBuilder = createMomentBuilder?.();
+  const momentBuilder = createMomentBuilder(momentPipeline?.addMoment);
 
   // Phase 2.3.4 — Safety can attach to the moment builder OR remain the old pipeline object
   const safety = typeof safetyPipeline === "function"
@@ -81,13 +81,8 @@ export function createPulsePipeline(
     // 2. Begin a new Multi-Signal moment (Pulse contributes first)
     momentBuilder?.beginMoment({ pulseValue: value });
 
-    // 4. Finalize the Multi-Signal moment
-    const moment = momentBuilder?.finalize();
-
-    // 5. Emit unified moment to Trainer UI
-    if (moment) {
-      io.emit("moment:event", moment);
-    }
+    // 4. Finalize the Multi-Signal moment (dispatch happens in builder)
+    momentBuilder?.finalize();
 
     // Step 7.3.5 — use broadcast module
     broadcastPulseUpdate(getParticipants?.());

@@ -20,7 +20,7 @@
 
 import { buildMomentEnvelope } from "./momentEnvelope.js";
 
-export function createMomentBuilder() {
+export function createMomentBuilder(dispatchMoment = null) {
 
   // Private working context for one moment
   let context = {
@@ -89,6 +89,11 @@ export function createMomentBuilder() {
   // ----------------------------------------------------
   function finalize() {
     const moment = buildMomentEnvelope({ ...context });
+
+    // Phase 2.4.3 — Dispatch finalized moment into the history buffer
+    if (dispatchMoment) {
+      dispatchMoment(moment);
+    }
 
     // Clear builder context for next moment
     context = {
