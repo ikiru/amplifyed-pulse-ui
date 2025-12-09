@@ -1,4 +1,10 @@
-import { analyzeEvent } from "./softFlagEngine.js";
+// ------------------------------------------------------------------
+// Safety Pipeline
+// Owns: safety classification, soft-flagging logic
+// Reads: pulse submissions
+// Never: touches participants, join/leave, or vote state
+// ------------------------------------------------------------------
+import { analyzeEvent } from "../pipelines/safety/safety.engine.js";
 import { SAFETY_ENABLED, SOFT_FLAG_EVENT } from "./safetyConfig.js";
 
 export function processSafetyEvent(io, event) {

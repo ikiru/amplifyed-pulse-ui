@@ -1,0 +1,3 @@
+/**
+ * Session Pipeline — handleSessionJoin (Placeholder)
+ */

@@ -68,6 +68,110 @@ export default [
   },
 
 // ----------------------------------------------------
+// PIPELINE BOUNDARY PROTECTION (Step 5.5)
+// Prevents cross-pipeline imports and server/client bleed-over.
+// ----------------------------------------------------
+{
+  files: ["server/**/*.js"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          "paths": [
+            // Prevent Pulse from importing Session internals
+            {
+              name: "../session/sessionPipeline.js",
+              message: "PulsePipeline must not import Session internals."
+            },
+            // Prevent Session from importing Pulse internals
+            {
+              name: "../pulse/pulse.state.js",
+              message: "SessionPipeline must not import Pulse state."
+            },
+            {
+              name: "../pulse/pulse.engine.js",
+              message: "SessionPipeline must not import Pulse engine."
+            },
+            // Prevent Safety from accessing Session
+            {
+              name: "../session/*",
+              message: "SafetyPipeline must remain Session-agnostic."
+            },
+            // Prevent Emotion from accessing Session
+            {
+              name: "../session/*",
+              message: "EmotionPipeline must remain Session-agnostic."
+            }
+          ]
+        }
+      ]
+    }
+  }
+          // ------------------------------
+          // BLOCK CLIENT CODE ON SERVER
+          // ------------------------------
+          {
+            "group": ["src/*"],
+            "message": "Server pipelines must not import client-side code.",
+          },
+
+          // ------------------------------
+          // EMOTION IS READ-ONLY
+          // ------------------------------
+          {
+            "group": ["server/emotion/*"],
+            "message": "Emotion Engine is read-only in Phase 2.2.",
+          },
+
+          // ------------------------------
+          // CROSS-PIPELINE PROTECTION
+          // Prevent pipelines from importing each other directly.
+          // Only eventRouter.js is allowed to orchestrate pipelines.
+          // ------------------------------
+          {
+            "group": [
+              "server/pipelines/pulse/*",
+              "!server/pipelines/pulse/**"
+            ],
+            "message": "Pulse Pipeline may not import from other pipelines.",
+          },
+          {
+            "group": [
+              "server/pipelines/message/*"
+            ],
+            "message": "Message Pipeline may not import from other pipelines.",
+          },
+          {
+            "group": [
+              "server/pipelines/focus/*"
+            ],
+            "message": "Focus Pipeline may not import from other pipelines.",
+          },
+          {
+            "group": [
+              "server/pipelines/safety/*"
+            ],
+            "message": "Safety Pipeline may not import from other pipelines.",
+          },
+          {
+            "group": [
+              "server/pipelines/trainer/*"
+            ],
+            "message": "Trainer Pipeline may not import from other pipelines.",
+          },
+          {
+            "group": [
+              "server/pipelines/session/*"
+            ],
+            "message": "Session Pipeline may not import from other pipelines.",
+          }
+        ]
+      }
+    ]
+  }
+},
+
+// ----------------------------------------------------
 // PULSE PIPELINE PROTECTION
 // Emotion must NEVER appear in pulse-handling files.
 // ----------------------------------------------------

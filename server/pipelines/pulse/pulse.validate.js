@@ -1,0 +1,3 @@
+/**
+ * Pulse Pipeline — validatePulse (Placeholder)
+ */

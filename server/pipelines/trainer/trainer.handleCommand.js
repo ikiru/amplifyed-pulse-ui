@@ -1,0 +1,3 @@
+/**
+ * Trainer Pipeline — handleTrainerCommand (Placeholder)
+ */

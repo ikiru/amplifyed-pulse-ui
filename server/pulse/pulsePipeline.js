@@ -75,8 +75,6 @@ export function createPulsePipeline(io) {
       if (!socketId || !pulse) return;
       emitPulseUpdate(io, socketId, pulse, timestamp);
     },
-    handleDisconnect(socketId) {
-      revokeVote(socketId);
-    },
+    // Disconnect logic removed — owned by Session Pipeline
   };
 }

@@ -1,0 +1,3 @@
+/**
+ * Safety Pipeline — safetyConfig placeholder
+ */

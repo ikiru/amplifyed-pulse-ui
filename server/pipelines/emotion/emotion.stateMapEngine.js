@@ -1,0 +1,3 @@
+/**
+ * Emotion Pipeline — stateMapEngine placeholder
+ */

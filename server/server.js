@@ -18,6 +18,26 @@ const io = new Server(httpServer, {
 });
 
 const pulsePipeline = createPulsePipeline(io);
+// const emotionPipeline = createEmotionPipeline(io);
+// ----------------------------------------------------
+// FOCUS PIPELINE (Step 6.2 — Scaffold Only)
+// const focusPipeline = createFocusPipeline(io);
+
+// ----------------------------------------------------
+// MESSAGE PIPELINE (Step 6.1 — Scaffold Only)
+// const messagePipeline = createMessagePipeline(io);
+
+// ----------------------------------------------------
+// SESSION PIPELINE (Step 6.3 — Scaffold Only)
+// const sessionPipeline = createSessionPipeline(io);
+
+// ----------------------------------------------------
+// SAFETY PIPELINE (Step 6.4 — Scaffold Only)
+// const safetyPipeline = createSafetyPipeline(io);
+
+// ----------------------------------------------------
+// TRAINER PIPELINE (Step 6.5 — Scaffold Only)
+// const trainerPipeline = createTrainerPipeline(io);
 
 /**
  * NEW unified event router
@@ -29,6 +49,21 @@ eventRouter(io, {
   pulsePipeline,
   // emotionPipeline,
   // focusPipeline,
+  
+  // Step 6.1 — message pipeline will be activated in Step 7
+  // messagePipeline,
+
+  // Step 6.2 — focus pipeline wiring added but not activated
+  // focusPipeline,
+
+  // Step 6.3 — session pipeline prepared but not activated
+  // sessionPipeline,
+
+  // Step 6.4 — Safety pipeline prepared but not activated
+  // safetyPipeline,
+
+  // Step 6.5 — trainer pipeline prepared but not activated
+  // trainerPipeline,
 });
 
 const PORT = Number(process.env.PORT) || 3000;
