@@ -1,58 +1,35 @@
-// src/pages/TrainerView.jsx
-import React from "react";
-import { useSocket } from "../socket/useSocket";
-import { usePulseStream } from "../state/usePulseStream";   // normalized server pulse history
-
-// Decay + Feed removed in Phase 2 — unified pulse engine handles state
+import React, { useEffect, useState } from "react";
+// useSocket removed — using SocketContext instead
+import { useSocketContext } from "../socket";
+import EmotionTrendline from "../components/console/EmotionTrendline.jsx";
 
 export default function TrainerView() {
-  const applyPulseUpdate = usePulseStream((state) => state.applyPulseUpdate);
-  const recordEvent = usePulseStream((state) => state.recordEvent);
-  const { votes, participants, eventLog } = usePulseStream();
+  const { onEvent, offEvent, connectionStatus } = useSocketContext();
+  const [pulseState, setPulseState] = useState(null);
 
-  // No background tickers. No periodic feeds.
-  // All pulse changes are driven by real-time socket events only.
-  // 1. Live socket connection
-  const { connectionStatus } = useSocket({
-    "pulse:update": (payload) => {
-      if (!payload) return;
+  // ================================
+  // pulse:update listener
+  // ================================
+  useEffect(() => {
+    const handler = (payload) => {
+      setPulseState(payload);
+    };
 
-      applyPulseUpdate(payload);
-      recordEvent({
-        type: "pulse:update",
-        payload,
-        timestamp: Date.now(),
-      });
-    },
-    "audience:message": (payload) => {
-      console.log("[Trainer] message:", payload);
-      // Later: forward into message panel store
-    },
-  });
-
-  const score = votes.engaged - votes.frustrated;
+    onEvent("pulse:update", handler);
+    return () => offEvent("pulse:update", handler);
+  }, [onEvent, offEvent]);
 
   return (
-    <div className="trainer-view">
+    <div>
       <h1>Trainer View</h1>
+      <p>Socket: {connectionStatus}</p>
 
-      {/* CONNECTION STATUS */}
-      <div style={{ marginBottom: "8px", color: "#999" }}>
-        Socket: {connectionStatus ?? "unknown"}
-      </div>
+      <h2>Pulses:</h2>
+      <pre style={{ background: "black", color: "lime", padding: 16 }}>
+        {pulseState ? JSON.stringify(pulseState, null, 2) : "No data yet"}
+      </pre>
 
-      {/* PULSE STREAM DEBUG */}
-      <div style={{ marginBottom: "12px" }}>
-        <strong>Pulses:</strong>
-        <pre style={{ fontSize: "0.8rem", background: "#111", color: "#0f0", padding: "8px" }}>
-          {JSON.stringify({ score, votes, participants, eventLog }, null, 2)}
-        </pre>
-      </div>
-
-      {/* PLACEHOLDERS FOR UPCOMING COMPONENTS */}
-      <div className="region-left">Left Column</div>
-      <div className="region-center">Center Column</div>
-      <div className="region-right">Right Column</div>
+      <EmotionTrendline pulseState={pulseState} />
     </div>
   );
 }

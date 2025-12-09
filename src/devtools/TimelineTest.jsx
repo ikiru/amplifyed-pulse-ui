@@ -1,13 +1,10 @@
 // src/pages/TimelineTest.jsx
-import React, { useState } from "react";
+import React from "react";
 // Legacy timeline renderer disabled for Phase 4 stability
 // import PulseTimeline from "../console/PulseTimeline";
 
 export default function TimelineTest() {
-  const [points, setPoints] = useState([
-    { level: 0.2, color: "red", emotion: "test", timestamp: 1 },
-    { level: 0.8, color: "blue", emotion: "test", timestamp: 2 },
-  ]);
+  // removed unused variables per ESLint
 
   return (
     <div style={{ padding: "2rem" }}>

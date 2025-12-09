@@ -1,8 +1,8 @@
 import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
-
-import { registerPulseHandlers } from "./registerPulseHandlers.js";
+import eventRouter from "./routers/eventRouter.js";
+import { createPulsePipeline } from "./pulse/pulsePipeline.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -17,7 +17,19 @@ const io = new Server(httpServer, {
   },
 });
 
-registerPulseHandlers(io);
+const pulsePipeline = createPulsePipeline(io);
+
+/**
+ * NEW unified event router
+ * --------------------------------------------------
+ * We forward all socket events into the router, and
+ * the router decides which pipeline handles what.
+ */
+eventRouter(io, {
+  pulsePipeline,
+  // emotionPipeline,
+  // focusPipeline,
+});
 
 const PORT = Number(process.env.PORT) || 3000;
 

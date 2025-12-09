@@ -8,6 +8,8 @@
     "server": "node server/server.js",
     "prestart": "pkill -f vite || true; pkill -f node || true",
     "start": "npm-run-all --parallel dev server",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -20,7 +22,15 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@babel/eslint-parser": "^7.28.5",
+    "@babel/preset-react": "^7.28.5",
+    "@eslint/js": "^9.39.1",
     "@vitejs/plugin-react": "^4.0.4",
+    "eslint": "^9.39.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "npm-run-all": "^4.1.5",
     "vite": "^7.2.2"
   }

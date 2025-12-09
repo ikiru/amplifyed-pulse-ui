@@ -1,48 +1,42 @@
 import React, { useState } from "react";
-import { useSocket } from "../socket/useSocket";
+// useSocket removed — using SocketContext instead
+import { useSocketContext } from "../socket";
 
 export default function AudienceInput() {
-  const [text, setText] = useState("");
-
-  // Your socket emitter
-  const { emit } = useSocket({
-    "audience:message:ack": (payload) => console.log("ack", payload)
-  });
+  const [message, setMessage] = useState("");
+  const { emit } = useSocketContext();
 
   const sendPulse = (pulse) => {
-    console.log("[AudienceInput] Sending pulse:", pulse);
-    emit("audience:pulse", { pulse });
+    emit("audience:pulse", { pulse }); // Clean, pulse-only contract
   };
 
-  const sendMessage = () => {
-    if (!text.trim()) return;
+  const handleMessage = (e) => {
+    e.preventDefault();
+    if (!message.trim()) return;
     emit("audience:message", {
-      text,
+      text: message.trim(),
       timestamp: Date.now(),
     });
-    setText("");
+    setMessage("");
   };
 
   return (
-    <div style={{ padding: "40px" }}>
+    <div>
       <h1>Audience Input</h1>
-
       <div>
-        <button onClick={() => sendPulse("engaged")}>😊 Engaged</button>
+        <button onClick={() => sendPulse("engaged")}>😀 Engaged</button>
         <button onClick={() => sendPulse("neutral")}>😐 Neutral</button>
         <button onClick={() => sendPulse("frustrated")}>😠 Frustrated</button>
       </div>
 
-      <br />
-
-      <div>
+      <form onSubmit={handleMessage} style={{ marginTop: 16 }}>
         <input
           placeholder="Say something…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
         />
-        <button onClick={sendMessage}>Send</button>
-      </div>
+        <button type="submit">Send</button>
+      </form>
     </div>
   );
 }

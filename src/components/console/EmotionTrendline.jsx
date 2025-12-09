@@ -1,22 +1,31 @@
-/**
- * EmotionTrendline — Temporary Placeholder (Phase 2)
- *
- * The emotional-engine trendline renderer relied on:
- *   - entry.value
- *   - entry.level
- *   - COLORS / LEVELS maps
- *   - multi-emotion looping
- *
- * These fields no longer exist in the Phase 2 pulse system.
- * A new pulse trendline will be created in Phase 3.
- */
-
 import React from "react";
+// Legacy socket hook removed
 
-export default function EmotionTrendline() {
+export default function EmotionTrendline({ pulseState }) {
+  if (!pulseState) return <div>No pulse data yet.</div>;
+
+  const { votes = {}, lastVoteAt } = pulseState;
+  const formatDate = lastVoteAt
+    ? new Date(lastVoteAt).toLocaleTimeString()
+    : "waiting";
+
   return (
-    <div style={{ padding: "10px", opacity: 0.6 }}>
-      <i>Pulse Trendline coming in Phase 3…</i>
+    <div style={{ padding: 12, border: "1px solid #444", borderRadius: 4 }}>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <span>Engaged</span>
+        <strong>{votes.engaged ?? 0}</strong>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <span>Neutral</span>
+        <strong>{votes.neutral ?? 0}</strong>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <span>Frustrated</span>
+        <strong>{votes.frustrated ?? 0}</strong>
+      </div>
+      <small style={{ display: "block", marginTop: 8, color: "#888" }}>
+        Last update: {formatDate}
+      </small>
     </div>
   );
 }

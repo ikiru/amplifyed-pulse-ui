@@ -1,24 +1,33 @@
-import { useSocket } from "../socket/useSocket";
+import { useEffect } from "react";
+import { useSocketContext } from "../socket/SocketContext.jsx"; // Resolve import
 import { usePulseStream } from "../state/usePulseStream";
 
 export function usePulseFeed() {
   const { applyPulseUpdate, recordEvent } = usePulseStream();
+  const { socket } = useSocketContext();
 
-  const handlers = {};
+  useEffect(() => {
+    if (!socket) return;
 
-  handlers["pulse:update"] = (payload) => {
-    if (!payload) return;
+    const handlePulseUpdate = (payload) => {
+      if (!payload) return;
+      console.log("[PulseFeed] pulse update:", payload);
+      applyPulseUpdate(payload);
+    };
 
-    console.log("[PulseFeed] pulse update:", payload);
-    applyPulseUpdate(payload);
-  };
+    const handlePulseEvent = (evt) => {
+      console.log("[PulseFeed] event:", evt);
+      recordEvent(evt);
+    };
 
-  handlers["pulse:event"] = (evt) => {
-    console.log("[PulseFeed] event:", evt);
-    recordEvent(evt);
-  };
+    socket.on("pulse:update", handlePulseUpdate);
+    socket.on("pulse:event", handlePulseEvent);
 
-  useSocket(handlers);
+    return () => {
+      socket.off("pulse:update", handlePulseUpdate);
+      socket.off("pulse:event", handlePulseEvent);
+    };
+  }, [socket, applyPulseUpdate, recordEvent]);
 
   return null;
 }

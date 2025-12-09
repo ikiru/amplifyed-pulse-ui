@@ -9,7 +9,8 @@ import { usePulseHistory } from "../../src/utils/usePulseHistory";
 import { useSocket } from "../../src/socket/useSocket";
 
 export function registerPulseHandlers() {
-  const { socket } = useSocket();
+  const { getSocket } = useSocket();
+  const socket = getSocket();
   const addPulse = usePulseHistory((s) => s.addPulse);
 
   if (!socket) return;
