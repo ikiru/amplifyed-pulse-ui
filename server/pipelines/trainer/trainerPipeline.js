@@ -1,21 +1,61 @@
-/**
- * Trainer Pipeline (Step 6.5 — Scaffold Only)
- * No behavior. No socket emits. No state.
- * Trainer commands will activate in Step 7.
- */
+// ------------------------------------------------------------------
+// Trainer Pipeline (Phase 2.3.7)
+// ------------------------------------------------------------------
+// Owns:
+//   Trainer actions ("nudge", "slowdown", etc.)
+//   Normalizes trainer signal
+//   Contributes trainerSignal → Moment Builder
+//
+// Never:
+//   Reads pulse state
+//   Reads participant lists
+//   Updates session state
+// TrainerPipeline MUST NOT read pulse/emotion/session data; signals are transient only.
+// ------------------------------------------------------------------
 
-export function createTrainerPipeline(io) {
-  return {
+import { extractTrainerSignal } from "./trainerSignalExtractor.js";
 
-    // Generic trainer command (e.g., "start discussion", "silence", etc.)
-    handleCommand({ socketId, command, payload }) {
-      // placeholder — activation occurs in Step 7
-    },
+export function createTrainerPipeline(io, momentBuilder = null) {
 
-    // Trainer nudges (future use case; you noted uncertainty earlier)
-    handleNudge({ socketId, payload }) {
-      // placeholder — will be explored in a later phase
+  function handleTrainerAction({ action, type }) {
+    if (!action) return;
+
+    // --------------------------------------------------------------
+    // Boundary Guard (dev only)
+    // TrainerPipeline MUST NOT receive pulse/emotion/session events.
+    // If routing is misconfigured, warn loudly and drop the event.
+    // --------------------------------------------------------------
+    if (process.env.NODE_ENV !== "production") {
+      if (
+        type?.startsWith?.("pulse:") ||
+        type?.startsWith?.("emotion:") ||
+        type?.startsWith?.("session:")
+      ) {
+        console.warn(
+          "[BoundaryViolation] TrainerPipeline received invalid event:",
+          type
+        );
+        return;
+      }
     }
 
+    // Normalize trainer signal
+    const trainerSignal = extractTrainerSignal(action);
+    if (!trainerSignal) return;
+
+    // Push into unified multi-signal moment
+    if (momentBuilder) {
+      momentBuilder.addTrainer({ trainerSignal });
+    }
+
+    // Emit for Trainer UI widgets (future use)
+    io.emit("trainer:signal", {
+      trainerSignal,
+      timestamp: Date.now(),
+    });
+  }
+
+  return {
+    handleTrainerAction,
   };
 }

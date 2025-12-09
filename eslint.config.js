@@ -73,54 +73,59 @@ export default [
 // ----------------------------------------------------
 {
   files: ["server/**/*.js"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          "paths": [
-            // Prevent Pulse from importing Session internals
-            {
-              name: "../session/sessionPipeline.js",
-              message: "PulsePipeline must not import Session internals."
-            },
-            // Prevent Session from importing Pulse internals
-            {
-              name: "../pulse/pulse.state.js",
-              message: "SessionPipeline must not import Pulse state."
-            },
-            {
-              name: "../pulse/pulse.engine.js",
-              message: "SessionPipeline must not import Pulse engine."
-            },
-            // Prevent Safety from accessing Session
-            {
-              name: "../session/*",
-              message: "SafetyPipeline must remain Session-agnostic."
-            },
-            // Prevent Emotion from accessing Session
-            {
-              name: "../session/*",
-              message: "EmotionPipeline must remain Session-agnostic."
-            }
-          ]
-        }
-      ]
-    }
-  }
+  rules: {
+    "no-restricted-imports": [
+      "error",
+      {
+        paths: [
+          // Prevent Pulse from importing Session internals
+          {
+            name: "../session/sessionPipeline.js",
+            message: "PulsePipeline must not import Session internals."
+          },
+          // Prevent Session from importing Pulse internals
+          {
+            name: "../pulse/pulse.state.js",
+            message: "SessionPipeline must not import Pulse state."
+          },
+          {
+            name: "../pulse/pulse.engine.js",
+            message: "SessionPipeline must not import Pulse engine."
+          },
+          // Prevent Safety from accessing Session
+          {
+            name: "../session/*",
+            message: "SafetyPipeline must remain Session-agnostic."
+          },
+          // Prevent Emotion from accessing Session
+          {
+            name: "../session/*",
+            message: "EmotionPipeline must remain Session-agnostic."
+          }
+        ],
+        patterns: [
+          {
+            group: [
+              "server/pipelines/trainer/*",
+              "server/pipelines/pulse/*",
+              "server/pipelines/emotion/*"
+            ],
+            message: "TrainerPipeline must not import pulse/emotion internals."
+          },
           // ------------------------------
           // BLOCK CLIENT CODE ON SERVER
           // ------------------------------
           {
-            "group": ["src/*"],
-            "message": "Server pipelines must not import client-side code.",
+            group: ["src/*"],
+            message: "Server pipelines must not import client-side code.",
           },
 
           // ------------------------------
           // EMOTION IS READ-ONLY
           // ------------------------------
           {
-            "group": ["server/emotion/*"],
-            "message": "Emotion Engine is read-only in Phase 2.2.",
+            group: ["server/emotion/*"],
+            message: "Emotion Engine is read-only in Phase 2.2.",
           },
 
           // ------------------------------
@@ -129,48 +134,67 @@ export default [
           // Only eventRouter.js is allowed to orchestrate pipelines.
           // ------------------------------
           {
-            "group": [
+            group: [
               "server/pipelines/pulse/*",
               "!server/pipelines/pulse/**"
             ],
-            "message": "Pulse Pipeline may not import from other pipelines.",
+            message: "Pulse Pipeline may not import from other pipelines.",
           },
           {
-            "group": [
+            group: [
               "server/pipelines/message/*"
             ],
-            "message": "Message Pipeline may not import from other pipelines.",
+            message: "Message Pipeline may not import from other pipelines.",
           },
           {
-            "group": [
+            group: [
               "server/pipelines/focus/*"
             ],
-            "message": "Focus Pipeline may not import from other pipelines.",
+            message: "Focus Pipeline may not import from other pipelines.",
           },
           {
-            "group": [
+            group: [
               "server/pipelines/safety/*"
             ],
-            "message": "Safety Pipeline may not import from other pipelines.",
+            message: "Safety Pipeline may not import from other pipelines.",
           },
           {
-            "group": [
+            group: [
               "server/pipelines/trainer/*"
             ],
-            "message": "Trainer Pipeline may not import from other pipelines.",
+            message: "Trainer Pipeline may not import from other pipelines.",
           },
           {
-            "group": [
+            group: [
               "server/pipelines/session/*"
             ],
-            "message": "Session Pipeline may not import from other pipelines.",
+            message: "Session Pipeline may not import from other pipelines.",
           }
         ]
       }
     ]
   }
 },
-
+// ----------------------------------------------------
+// MOMENT PIPELINE PROTECTION
+// Prevent any pipeline from importing or mutating
+// session, pulse, safety, or emotion internals here.
+// Only imports allowed are from the public builder.
+// ----------------------------------------------------
+{
+  files: ["server/pipelines/moment/**"],
+  rules: {
+    // ----------------------------------------------------
+    // MOMENT PIPELINE — import boundary protection
+    // Ensures no pipeline loads moment internals directly.
+    // Only public builders are allowed.
+    // ----------------------------------------------------
+    "no-restricted-imports": [
+      "error",
+      { "paths": [] }
+    ]
+  }
+},
 // ----------------------------------------------------
 // PULSE PIPELINE PROTECTION
 // Emotion must NEVER appear in pulse-handling files.

@@ -44,12 +44,41 @@ Never:
 - reads participants
 - modifies session or pulse state
 
-## Trainer Pipeline (future)
+## Trainer Pipeline (Phase 2.3.7)
 Owns:
-- trainer-issued signals (break, nudge, focus)
+- trainer-issued meta signals (nudge, slowdown, speedup, break, checkin)
+- normalization of trainer commands via `trainerSignalExtractor.js`
+- contributing trainerSignal into `momentBuilder.addTrainer()`
 
 Never:
-- modifies lifecycle, session, or safety state
+- reads pulse/emotion/session state
+- stores trainer state
+- performs scoring
+- modifies lifecycle or safety data
+
+Boundary Rules:
+- TrainerPipeline is **write-only** into MomentBuilder.
+- Must never depend on audience data, participant lists, or pulse state.
+- Dev-mode boundary guard prevents misrouted pulse/emotion/session events.
+
+
+### Unified Moment Flow (Pulse + Safety + Emotion + Message + Trainer)
+
+```
+audience:pulse      → pulsePipeline      ┐
+audience:message    → messagePipeline    │
+trainer:action      → trainerPipeline    │   all contribute
+safety events       → safetyPipeline     │   fragments into
+emotion scoring     → emotionPipeline    │   MomentBuilder
+                                             ↓
+                                momentBuilder.finalize()
+                                             ↓
+                                 buildMomentEnvelope()
+                                             ↓
+                             InsightLine / TrainerView
+```
+
+Trainer signals are short-lived annotations, not state.
 
 ## Event Router
 Acts as:

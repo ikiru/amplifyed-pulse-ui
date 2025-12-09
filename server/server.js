@@ -3,6 +3,8 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import eventRouter from "./routers/eventRouter.js";
 import { createPulsePipeline } from "./pulse/pulsePipeline.js";
+import { createMessagePipeline } from "./pipelines/message/messagePipeline.js";
+import { createTrainerPipeline } from "./pipelines/trainer/trainerPipeline.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -18,6 +20,8 @@ const io = new Server(httpServer, {
 });
 
 const pulsePipeline = createPulsePipeline(io);
+const messagePipeline = createMessagePipeline(io, pulsePipeline.momentBuilder);
+const trainerPipeline = createTrainerPipeline(io, pulsePipeline.momentBuilder);
 // const emotionPipeline = createEmotionPipeline(io);
 // ----------------------------------------------------
 // FOCUS PIPELINE (Step 6.2 — Scaffold Only)
@@ -51,7 +55,7 @@ eventRouter(io, {
   // focusPipeline,
   
   // Step 6.1 — message pipeline will be activated in Step 7
-  // messagePipeline,
+  messagePipeline,
 
   // Step 6.2 — focus pipeline wiring added but not activated
   // focusPipeline,
@@ -63,7 +67,7 @@ eventRouter(io, {
   // safetyPipeline,
 
   // Step 6.5 — trainer pipeline prepared but not activated
-  // trainerPipeline,
+  trainerPipeline,
 });
 
 const PORT = Number(process.env.PORT) || 3000;

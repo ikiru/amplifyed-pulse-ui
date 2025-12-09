@@ -56,6 +56,15 @@ export default function eventRouter(io, pipelines = {}) {
       });
     });
 
+    socket.on("audience:message", (payload = {}) => {
+      if (messagePipeline?.handleAudienceMessage) {
+        messagePipeline.handleAudienceMessage({
+          socketId: socket.id,
+          text: payload.text
+        });
+      }
+    });
+
     // ----------------------------------------------------
     // FOCUS PIPELINE (Step 6.2 — Scaffold Only)
     // No activation of behavior. Pure wiring.
@@ -180,6 +189,15 @@ export default function eventRouter(io, pipelines = {}) {
         trainerPipeline.handleNudge({
           socketId: socket.id,
           payload,
+        });
+      }
+    });
+
+    socket.on("trainer:action", (payload = {}) => {
+      if (trainerPipeline?.handleTrainerAction) {
+        trainerPipeline.handleTrainerAction({
+          socketId: socket.id,
+          ...payload,
         });
       }
     });

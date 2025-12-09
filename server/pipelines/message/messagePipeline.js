@@ -1,21 +1,43 @@
-/**
- * Message Pipeline (Step 6.1 — Scaffold Only)
- * No behavior. No socket emits. No state.
- * These handlers will be activated in Step 7.
- */
+// ------------------------------------------------------------------
+// Message Pipeline
+// ------------------------------------------------------------------
+// MessagePipeline never reads participants or pulse state.
+// Only analyzes text → emits messageSignal → contributes to unified moment.
+// Owns:
+//   Audience messages and derived message signals.
+//   Broadcasts messages to Trainer UI.
+//
+// Never:
+//   Touches pulse state or participants.
+//
+// Phase 2.3.6:
+//   Integrates message-derived signals into Moment Builder.
+// ------------------------------------------------------------------
 
-export function createMessagePipeline(io) {
-  return {
+import { extractMessageSignal } from "./messageSignalExtractor.js";
 
-    // Audience sends a message to the trainer
-    handleAudienceMessage({ socketId, message }) {
-      // placeholder — activation happens in Phase 7
-    },
+export function createMessagePipeline(io, momentBuilder = null) {
 
-    // Trainer replies to audience or thread
-    handleTrainerReply({ socketId, reply }) {
-      // placeholder — activation happens in Phase 7
+  function handleAudienceMessage({ socketId, text }) {
+    if (!text) return;
+
+    // 1. Emit raw message (unchanged existing behavior)
+    io.emit("audience:message", {
+      socketId,
+      text,
+      timestamp: Date.now()
+    });
+
+    // 2. Derive message-level signal
+    const messageSignal = extractMessageSignal(text);
+
+    // 3. Add message contribution to unified moment
+    if (momentBuilder && messageSignal) {
+      momentBuilder.addMessage({ messageSignal });
     }
+  }
 
+  return {
+    handleAudienceMessage
   };
 }

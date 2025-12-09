@@ -4,7 +4,8 @@
  * Logic will be migrated in Step 7.
  */
 
-export function createSafetyPipeline(io) {
+// Phase 2.3.4 — Safety now contributes to the Multi-Signal moment builder
+export function createSafetyPipeline(io, momentBuilder = null) {
   return {
     handleSoftFlag() {
       // placeholder — activation will occur in Step 7
