@@ -297,3 +297,33 @@ export default [
     }
   ]
 }
+
+// -----------------------------------------------------------------------------
+// PIPELINE BOUNDARY ENFORCEMENT — SESSION DOMAIN
+// -----------------------------------------------------------------------------
+// Session state (session/state.js or sessionPipeline’s internal state) must not
+// be read directly from other pipelines. Other domains may only access data
+// exposed by the session pipeline’s public API (e.g., participant snapshots).
+//
+// This rule prevents:
+//   • Pulse or moment pipelines from reaching into raw session state
+//   • New code from importing ../session/state.js as a shortcut
+//   • Drift back toward a single global session engine
+// -----------------------------------------------------------------------------
+
+{
+  rules: {
+    "no-restricted-imports": [
+      "error",
+      {
+        patterns: [
+          {
+            group: ["../session/state.js", "server/session/state.js"],
+            message:
+              "Do not import session state directly. Use the session pipeline API instead.",
+          },
+        ],
+      },
+    ],
+  },
+}
