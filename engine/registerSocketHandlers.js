@@ -1,16 +1,25 @@
-// engine/registerSocketHandlers.js
-
 export function registerSocketHandlers(io) {
-  console.log("🔌 Socket handlers (FAKE ENGINE MODE)");
+  io.on("connection", async (socket) => {
+    console.log("[ENGINE] socket connected:", socket.id);
+    socket.emit("socket:connected");
 
-  io.on("connection", (socket) => {
-    console.log("🔌 Client connected:", socket.id);
+    //
+    // ------------------------------------------------------------
+    // PULSE PIPELINE REGISTRATION
+    // ------------------------------------------------------------
+    //
+    try {
+      const { handlePulseSubmit } = await import(
+        "../server/pipelines/pulse/pulse.handleSubmit.js"
+      );
 
-    socket.emit("socket:connected", {
-      id: socket.id,
-    });
+      socket.on("pulse:submit", (payload) => {
+        handlePulseSubmit(io, socket, payload);
+      });
+
+      console.log("[ENGINE] Pulse pipeline wired.");
+    } catch (err) {
+      console.error("[ENGINE] Failed to wire pulse pipeline:", err);
+    }
   });
-
-  // No-op for real engine for now
 }
-

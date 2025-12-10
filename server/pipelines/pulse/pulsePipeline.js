@@ -67,6 +67,12 @@ export function createPulsePipeline(
   }
 
   function handlePulseSubmit({ userId, value }) {
+    console.log("[PIPELINE] handlePulseSubmit fired:", {
+      userId,
+      value,
+      timestamp: Date.now(),
+    });
+
     // Step 7.3.6 — all pulse math handled by pulseEngine
     const result = pulseEngine?.applyPulseChange?.({ userId, value });
 
@@ -85,7 +91,13 @@ export function createPulsePipeline(
     momentBuilder?.finalize();
 
     // Step 7.3.5 — use broadcast module
-    broadcastPulseUpdate(getParticipants?.());
+    const participants = getParticipants?.();
+    console.log("[BROADCAST] pulse:update ->", {
+      participants,
+      votes: roomState?.votes,
+      eventLog: roomState?.eventLog,
+    });
+    broadcastPulseUpdate(participants);
 
     return result;
   }

@@ -20,6 +20,11 @@ function enhanceSocket(s) {
     handlers["message:update"]?.(payload);
   });
 
+  // Forward pulse pipeline updates to the client
+  s.on("pulse:update", (payload) => {
+    handlers["pulse:update"]?.(payload);
+  });
+
   return s;
 }
 

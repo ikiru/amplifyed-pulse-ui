@@ -12,7 +12,7 @@ export const SocketContext = createContext(null);
 export function SocketProvider({ children }) {
   const socketRef = useRef(null);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
-  const [, setSocketState] = useState(null);
+  const [socketState, setSocketState] = useState(null);
   const registeredHandlers = useRef(new Map());
 
   // We intentionally use a mutable ref for event handler maps.
@@ -110,7 +110,7 @@ export function SocketProvider({ children }) {
         // always holds the same socket instance.
         //
         // eslint-disable-next-line react-hooks/refs
-        socket: socketRef.current,
+        socket: socketState,
         emit,
         connectionStatus,
         onEvent,

@@ -46,15 +46,21 @@ export default function registerEventRouter(io, socket, pipelines = {}) {
    * Still supported exactly as before. Just routed through
    * the new architecture.
    */
-  socket.on("audience:pulse", (payload = {}) => {
-    if (!pulsePipeline?.handlePulse) return;
+socket.on("audience:pulse", (payload = {}) => {
+  console.log("[ROUTER] audience:pulse received:", payload);
 
-    pulsePipeline.handlePulse({
-      socketId: socket.id,
-      pulse: payload.pulse,
-      timestamp: Date.now(),
-    });
+  if (!pulsePipeline?.handlePulseSubmit) {
+    console.log("[ROUTER] pulsePipeline.handlePulseSubmit MISSING");
+    return;
+  }
+
+  pulsePipeline.handlePulseSubmit({
+    socketId: socket.id,
+    pulse: payload.pulse,
+    timestamp: Date.now(),
   });
+});
+
 
   socket.on("audience:message", (payload = {}) => {
     if (messagePipeline?.handleAudienceMessage) {
