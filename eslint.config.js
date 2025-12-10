@@ -141,6 +141,20 @@ export default [
               "Legacy camelCase momentBuilder.js and momentEnvelope.js are forbidden. Use moment.builder.js and moment.envelope.js."
           },
 
+          // ----------------------------------------------------
+          // PULSE PIPELINE NAMING / PATH PROTECTION
+          // ----------------------------------------------------
+          {
+            group: ["server/pulse/**"],
+            message:
+              "Legacy server/pulse directory is forbidden. Use server/pipelines/pulse/ instead."
+          },
+          {
+            group: ["**/pulse.handleSubmit.js"],
+            message:
+              "Legacy pulse.handleSubmit.js entrypoint is forbidden. Use pulsePipeline via eventRouter."
+          },
+
           {
             group: ["**/*Moment*.js"],
             message:
@@ -191,6 +205,14 @@ export default [
           }
         ]
       }
+    ],
+    "no-restricted-syntax": [
+      "error",
+      {
+        selector: 'Literal[value="pulse:submit"]',
+        message:
+          'Legacy "pulse:submit" event is forbidden. Use "audience:pulse".'
+      }
     ]
   }
 },
@@ -237,3 +259,41 @@ export default [
 },
 
 ];
+// -----------------------------------------------------------------------------
+// PIPELINE BOUNDARY ENFORCEMENT — EMOTION DOMAIN
+// -----------------------------------------------------------------------------
+// The legacy emotion engine (server/emotion/*) is deprecated and must not be
+// imported by any active pipeline or server module. All functional emotion logic
+// now lives exclusively under server/pipelines/emotion/*.
+//
+// This lint rule ensures:
+//   • No accidental resurrection of legacy emotional engine files
+//   • No cross-domain drift (emotion ↔ pulse ↔ session)
+//   • No imports of deprecated scoring/state-map modules
+//   • Clear developer errors if boundaries are violated
+//
+// Only emotionConfig.js and exported enums remain allowed at the domain root.
+// -----------------------------------------------------------------------------
+{
+  "no-restricted-imports": [
+    "error",
+    {
+      "patterns": [
+        {
+          "group": ["server/emotion/*"],
+          "message": "Do not import legacy emotion engine files. Use server/pipelines/emotion/* instead."
+        }
+      ],
+      "paths": [
+        {
+          "name": "server/emotion/stateMapEngine.js",
+          "message": "stateMapEngine.js is LEGACY. Never import it."
+        },
+        {
+          "name": "server/emotion/emotionalScoring.js",
+          "message": "Legacy emotional scoring module. Use emotion.featureExtractors or emotion.scoring in the canonical pipeline."
+        }
+      ]
+    }
+  ]
+}
