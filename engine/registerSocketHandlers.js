@@ -1,25 +1,23 @@
+// engine/registerSocketHandlers.js
+import registerEventRouter from "../server/routers/eventRouter.js";
+import { createMomentPipeline } from "../server/pipelines/moment/momentPipeline.js";
+import { createPulsePipeline } from "../server/pipelines/pulse/pulsePipeline.js";
+
 export function registerSocketHandlers(io) {
-  io.on("connection", async (socket) => {
+  // Instantiate pipelines once at server startup
+  const momentPipeline = createMomentPipeline(io);
+  const pulsePipeline = createPulsePipeline(io, momentPipeline);
+
+  const pipelines = {
+    pulsePipeline,
+    momentPipeline,
+  };
+
+  io.on("connection", (socket) => {
     console.log("[ENGINE] socket connected:", socket.id);
     socket.emit("socket:connected");
 
-    //
-    // ------------------------------------------------------------
-    // PULSE PIPELINE REGISTRATION
-    // ------------------------------------------------------------
-    //
-    try {
-      const { handlePulseSubmit } = await import(
-        "../server/pipelines/pulse/pulse.handleSubmit.js"
-      );
-
-      socket.on("pulse:submit", (payload) => {
-        handlePulseSubmit(io, socket, payload);
-      });
-
-      console.log("[ENGINE] Pulse pipeline wired.");
-    } catch (err) {
-      console.error("[ENGINE] Failed to wire pulse pipeline:", err);
-    }
+    // Hand off ALL event wiring (including audience:pulse) to the router
+    registerEventRouter(io, socket, pipelines);
   });
 }
