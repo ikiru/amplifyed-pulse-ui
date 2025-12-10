@@ -1,10 +1,11 @@
-import { updateStateMap } from "./stateMapEngine.js";
-import { EMOTION_ENABLED, EMOTION_MAP_EVENT } from "./emotionConfig.js";
+// ⚠️ LEGACY EMOTION ENTRYPOINT — DO NOT IMPORT
+// Canonical pipeline: server/pipelines/emotion/emotionPipeline.js
 
-export function processEmotionEvent(io, event) {
-  if (!EMOTION_ENABLED) return;
+// export everything needed by pipelines
+export {
+  EMOTION_ENABLED,
+  EMOTION_MAP_EVENT,
+} from "./emotionConfig.js";
 
-  const map = updateStateMap(event);
-
-  io.emit(EMOTION_MAP_EVENT, map);
-}
+// No legacy stateMap exports — emotion state is now handled entirely
+// by the canonical pipeline in server/pipelines/emotion/*
