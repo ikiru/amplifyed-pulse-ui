@@ -128,6 +128,25 @@ export default [
             message: "Emotion Engine is read-only in Phase 2.2.",
           },
 
+          // ----------------------------------------------------
+          // MOMENT PIPELINE NAMING PROTECTION
+          // Block legacy filenames from ever being reintroduced.
+          // ----------------------------------------------------
+          {
+            group: [
+              "**/momentBuilder.js",
+              "**/momentEnvelope.js"
+            ],
+            message:
+              "Legacy camelCase momentBuilder.js and momentEnvelope.js are forbidden. Use moment.builder.js and moment.envelope.js."
+          },
+
+          {
+            group: ["**/*Moment*.js"],
+            message:
+              "CamelCase filenames for Moment pipeline files are forbidden. Use lowercase with dot notation: moment.builder.js."
+          },
+
           // ------------------------------
           // CROSS-PIPELINE PROTECTION
           // Prevent pipelines from importing each other directly.
