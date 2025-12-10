@@ -1,3 +1,15 @@
+// ⚠️ LEGACY MODULE — DO NOT IMPORT
+// This file belongs to the deprecated pre-pipeline emotional engine.
+// Canonical emotion logic now lives under server/pipelines/emotion/*.
+//
+// PROHIBITED:
+// - Importing this file from any pipeline
+// - Using this file to compute state, trends, or mood in TrainerView
+//
+// This module is kept only for historical reference and MUST NOT be used
+// in any new feature or pipeline.
+
+
 export const EmotionWindow = [];
 
 export function updateStateMap(event) {
