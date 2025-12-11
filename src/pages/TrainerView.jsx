@@ -51,7 +51,10 @@ export default function TrainerView() {
       <h1>Trainer View</h1>
       <p>Socket: {connectionStatus}</p>
 
-      <h2>Pulses:</h2>
+      {/* ========================= */}
+      {/*  Live Pulse Feed Section  */}
+      {/* ========================= */}
+      <h2>Live Pulse Feed</h2>
       <pre
         style={{
           background: "black",
@@ -64,10 +67,15 @@ export default function TrainerView() {
         {pulseState ? JSON.stringify(pulseState, null, 2) : "No data yet"}
       </pre>
 
-      {/* ======================================= */}
-      {/* Pulse Tallies (Modern Pulse Pipeline)   */}
-      {/* ======================================= */}
-      <h2>Pulse Tallies:</h2>
+      <h2>Pulse Vote Summary</h2>
+
+      {/* Last update timestamp (from moment envelope) */}
+      <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "-8px" }}>
+        Last pulse update:{" "}
+        {momentEnvelope && momentEnvelope.timestamp
+          ? new Date(momentEnvelope.timestamp).toLocaleTimeString()
+          : "waiting"}
+      </p>
       {(() => {
         if (!pulseState || !pulseState.votes) {
           return <p>No pulse data yet.</p>;
@@ -79,35 +87,23 @@ export default function TrainerView() {
         const frustrated = votes.filter(v => v === "frustrated").length;
 
         return (
-          <table
+          <pre
             style={{
-              width: "250px",
-              borderCollapse: "collapse",
+              background: "#111",
+              color: "white",
+              padding: "10px",
               marginBottom: "20px",
+              lineHeight: "1.4",
             }}
           >
-            <tbody>
-              <tr>
-                <td>Engaged</td>
-                <td>{engaged}</td>
-              </tr>
-              <tr>
-                <td>Neutral</td>
-                <td>{neutral}</td>
-              </tr>
-              <tr>
-                <td>Frustrated</td>
-                <td>{frustrated}</td>
-              </tr>
-            </tbody>
-          </table>
+            {`Engaged:     ${engaged}
+Neutral:     ${neutral}
+Frustrated:  ${frustrated}`}
+          </pre>
         );
       })()}
 
-      {/* ======================================= */}
-      {/* Trainer Pipeline Debug (Trainer-only)   */}
-      {/* Now BELOW pulse summary                 */}
-      {/* ======================================= */}
+      <hr style={{ margin: "30px 0" }} />
       <h2>Trainer Pipeline Debug:</h2>
       <pre
         style={{
