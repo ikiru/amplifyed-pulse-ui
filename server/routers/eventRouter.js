@@ -54,11 +54,11 @@ socket.on("audience:pulse", (payload = {}) => {
     return;
   }
 
-  pulsePipeline.handlePulseSubmit({
-    socketId: socket.id,
-    pulse: payload.pulse,
-    timestamp: Date.now(),
-  });
+ pulsePipeline.handlePulseSubmit({
+  userId: socket.id,
+  value: payload.pulse,
+});
+
 });
 
 

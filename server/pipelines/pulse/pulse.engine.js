@@ -25,7 +25,7 @@ export function createPulseEngine(pulseState) {
   // ----------------------------------------------------
   function computePulseDelta(value) {
     switch (value) {
-      case "happy":
+      case "engaged":
         return 1;
       case "neutral":
         return 0;
@@ -40,20 +40,22 @@ export function createPulseEngine(pulseState) {
   // Apply the pulse to state (no broadcast here)
   // ----------------------------------------------------
   function applyPulseChange({ userId, value }) {
-    const delta = computePulseDelta(value);
-
-    // Update vote in shared pulse state
+    // Write vote into real pulse state
     pulseState.setVote(userId, value);
 
-    // Log the pulse event for later use
+    // Append to event log
     pulseState.addEventLog({
       userId,
       value,
-      delta,
-      timestamp: Date.now(),
+      ts: Date.now(),
     });
 
-    return { delta, value };
+    return { userId, value };
   }
 
+  // ----------------------------------------------------
+  // Step 7.3.3 — Expose engine API
+  // Enables pulsePipeline.handlePulseSubmit to call applyPulseChange
+  // ----------------------------------------------------
+  return { applyPulseChange };
 }

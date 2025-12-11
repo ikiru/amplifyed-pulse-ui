@@ -18,7 +18,7 @@
 // Pure short-lived builder for a SINGLE timeline event.
 // ------------------------------------------------------------------
 
-import { buildMomentEnvelope } from "./momentEnvelope.js";
+import { buildMomentEnvelope } from "./moment.envelope.js";
 
 export function createMomentBuilder(dispatchMoment = null) {
 

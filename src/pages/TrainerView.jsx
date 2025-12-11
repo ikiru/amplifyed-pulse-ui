@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 // useSocket removed — using SocketContext instead
 import { useSocketContext } from "../socket";
-import EmotionTrendline from "../components/console/EmotionTrendline.jsx";
 
 export default function TrainerView() {
   const { onEvent, offEvent, connectionStatus } = useSocketContext();
@@ -65,7 +64,45 @@ export default function TrainerView() {
         {pulseState ? JSON.stringify(pulseState, null, 2) : "No data yet"}
       </pre>
 
-      <EmotionTrendline pulseState={pulseState} />
+      {/* ======================================= */}
+      {/* Pulse Tallies (Modern Pulse Pipeline)   */}
+      {/* ======================================= */}
+      <h2>Pulse Tallies:</h2>
+      {(() => {
+        if (!pulseState || !pulseState.votes) {
+          return <p>No pulse data yet.</p>;
+        }
+
+        const votes = Object.values(pulseState.votes);
+        const engaged = votes.filter(v => v === "engaged").length;
+        const neutral = votes.filter(v => v === "neutral").length;
+        const frustrated = votes.filter(v => v === "frustrated").length;
+
+        return (
+          <table
+            style={{
+              width: "250px",
+              borderCollapse: "collapse",
+              marginBottom: "20px",
+            }}
+          >
+            <tbody>
+              <tr>
+                <td>Engaged</td>
+                <td>{engaged}</td>
+              </tr>
+              <tr>
+                <td>Neutral</td>
+                <td>{neutral}</td>
+              </tr>
+              <tr>
+                <td>Frustrated</td>
+                <td>{frustrated}</td>
+              </tr>
+            </tbody>
+          </table>
+        );
+      })()}
 
       {/* ======================================= */}
       {/* Trainer Pipeline Debug (Trainer-only)   */}

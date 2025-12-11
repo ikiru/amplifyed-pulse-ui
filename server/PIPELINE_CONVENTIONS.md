@@ -89,7 +89,8 @@ No snake_case.
 
 No index.js inside pipeline folders.
 
-Each domain must define exactly one <domain>Pipeline.js entrypoint.
+Each domain must define exactly one `{domain}Pipeline.js` entrypoint.
+
 
 3. Event Naming Conventions
 

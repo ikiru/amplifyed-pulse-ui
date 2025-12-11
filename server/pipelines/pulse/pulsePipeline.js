@@ -16,16 +16,15 @@ import { createPulseEngine } from "./pulse.engine.js";
 import { createPulseBroadcast } from "./pulse.broadcast.js";
 
 // Phase 2.3.1 – unified moment builder
-import { buildMomentEnvelope } from "../moment/momentEnvelope.js";
+import { buildMomentEnvelope } from "../moment/moment.envelope.js";
 
 // Phase 2.3.2 — multi-signal builder logic
-import { createMomentBuilder } from "../moment/momentBuilder.js";
+import { createMomentBuilder } from "../moment/moment.builder.js";
 
 export function createPulsePipeline(
   io,
   { safetyPipeline, emotionPipeline, sessionPipeline, momentPipeline } = {}
 ) {
-
   // Step 7.3.1 — Prepare Pulse State Module
   const pulseState = createPulseState?.();
 
@@ -43,9 +42,10 @@ export function createPulsePipeline(
   const momentBuilder = createMomentBuilder(momentPipeline?.addMoment);
 
   // Phase 2.3.4 — Safety can attach to the moment builder OR remain the old pipeline object
-  const safety = typeof safetyPipeline === "function"
-    ? safetyPipeline(momentBuilder)
-    : safetyPipeline;
+  const safety =
+    typeof safetyPipeline === "function"
+      ? safetyPipeline(momentBuilder)
+      : safetyPipeline;
 
   // Phase 2.3.5 — Emotion now may interact with the moment builder as well
   const emotion = emotionPipeline
@@ -66,7 +66,16 @@ export function createPulsePipeline(
     broadcastPulseUpdate(getParticipants?.());
   }
 
-  function handlePulseSubmit({ userId, value }) {
+  function handlePulseSubmit({ userId, value, payload }) {
+    // Normalize userId (router always sends socket.id)
+    if (!userId && payload?.socketId) {
+      userId = payload.socketId;
+    }
+    if (!userId) {
+      console.warn("[PIPELINE] Missing userId. Pulse ignored.");
+      return;
+    }
+
     console.log("[PIPELINE] handlePulseSubmit fired:", {
       userId,
       value,
@@ -74,7 +83,7 @@ export function createPulsePipeline(
     });
 
     // Step 7.3.6 — all pulse math handled by pulseEngine
-    const result = pulseEngine?.applyPulseChange?.({ userId, value });
+    const result = pulseEngine.applyPulseChange({ userId, value });
 
     if (safety?.analyzeEvent) {
       safety.analyzeEvent({ userId, value });
@@ -94,8 +103,8 @@ export function createPulsePipeline(
     const participants = getParticipants?.();
     console.log("[BROADCAST] pulse:update ->", {
       participants,
-      votes: roomState?.votes,
-      eventLog: roomState?.eventLog,
+      votes: roomState.votes,
+      eventLog: roomState.eventLog,
     });
     broadcastPulseUpdate(participants);
 
@@ -104,10 +113,8 @@ export function createPulsePipeline(
 
   // Make helpers available to other pipelines
   return {
-    // Step 7.3.2 — Expose pulse state for other pipelines
     roomState,
     momentBuilder,
-
     broadcastPulseUpdate,
     handlePulseSubmit,
     handlePulseRevoke,
