@@ -7,7 +7,6 @@ export const usePulseStream = create((set, get) => ({
   lastVoteAt: null,
   eventLog: [],
   moment: null,
-  emotion: null,
 
   // Client-side analytics (incremental)
   score: 0,
@@ -20,7 +19,6 @@ export const usePulseStream = create((set, get) => ({
       eventLog: [...state.eventLog, evt],
     })),
   setMoment: (moment) => set({ moment }),
-  setEmotion: (emotion) => set({ emotion }),
 
   //------------------------------------------------------------------
   // updateVotes — server canonical votes
