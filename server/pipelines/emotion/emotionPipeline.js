@@ -22,30 +22,20 @@
 import { extractors } from "./emotion.featureExtractors.js";
 import { aggregateEmotionFeatures } from "./emotion.aggregator.js";
 import { normalizeEmotionEnvelope } from "./emotion.normalizer.js";
+import { smoothEmotionValues } from "./emotion.smoothing.js";
+import { computeEmotionScores } from "./emotion.scoring.js";
+import { buildEmotionSignalEnvelope } from "./emotion.signalEnvelope.js";
 
 export function createEmotionPipeline(io, momentPipeline) {
-  // Placeholder scoring function
-  function evaluateEmotion(envelope) {
-    console.log("[Emotion] Placeholder evaluation executed for moment.");
+  function applyEmotion(momentEnvelope = {}, signals = {}) {
+    const scores = computeEmotionScores(momentEnvelope);
 
-    // Deterministic, reversible, neutral output
-    return {
-      valence: 0,
-      arousal: 0,
-      intensity: 0,
-      confidence: 1,
-    };
-  }
-
-  // Public API used by upstream orchestration
-  function applyEmotion(envelope) {
-    if (!envelope) return envelope;
-
-    const emotionScore = evaluateEmotion(envelope);
+    const smoothed = smoothEmotionValues(scores);
 
     return {
-      ...envelope,
-      emotionScore,
+      ...momentEnvelope,
+      signals: buildEmotionSignalEnvelope(signals),
+      emotion: smoothed,
     };
   }
 
@@ -70,7 +60,9 @@ export function createEmotionPipeline(io, momentPipeline) {
     // Phase 2.17 — normalize schema for downstream consumers
     const emotionEnvelope = normalizeEmotionEnvelope(baseEnvelope);
 
-    io.emit("emotion:update", emotionEnvelope);
+    const finalEnvelope = applyEmotion(normalizedEnvelope, rawFeatures);
+
+    io.emit("emotion:update", finalEnvelope);
 
     return moment;
   }
