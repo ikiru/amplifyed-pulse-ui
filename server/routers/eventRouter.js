@@ -19,6 +19,9 @@
  * This architecture allows expansion without rewriting handlers.
  */
 
+import { handleTrainerCommand } from "../pipelines/trainer/trainer.handleCommand.js";
+import { handleTrainerNudge } from "../pipelines/trainer/trainer.handleNudge.js";
+
 // ------------------------------------------------------------------
 // EventRouter
 // Dispatches socket events to pipelines.
@@ -175,6 +178,28 @@ socket.on("audience:pulse", (payload = {}) => {
     }
   });
 
+  // -------------------------------------------
+  // TRAINER ACTION (PHASE 2.10)
+  // -------------------------------------------
+  socket.on("trainer:action", (payload = {}) => {
+    if (!trainerPipeline?.handleTrainerAction) {
+      return;
+    }
+
+    const action =
+      payload.action ??
+      payload.actionType ??
+      payload.command ??
+      "advance";
+
+    trainerPipeline.handleTrainerAction({
+      action,
+      type: payload.type,
+      ts: payload.ts ?? Date.now(),
+      socketId: socket.id,
+    });
+  });
+
   /**
    * --------------------------------------------------
    * Future event types (emotion, focus, camera, etc.)
@@ -186,36 +211,11 @@ socket.on("audience:pulse", (payload = {}) => {
    * });
    */
 
-  // ----------------------------------------------------
-  // TRAINER PIPELINE (Step 6.5 — Scaffold Only)
-  // No logic runs yet — activation in Step 7.
-  // ----------------------------------------------------
-  socket.on("trainer:command", (payload) => {
-    if (trainerPipeline?.handleCommand) {
-      trainerPipeline.handleCommand({
-        socketId: socket.id,
-        ...payload,
-      });
-    }
-  });
-
-  socket.on("trainer:nudge", (payload) => {
-    if (trainerPipeline?.handleNudge) {
-      trainerPipeline.handleNudge({
-        socketId: socket.id,
-        payload,
-      });
-    }
-  });
-
-  socket.on("trainer:action", (payload = {}) => {
-    if (trainerPipeline?.handleTrainerAction) {
-      trainerPipeline.handleTrainerAction({
-        socketId: socket.id,
-        ...payload,
-      });
-    }
-  });
+  // -------------------------------------------
+  // Phase 2.10 Trainer Routes
+  // -------------------------------------------
+  handleTrainerCommand(io, socket);
+  handleTrainerNudge(io, socket);
 
   socket.on("disconnect", () => {
     // -----------------------------------------------

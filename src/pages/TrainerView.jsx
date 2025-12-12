@@ -2,53 +2,226 @@ import React, { useEffect, useState } from "react";
 import { useSocketContext } from "../socket/SocketContext.jsx";
 
 export default function TrainerView() {
-  const { onEvent, offEvent, connectionStatus } = useSocketContext();
-  const [pulseState, setPulseState] = useState(null);
-
-  // ============================================
-  // Trainer + Moment debug state (Phase 2.3.8A)
-  // ============================================
+  const { emit, onEvent, offEvent, connectionStatus } = useSocketContext();
+  const [livePulse, setLivePulse] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [momentData, setMomentData] = useState(null);
   const [trainerSignal, setTrainerSignal] = useState(null);
-  const [momentEnvelope, setMomentEnvelope] = useState(null);
+  const [emotionSignal, setEmotionSignal] = useState(null);
 
-  // ================================
-  // pulse:update listener
-  // ================================
+  // -------------------------------
+  // Socket listeners
+  // -------------------------------
   useEffect(() => {
-    const handler = (payload) => {
-      setPulseState(payload);
+    const handlePulse = (payload) => {
+      setLivePulse(payload);
     };
 
-    onEvent("pulse:update", handler);
-    return () => offEvent("pulse:update", handler);
+    onEvent("pulse:update", handlePulse);
+    return () => offEvent("pulse:update", handlePulse);
   }, [onEvent, offEvent]);
 
-  // ============================================
-  // TrainerSignal listener
-  // ============================================
   useEffect(() => {
-    const handler = (payload) => {
-      setTrainerSignal(payload);
+    const handleAudienceMessage = (payload) => {
+      setMessages((prev) => {
+        const next = [...prev, payload];
+        return next.slice(-5);
+      });
     };
-    onEvent("trainer:signal", handler);
-    return () => offEvent("trainer:signal", handler);
+
+    const handleMomentUpdate = (payload) => {
+      if (!payload) {
+        setMomentData(null);
+        return;
+      }
+
+      // Normalize moment envelope to stable fields
+      const ts = payload.ts ?? payload.timestamp ?? Date.now();
+
+      const normalized = {
+        ts,
+        pulse: payload.pulse ?? null,
+        emotion: payload.emotion ?? null,
+        safety: payload.safety ?? "none",
+        message: payload.message ?? null,
+        trainer: payload.trainer ?? null,
+      };
+
+      setMomentData(normalized);
+    };
+
+    const handleTrainerSignal = (payload) => {
+      if (!payload) {
+        setTrainerSignal(null);
+        return;
+      }
+
+      const raw =
+        typeof payload.trainerSignal === "object"
+          ? payload.trainerSignal
+          : payload;
+
+      const signal = {
+        actionType: raw.actionType ?? raw.type ?? "unknown",
+        ts: raw.ts ?? Date.now(),
+        meta: raw.meta ?? null,
+      };
+
+      setTrainerSignal(signal);
+    };
+
+    const handleEmotionUpdate = (payload) => {
+      if (!payload) return;
+
+    // Emotion envelope is already normalized on server side
+    const normalized = {
+      ts: payload.ts,
+      features: payload.features,
+      aggregate: payload.aggregate,
+      emotion: payload.emotion,
+      schemaVersion: payload.schemaVersion,
+    };
+
+      setEmotionSignal(normalized);
+    };
+
+    onEvent("message:audience", handleAudienceMessage);
+    onEvent("moment:update", handleMomentUpdate);
+    onEvent("emotion:update", handleEmotionUpdate);
+    onEvent("trainer:signal", handleTrainerSignal);
+
+    return () => {
+      offEvent("message:audience", handleAudienceMessage);
+      offEvent("moment:update", handleMomentUpdate);
+      offEvent("emotion:update", handleEmotionUpdate);
+      offEvent("trainer:signal", handleTrainerSignal);
+    };
   }, [onEvent, offEvent]);
 
-  // ============================================
-  // MomentEnvelope listener
-  // ============================================
-  useEffect(() => {
-    const handler = (payload) => {
-      setMomentEnvelope(payload);
-    };
-    onEvent("moment:update", handler);
-    return () => offEvent("moment:update", handler);
-  }, [onEvent, offEvent]);
+  // -------------------------------
+  // Trainer action emitter
+  // -------------------------------
+  const sendTrainerAction = (actionType) => {
+    emit("trainer:action", {
+      actionType,
+      ts: Date.now(),
+    });
+  };
+
+  const rawMomentTs = momentData?.ts ?? momentData?.timestamp ?? null;
+  const lastMomentTimestamp = rawMomentTs;
+  const formattedLastMoment = lastMomentTimestamp
+    ? new Date(lastMomentTimestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+    : "waiting";
+
+  // Unified moment panel model (foundation for emotional trendline)
+  const currentMoment = momentData
+    ? {
+        ts: momentData.ts,
+        pulse: momentData.pulse,
+        emotion: emotionSignal?.emotion ?? momentData.emotion ?? null,
+        safety: momentData.safety,
+        message: momentData.message,
+        trainerSignal: trainerSignal ?? null,
+      }
+    : null;
 
   return (
-    <div>
-      <h1>Trainer View</h1>
-      <p>Socket: {connectionStatus}</p>
+    <div style={{ padding: 16, fontFamily: "system-ui, sans-serif" }}>
+      <header
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          marginBottom: 16,
+          gap: 12,
+        }}
+      >
+        <div>
+          <h1 style={{ margin: 0 }}>Trainer View</h1>
+          <p style={{ margin: 0, color: "#666" }}>Socket: {connectionStatus}</p>
+        </div>
+      </header>
+
+      {/* ---------------- TRAINER CONTROLS ---------------- */}
+      <div
+        style={{
+          padding: "12px",
+          border: "1px solid #ddd",
+          borderRadius: 8,
+          marginBottom: 12,
+          background: "#fafafa",
+        }}
+      >
+        <h3 style={{ marginTop: 0, marginBottom: 8 }}>Trainer Controls</h3>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[
+            ["slowdown", "Slow Down"],
+            ["speedup", "Speed Up"],
+            ["break", "Break"],
+            ["checkin", "Check-in"],
+          ].map(([type, label]) => (
+            <button
+              key={type}
+              onClick={() => sendTrainerAction(type)}
+              style={{
+                padding: "8px 14px",
+                background: "#222",
+                color: "#fff",
+                border: "none",
+                borderRadius: 4,
+                cursor: "pointer",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ---------------- AUDIENCE MESSAGES ---------------- */}
+      <div
+        style={{
+          padding: "12px",
+          border: "1px solid #ddd",
+          borderRadius: 8,
+          marginBottom: 20,
+        }}
+      >
+        <h3 style={{ marginTop: 0 }}>Audience Messages</h3>
+        {messages.length ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {messages.slice(-3).map((msg, index) => (
+              <div
+                key={`${msg.id ?? index}-${index}`}
+                style={{
+                  padding: "8px",
+                  background: "#fff",
+                  borderRadius: 6,
+                  border: "1px solid #eee",
+                }}
+              >
+                <pre
+                  style={{
+                    margin: 0,
+                    fontSize: "0.8rem",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {JSON.stringify(msg, null, 2)}
+                </pre>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ margin: 0, color: "#555" }}>No audience messages yet.</p>
+        )}
+      </div>
 
       {/* ========================= */}
       {/*  Live Pulse Feed Section  */}
@@ -63,36 +236,24 @@ export default function TrainerView() {
           overflowY: "auto",
         }}
       >
-        {pulseState ? JSON.stringify(pulseState, null, 2) : "No data yet"}
+        {livePulse ? JSON.stringify(livePulse, null, 2) : "No data yet"}
       </pre>
 
       <h2>Pulse Vote Summary</h2>
 
-      {/* Last update timestamp (from moment envelope) */}
       <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "-8px" }}>
-        Last pulse update:{" "}
-        {momentEnvelope && momentEnvelope.timestamp
-          ? (() => {
-              const ts = new Date(momentEnvelope.timestamp);
-              const time = ts.toLocaleTimeString([], {
-                hour: "numeric",
-                minute: "2-digit",
-                second: "2-digit",
-              });
-              const date = ts.toLocaleDateString();
-              return `${time} • ${date}`;
-            })()
-          : "waiting"}
+        Last pulse update: {formattedLastMoment}
       </p>
+
       {(() => {
-        if (!pulseState || !pulseState.votes) {
+        if (!livePulse || !livePulse.votes) {
           return <p>No pulse data yet.</p>;
         }
 
-        const votes = Object.values(pulseState.votes);
-        const engaged = votes.filter(v => v === "engaged").length;
-        const neutral = votes.filter(v => v === "neutral").length;
-        const frustrated = votes.filter(v => v === "frustrated").length;
+        const votes = Object.values(livePulse.votes);
+        const engaged = votes.filter((v) => v === "engaged").length;
+        const neutral = votes.filter((v) => v === "neutral").length;
+        const frustrated = votes.filter((v) => v === "frustrated").length;
 
         return (
           <pre
@@ -111,36 +272,122 @@ Frustrated:  ${frustrated}`}
         );
       })()}
 
-      <hr style={{ margin: "30px 0" }} />
-      <h2>Trainer Pipeline Debug:</h2>
-      <pre
+      <div
         style={{
-          background: "black",
-          color: "orange",
-          padding: 16,
-          maxHeight: 200,
-          overflowY: "auto",
+          padding: "12px",
+          border: "1px solid #ddd",
+          borderRadius: 8,
+          marginBottom: 20,
+          background: "#f9f9f9",
         }}
       >
-        {trainerSignal
-          ? JSON.stringify(trainerSignal, null, 2)
-          : "No trainer signal yet"}
-      </pre>
+        <h3 style={{ marginTop: 0 }}>Emotion / Moment Panel</h3>
+        {momentData ? (
+          <>
+            <p style={{ margin: "4px 0" }}>
+              Current moment: {momentData.label ?? momentData.id ?? "unknown"}
+            </p>
+            <pre
+              style={{
+                background: "#fff",
+                padding: "10px",
+                borderRadius: 6,
+                border: "1px solid #eee",
+                maxHeight: 220,
+                overflowY: "auto",
+                margin: 0,
+                fontSize: "0.85rem",
+              }}
+            >
+          {JSON.stringify(currentMoment, null, 2)}
+            </pre>
+          </>
+        ) : (
+          <p style={{ margin: 0, color: "#555" }}>Waiting for moment data…</p>
+        )}
+      </div>
 
-      <h2>Moment Envelope Debug:</h2>
-      <pre
+      <div
         style={{
-          background: "black",
-          color: "cyan",
-          padding: 16,
-          maxHeight: 200,
-          overflowY: "auto",
+          padding: "12px",
+          border: "1px solid #ddd",
+          borderRadius: 8,
+          marginBottom: 20,
+          background: "#fff6f6",
         }}
       >
-        {momentEnvelope
-          ? JSON.stringify(momentEnvelope, null, 2)
-          : "No moment envelope yet"}
-      </pre>
+        <h3 style={{ marginTop: 0 }}>Emotion Bootstrap Signal</h3>
+        {emotionSignal ? (
+          <pre
+            style={{
+              margin: 0,
+              background: "#fff",
+              padding: "10px",
+              borderRadius: 6,
+              border: "1px solid #eee",
+              maxHeight: 180,
+              overflowY: "auto",
+              fontSize: "0.85rem",
+            }}
+          >
+            {JSON.stringify(emotionSignal, null, 2)}
+          </pre>
+        ) : (
+          <p style={{ margin: 0, color: "#555" }}>
+            Waiting for emotion bootstrap data…
+          </p>
+        )}
+      </div>
+
+      <div
+        style={{
+          padding: "12px",
+          border: "1px solid #ddd",
+          borderRadius: 8,
+          background: "#fefefe",
+          marginBottom: 20,
+        }}
+      >
+        <h3>Emotion Debug Panel (Features + Aggregate):</h3>
+        <pre
+          style={{
+            margin: 0,
+            maxHeight: 160,
+            overflowY: "auto",
+            background: "#111",
+            color: "#0f0",
+            padding: "10px",
+            borderRadius: 6,
+          }}
+        >
+          {JSON.stringify(emotionSignal, null, 2)}
+        </pre>
+      </div>
+
+      <div
+        style={{
+          padding: "12px",
+          borderRadius: 8,
+          border: "1px solid #ddd",
+          background: "#f4f4f4",
+        }}
+      >
+        <h3 style={{ marginTop: 0, marginBottom: 8 }}>Trainer Signal Debug</h3>
+        {trainerSignal ? (
+          <pre
+            style={{
+              margin: 0,
+              fontSize: "0.8rem",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {JSON.stringify(trainerSignal, null, 2)}
+          </pre>
+        ) : (
+          <p style={{ margin: 0, color: "#555" }}>No trainer signal yet</p>
+        )}
+      </div>
     </div>
   );
 }

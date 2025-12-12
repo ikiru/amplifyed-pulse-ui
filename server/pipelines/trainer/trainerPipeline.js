@@ -55,7 +55,29 @@ export function createTrainerPipeline(io, momentBuilder = null) {
     });
   }
 
+  function handleAction(payload = {}) {
+    return handleTrainerAction(payload);
+  }
+
+  function handleCommand(payload = {}) {
+    const nextAction = payload.action ?? payload.command;
+    return handleTrainerAction({
+      action: nextAction,
+      type: payload.type,
+    });
+  }
+
+  function handleNudge(payload = {}) {
+    return handleTrainerAction({
+      action: payload.action ?? "nudge",
+      type: payload.type,
+    });
+  }
+
   return {
     handleTrainerAction,
+    handleAction,
+    handleCommand,
+    handleNudge,
   };
 }

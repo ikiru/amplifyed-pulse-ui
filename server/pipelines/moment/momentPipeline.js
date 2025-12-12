@@ -36,6 +36,24 @@ export function createMomentPipeline(io, emotionPipeline = null) {
       momentHistory.shift();
     }
 
+    if (
+      emotionPipeline &&
+      typeof emotionPipeline.handleMoment === "function"
+    ) {
+      try {
+        emotionPipeline.handleMoment(enriched);
+      } catch (err) {
+        console.error("[Emotion] handleMoment failed:", err);
+      }
+    } else {
+      // Optional emotional bootstrap hook (legacy)
+      io.emit("emotion:update", {
+        ts: enriched.timestamp,
+        pulse: enriched.pulse ?? null,
+        emotion: enriched.emotion ?? null, // always present even if null
+      });
+    }
+
     io.emit("moment:update", enriched);
   }
 

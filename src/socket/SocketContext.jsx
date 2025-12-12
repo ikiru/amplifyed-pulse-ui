@@ -32,6 +32,16 @@ export function SocketProvider({ children }) {
     setSocketState(socketRef.current);
 
     const socket = socketRef.current;
+
+    // ------------------------------------------------------
+    // PHASE 2.10: TEMPORARY DEBUG EXPOSURE
+    // Lets the browser inspect the live socket instance:
+    //    window.__SOCKET__
+    // Remove this after baseline validation passes.
+    // ------------------------------------------------------
+    if (typeof window !== "undefined") {
+      window.__SOCKET__ = socket;
+    }
     const handleConnect = () => setConnectionStatus("connected");
     const handleDisconnect = () => setConnectionStatus("disconnected");
 

@@ -19,6 +19,10 @@
 //  * Introduce new UI elements (debug-panel only downstream)
 // ------------------------------------------------------------
 
+import { extractors } from "./emotion.featureExtractors.js";
+import { aggregateEmotionFeatures } from "./emotion.aggregator.js";
+import { normalizeEmotionEnvelope } from "./emotion.normalizer.js";
+
 export function createEmotionPipeline(io, momentPipeline) {
   // Placeholder scoring function
   function evaluateEmotion(envelope) {
@@ -29,7 +33,7 @@ export function createEmotionPipeline(io, momentPipeline) {
       valence: 0,
       arousal: 0,
       intensity: 0,
-      confidence: 1
+      confidence: 1,
     };
   }
 
@@ -41,11 +45,38 @@ export function createEmotionPipeline(io, momentPipeline) {
 
     return {
       ...envelope,
-      emotionScore
+      emotionScore,
     };
   }
 
+  function handleMoment(moment) {
+    const pulseFeature = extractors.extractPulseEmotionFeature(
+      moment?.pulse ?? null
+    );
+
+    const rawFeatures = {
+      pulse: pulseFeature,
+    };
+
+    const aggregate = aggregateEmotionFeatures(rawFeatures);
+
+    const baseEnvelope = {
+      ts: moment?.ts ?? Date.now(),
+      features: rawFeatures,
+      aggregate,
+      emotion: null, // scoring arrives Phase 3
+    };
+
+    // Phase 2.17 — normalize schema for downstream consumers
+    const emotionEnvelope = normalizeEmotionEnvelope(baseEnvelope);
+
+    io.emit("emotion:update", emotionEnvelope);
+
+    return moment;
+  }
+
   return {
-    applyEmotion
+    applyEmotion,
+    handleMoment,
   };
 }
