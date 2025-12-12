@@ -6,10 +6,10 @@ import { SocketProvider } from "./socket/SocketContext.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <SocketProvider>
+    <SocketProvider>
+      <BrowserRouter>
         <App />
-      </SocketProvider>
-    </BrowserRouter>
+      </BrowserRouter>
+    </SocketProvider>
   </React.StrictMode>
 );

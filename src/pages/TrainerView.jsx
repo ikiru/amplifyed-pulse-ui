@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-// useSocket removed — using SocketContext instead
-import { useSocketContext } from "../socket";
+import { useSocketContext } from "../socket/SocketContext.jsx";
 
 export default function TrainerView() {
   const { onEvent, offEvent, connectionStatus } = useSocketContext();
@@ -73,7 +72,16 @@ export default function TrainerView() {
       <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "-8px" }}>
         Last pulse update:{" "}
         {momentEnvelope && momentEnvelope.timestamp
-          ? new Date(momentEnvelope.timestamp).toLocaleTimeString()
+          ? (() => {
+              const ts = new Date(momentEnvelope.timestamp);
+              const time = ts.toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+                second: "2-digit",
+              });
+              const date = ts.toLocaleDateString();
+              return `${time} • ${date}`;
+            })()
           : "waiting"}
       </p>
       {(() => {

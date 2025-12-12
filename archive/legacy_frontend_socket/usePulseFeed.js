@@ -1,10 +1,10 @@
 import { useEffect } from "react";
-import { useSocketContext } from "../socket/SocketContext.jsx"; // Resolve import
+import { useSocket } from "../socket/useSocket";
 import { usePulseStream } from "../state/usePulseStream";
 
 export function usePulseFeed() {
   const { applyPulseUpdate, recordEvent } = usePulseStream();
-  const { socket } = useSocketContext();
+  const { socket } = useSocket();
 
   useEffect(() => {
     if (!socket) return;

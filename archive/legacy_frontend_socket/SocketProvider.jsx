@@ -1,4 +1,4 @@
-import React, { createContext, useEffect, useState } from "react";
+import React, { createContext, useEffect, useMemo, useState } from "react";
 import { io } from "socket.io-client";
 
 export const SocketContext = createContext(null);
@@ -25,6 +25,11 @@ function enhanceSocket(s) {
     handlers["pulse:update"]?.(payload);
   });
 
+  // ⭐ NEW FIX — Forward enriched moment updates to the client
+  s.on("moment:update", (payload) => {
+    handlers["moment:update"]?.(payload);
+  });
+
   return s;
 }
 
@@ -36,6 +41,7 @@ export default function SocketProvider({ children }) {
 
     return enhanceSocket(s);
   });
+  const [connectionStatus, setConnectionStatus] = useState("disconnected");
 
   useEffect(() => {
     return () => {
@@ -43,8 +49,31 @@ export default function SocketProvider({ children }) {
     };
   }, [socket]);
 
+  useEffect(() => {
+    const handleConnect = () => {
+      setConnectionStatus("connected");
+    };
+
+    const handleDisconnect = () => {
+      setConnectionStatus("disconnected");
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+    };
+  }, [socket]);
+
+  const contextValue = useMemo(
+    () => ({ socket, connectionStatus }),
+    [socket, connectionStatus]
+  );
+
   return (
-    <SocketContext.Provider value={socket}>
+    <SocketContext.Provider value={contextValue}>
       {children}
     </SocketContext.Provider>
   );

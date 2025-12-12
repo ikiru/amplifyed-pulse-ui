@@ -1,5 +1,7 @@
 // ------------------------------------------------------------------
 // Moment Pipeline (Phase 2.4.1)
+// Phase 3 Patch:
+// Inject emotionPipeline.applyEmotion() before dispatch.
 // ------------------------------------------------------------------
 // Responsibilities:
 // * Maintain a rolling moment history buffer
@@ -11,19 +13,30 @@
 // * Mutate other pipelines
 // ------------------------------------------------------------------
 
-export function createMomentPipeline(io) {
+export function createMomentPipeline(io, emotionPipeline = null) {
   const MAX_HISTORY = 200;
   const momentHistory = [];
 
   function addMoment(envelope) {
     if (!envelope) return;
 
-    momentHistory.push(envelope);
+    // Phase 3: Apply emotional evaluation before dispatch
+    let enriched = envelope;
+    if (emotionPipeline && typeof emotionPipeline.applyEmotion === "function") {
+      try {
+        enriched = emotionPipeline.applyEmotion(envelope);
+      } catch (err) {
+        console.error("[Emotion] applyEmotion failed:", err);
+        enriched = envelope;
+      }
+    }
+
+    momentHistory.push(enriched);
     if (momentHistory.length > MAX_HISTORY) {
       momentHistory.shift();
     }
 
-    io.emit("moment:update", envelope);
+    io.emit("moment:update", enriched);
   }
 
   function getHistory() {

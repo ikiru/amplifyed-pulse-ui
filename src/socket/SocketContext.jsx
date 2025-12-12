@@ -1,6 +1,7 @@
 import React, {
   createContext,
   useCallback,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -120,4 +121,14 @@ export function SocketProvider({ children }) {
       {children}
     </SocketContext.Provider>
   );
+}
+
+export function useSocketContext() {
+  const context = useContext(SocketContext);
+
+  if (!context) {
+    throw new Error("useSocketContext must be used inside <SocketProvider>");
+  }
+
+  return context;
 }

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useSocketContext } from "../socket";
+import { useSocketContext } from "../socket/SocketContext.jsx";
 
 export default function AudienceInput() {
   const [message, setMessage] = useState("");
