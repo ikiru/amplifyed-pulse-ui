@@ -17,17 +17,45 @@
 import { extractMessageSignal } from "./messageSignalExtractor.js";
 import { v4 as uuidv4 } from "uuid";
 
+// In-memory message index per session (Phase 7.3)
+// sessionId -> Map(messageId -> message)
+const sessionMessages = new Map();
+
+function getSessionMap(sessionId) {
+  if (!sessionMessages.has(sessionId)) {
+    sessionMessages.set(sessionId, new Map());
+  }
+  return sessionMessages.get(sessionId);
+}
+
+function wouldCreateCycle(parentId, candidateId, map) {
+  let current = parentId;
+  while (current) {
+    if (current === candidateId) return true;
+    const msg = map.get(current);
+    current = msg?.parentMessageId ?? null;
+  }
+  return false;
+}
+
 export function createMessagePipeline(io, momentBuilder = null) {
 
-  function handleAudienceMessage({ socketId, text, content }) {
+  function handleAudienceMessage({
+    socketId,
+    text,
+    content,
+    parentMessageId,
+  } = {}) {
     const effectiveContent = content ?? (text ? { type: "text", text } : null);
     if (!effectiveContent) return;
 
     const now = Date.now();
     const sessionId = this.getSessionIdForSocket?.(socketId);
+    const map = getSessionMap(sessionId);
+    const messageId = uuidv4();
 
     const message = {
-      messageId: uuidv4(),
+      messageId,
       sessionId,
       timestamp: now,
 
@@ -36,7 +64,7 @@ export function createMessagePipeline(io, momentBuilder = null) {
 
       content: effectiveContent,
 
-      parentMessageId: null,
+      parentMessageId: parentMessageId ?? null,
       threadRootId: null,
 
       reactions: { up: 0, down: 0 },
@@ -49,6 +77,20 @@ export function createMessagePipeline(io, momentBuilder = null) {
       // All behavior based on moment association is deferred to later phases.
       momentId: null,
     };
+
+    if (message.parentMessageId) {
+      const parent = map.get(message.parentMessageId);
+      if (!parent || wouldCreateCycle(message.parentMessageId, message.messageId, map)) {
+        // Orphan reply or cycle → drop silently
+        return;
+      }
+
+      message.threadRootId = parent.threadRootId ?? parent.messageId;
+    } else {
+      message.threadRootId = message.messageId;
+    }
+
+    map.set(message.messageId, message);
 
     io.emit("message:audience", message);
 
