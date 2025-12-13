@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useSocketContext } from "../socket/SocketContext.jsx";
 
+const MOMENT_HISTORY_LIMIT = 18;
+
 export default function TrainerView() {
   const { emit, onEvent, offEvent, connectionStatus } = useSocketContext();
   const [livePulse, setLivePulse] = useState(null);
@@ -10,6 +12,10 @@ export default function TrainerView() {
   const [showInsights, setShowInsights] = useState(false);
   const [hiddenInsights, setHiddenInsights] = useState(null);
   const [visibleInsights, setVisibleInsights] = useState(null);
+  const [moments, setMoments] = useState([]);
+  const [compareSelection, setCompareSelection] = useState([]);
+  const [compareSnapshot, setCompareSnapshot] = useState(null);
+  const [showCompare, setShowCompare] = useState(false);
 
   // -------------------------------
   // Socket listeners
@@ -40,6 +46,7 @@ export default function TrainerView() {
 
       // Normalize moment envelope to stable fields
       const ts = payload.ts ?? payload.timestamp ?? Date.now();
+      const momentId = payload.id ?? ts;
 
       // Strip insights from live updates (pull-only enforcement)
       if (Array.isArray(payload.insights)) {
@@ -49,6 +56,7 @@ export default function TrainerView() {
       }
 
       const normalized = {
+        id: momentId,
         ts,
         pulse: payload.pulse ?? null,
         emotion: payload.emotion ?? null,
@@ -56,6 +64,15 @@ export default function TrainerView() {
         message: payload.message ?? null,
         trainer: payload.trainer ?? null,
       };
+
+      setMoments((prev) => {
+        const alreadyRecorded = prev.some((entry) => entry.id === normalized.id);
+        if (alreadyRecorded) {
+          return prev;
+        }
+        const next = [normalized, ...prev];
+        return next.slice(0, MOMENT_HISTORY_LIMIT);
+      });
 
       setMomentData(normalized);
     };
@@ -101,6 +118,48 @@ export default function TrainerView() {
     });
   };
 
+  const toggleCompareSelection = (moment) => {
+    setCompareSelection((prev) => {
+      const exists = prev.some((entry) => entry.id === moment.id);
+      if (exists) {
+        return prev.filter((entry) => entry.id !== moment.id);
+      }
+
+      if (prev.length >= 3) {
+        return prev;
+      }
+
+      return [...prev, moment];
+    });
+  };
+
+  const openComparison = () => {
+    if (compareSelection.length < 2) return;
+    setCompareSnapshot(compareSelection.map((moment) => ({ ...moment })));
+    setShowCompare(true);
+  };
+
+  const closeComparison = () => {
+    setShowCompare(false);
+    setCompareSnapshot(null);
+  };
+
+  useEffect(() => {
+    if (compareSelection.length < 2 && showCompare) {
+      setShowCompare(false);
+      setCompareSnapshot(null);
+    }
+  }, [compareSelection, showCompare]);
+
+  useEffect(() => {
+    setCompareSelection((prev) => {
+      const next = prev.filter((entry) =>
+        moments.some((moment) => moment.id === entry.id)
+      );
+      return next.length === prev.length ? prev : next;
+    });
+  }, [moments]);
+
   const rawMomentTs = momentData?.ts ?? momentData?.timestamp ?? null;
   const lastMomentTimestamp = rawMomentTs;
   const formattedLastMoment = lastMomentTimestamp
@@ -114,6 +173,7 @@ export default function TrainerView() {
   // Unified moment panel model (foundation for emotional trendline)
   const currentMoment = momentData
     ? {
+        id: momentData.id ?? momentData.ts ?? momentData.timestamp,
         ts: momentData.ts,
         pulse: momentData.pulse,
         emotion: momentData.emotion ?? null,
@@ -282,6 +342,146 @@ export default function TrainerView() {
         </div>
       )}
 
+      <div
+        style={{
+          padding: "12px",
+          border: "1px solid #ddd",
+          borderRadius: 8,
+          marginBottom: 20,
+          background: "#fff",
+        }}
+      >
+        <h3 style={{ marginTop: 0 }}>Moment History</h3>
+        <p style={{ margin: "0 0 12px", color: "#555" }}>
+          Tap up to three moments to hold them side-by-side for context.
+        </p>
+
+        {moments.length ? (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            {moments.map((moment) => (
+              <MomentRow
+                key={moment.id}
+                moment={moment}
+                selected={compareSelection.some(
+                  (entry) => entry.id === moment.id
+                )}
+                onClick={() => toggleCompareSelection(moment)}
+              />
+            ))}
+          </div>
+        ) : (
+          <p style={{ margin: 0, color: "#555" }}>
+            Waiting for moment history…
+          </p>
+        )}
+
+        {compareSelection.length >= 2 && (
+          <button
+            type="button"
+            onClick={openComparison}
+            style={{
+              marginTop: 12,
+              padding: "8px 12px",
+              borderRadius: 6,
+              border: "1px solid #222",
+              background: "#222",
+              color: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            Compare Moments
+          </button>
+        )}
+
+        {showCompare && compareSnapshot && (
+          <div
+            className="moment-compare-panel"
+            style={{
+              marginTop: 12,
+              border: "1px solid #ccc",
+              borderRadius: 8,
+              padding: 12,
+              background: "#fefefe",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 12,
+              }}
+            >
+              <strong>Moment comparison</strong>
+              <button
+                type="button"
+                onClick={closeComparison}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "#222",
+                  cursor: "pointer",
+                  fontSize: "0.85rem",
+                }}
+              >
+                Close
+              </button>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              {compareSnapshot.map((moment, index) => (
+                <div
+                  key={index}
+                  className="moment-column"
+                  style={{
+                    flex: "1 1 200px",
+                    border: "1px solid #eee",
+                    borderRadius: 6,
+                    padding: 8,
+                    background: "#fff",
+                  }}
+                >
+                  <div
+                    className="moment-header"
+                    style={{
+                      marginBottom: 6,
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      color: "#333",
+                    }}
+                  >
+                    Moment {index + 1}
+                  </div>
+                  <pre
+                    style={{
+                      margin: 0,
+                      maxHeight: 220,
+                      overflowY: "auto",
+                      fontSize: "0.7rem",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {JSON.stringify(moment, null, 2)}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* ========================= */}
       {/*  Live Pulse Feed Section  */}
       {/* ========================= */}
@@ -391,5 +591,80 @@ Frustrated:  ${frustrated}`}
         )}
       </div>
     </div>
+  );
+}
+
+function MomentRow({ moment, onClick, selected }) {
+  const formattedTime = moment.ts
+    ? new Date(moment.ts).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+    : "waiting";
+
+  const emotionLabel =
+    moment.emotion && typeof moment.emotion === "string"
+      ? moment.emotion.charAt(0).toUpperCase() + moment.emotion.slice(1)
+      : "Unknown";
+
+  const trainerLabel =
+    moment.trainer && typeof moment.trainer === "object"
+      ? moment.trainer.actionType ?? moment.trainer.type ?? "momentary signal"
+      : moment.trainer;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      style={{
+        borderRadius: 8,
+        border: selected ? "2px solid #0066ff" : "1px solid #ddd",
+        background: selected ? "#e8f5ff" : "#fff",
+        padding: "10px 12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        textAlign: "left",
+        cursor: "pointer",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          width: "100%",
+          fontWeight: 600,
+        }}
+      >
+        <span>{emotionLabel}</span>
+        <span style={{ fontSize: "0.75rem", color: "#555" }}>
+          {formattedTime}
+        </span>
+      </div>
+      <div style={{ fontSize: "0.8rem", color: "#333" }}>
+        Pulse {typeof moment.pulse === "number" ? moment.pulse : "—"} · Safety{" "}
+        {moment.safety ?? "none"}
+      </div>
+      {moment.message && (
+        <div style={{ fontSize: "0.75rem", color: "#444" }}>
+          {typeof moment.message === "string"
+            ? moment.message
+            : JSON.stringify(moment.message)}
+        </div>
+      )}
+      {trainerLabel && (
+        <div
+          style={{
+            fontSize: "0.7rem",
+            color: "#0066ff",
+            textTransform: "capitalize",
+          }}
+        >
+          Trainer · {trainerLabel}
+        </div>
+      )}
+    </button>
   );
 }
