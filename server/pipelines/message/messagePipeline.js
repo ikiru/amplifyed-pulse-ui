@@ -22,7 +22,7 @@ export function createMessagePipeline(io, momentBuilder = null) {
     if (!text) return;
 
     // 1. Emit raw message (unchanged existing behavior)
-    io.emit("audience:message", {
+    io.emit("message:audience", {
       socketId,
       text,
       timestamp: Date.now()

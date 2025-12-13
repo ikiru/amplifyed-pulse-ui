@@ -65,15 +65,6 @@ socket.on("audience:pulse", (payload = {}) => {
 });
 
 
-  socket.on("audience:message", (payload = {}) => {
-    if (messagePipeline?.handleAudienceMessage) {
-      messagePipeline.handleAudienceMessage({
-        socketId: socket.id,
-        text: payload.text,
-      });
-    }
-  });
-
   // ----------------------------------------------------
   // FOCUS PIPELINE (Step 6.2 — Scaffold Only)
   // No activation of behavior. Pure wiring.
