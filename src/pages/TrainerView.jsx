@@ -9,6 +9,7 @@ export default function TrainerView() {
   const [trainerSignal, setTrainerSignal] = useState(null);
   const [showInsights, setShowInsights] = useState(false);
   const [hiddenInsights, setHiddenInsights] = useState(null);
+  const [visibleInsights, setVisibleInsights] = useState(null);
 
   // -------------------------------
   // Socket listeners
@@ -139,6 +140,7 @@ export default function TrainerView() {
         </div>
         <button
           onClick={() => {
+            setVisibleInsights(hiddenInsights);
             setShowInsights((v) => !v);
           }}
           style={{ padding: "6px 10px", cursor: "pointer" }}
@@ -224,7 +226,7 @@ export default function TrainerView() {
       </div>
 
       {/* ---------------- TRAINER INSIGHTS (PULL-ONLY) ---------------- */}
-      {showInsights && (
+      {showInsights && visibleInsights && (
         <div
           style={{
             padding: "12px",
@@ -236,9 +238,9 @@ export default function TrainerView() {
         >
           <h3 style={{ marginTop: 0 }}>Trainer Insights</h3>
 
-          {Array.isArray(hiddenInsights) && hiddenInsights.length ? (
+          {Array.isArray(visibleInsights) && visibleInsights.length ? (
             Object.entries(
-              hiddenInsights.reduce((acc, insight) => {
+              visibleInsights.reduce((acc, insight) => {
                 const key = insight.category ?? "Other";
                 acc[key] = acc[key] || [];
                 acc[key].push(insight);
