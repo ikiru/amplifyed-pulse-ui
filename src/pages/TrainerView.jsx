@@ -237,22 +237,44 @@ export default function TrainerView() {
           <h3 style={{ marginTop: 0 }}>Trainer Insights</h3>
 
           {Array.isArray(hiddenInsights) && hiddenInsights.length ? (
-            <ul style={{ margin: 0, paddingLeft: 16 }}>
-              {hiddenInsights.map((insight) => (
-                <li key={insight.id} style={{ marginBottom: 8 }}>
-                  <strong>{insight.category}</strong>: {insight.language}
-                  {typeof insight.confidence === "number" && (
-                    <span style={{ color: "#666" }}>
-                      {" "}
-                      ({Math.round(insight.confidence * 100)}%)
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
+            Object.entries(
+              hiddenInsights.reduce((acc, insight) => {
+                const key = insight.category ?? "Other";
+                acc[key] = acc[key] || [];
+                acc[key].push(insight);
+                return acc;
+              }, {})
+            ).map(([category, insights]) => (
+              <div key={category} style={{ marginBottom: 16 }}>
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    letterSpacing: "0.04em",
+                    color: "#555",
+                    marginBottom: 6,
+                  }}
+                >
+                  {category.toUpperCase()}
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 16 }}>
+                  {insights.map((insight) => (
+                    <li key={insight.id} style={{ marginBottom: 6 }}>
+                      {insight.language}
+                      {typeof insight.confidence === "number" && (
+                        <span style={{ color: "#777", fontSize: "0.8rem" }}>
+                          {" "}
+                          (confidence {Math.round(insight.confidence * 100)}%)
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
           ) : (
             <p style={{ margin: 0, color: "#555" }}>
-              No insights available at this time.
+              No insights available for this moment.
             </p>
           )}
         </div>
