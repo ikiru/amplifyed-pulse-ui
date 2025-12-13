@@ -7,7 +7,6 @@ export default function TrainerView() {
   const [messages, setMessages] = useState([]);
   const [momentData, setMomentData] = useState(null);
   const [trainerSignal, setTrainerSignal] = useState(null);
-  const [emotionSignal, setEmotionSignal] = useState(null);
 
   // -------------------------------
   // Socket listeners
@@ -70,30 +69,13 @@ export default function TrainerView() {
       setTrainerSignal(signal);
     };
 
-    const handleEmotionUpdate = (payload) => {
-      if (!payload) return;
-
-    // Emotion envelope is already normalized on server side
-    const normalized = {
-      ts: payload.ts,
-      features: payload.features,
-      aggregate: payload.aggregate,
-      emotion: payload.emotion,
-      schemaVersion: payload.schemaVersion,
-    };
-
-      setEmotionSignal(normalized);
-    };
-
     onEvent("message:audience", handleAudienceMessage);
     onEvent("moment:update", handleMomentUpdate);
-    onEvent("emotion:update", handleEmotionUpdate);
     onEvent("trainer:signal", handleTrainerSignal);
 
     return () => {
       offEvent("message:audience", handleAudienceMessage);
       offEvent("moment:update", handleMomentUpdate);
-      offEvent("emotion:update", handleEmotionUpdate);
       offEvent("trainer:signal", handleTrainerSignal);
     };
   }, [onEvent, offEvent]);
@@ -123,7 +105,7 @@ export default function TrainerView() {
     ? {
         ts: momentData.ts,
         pulse: momentData.pulse,
-        emotion: emotionSignal?.emotion ?? momentData.emotion ?? null,
+        emotion: momentData.emotion ?? null,
         safety: momentData.safety,
         message: momentData.message,
         trainerSignal: trainerSignal ?? null,
@@ -305,63 +287,6 @@ Frustrated:  ${frustrated}`}
         ) : (
           <p style={{ margin: 0, color: "#555" }}>Waiting for moment data…</p>
         )}
-      </div>
-
-      <div
-        style={{
-          padding: "12px",
-          border: "1px solid #ddd",
-          borderRadius: 8,
-          marginBottom: 20,
-          background: "#fff6f6",
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Emotion Bootstrap Signal</h3>
-        {emotionSignal ? (
-          <pre
-            style={{
-              margin: 0,
-              background: "#fff",
-              padding: "10px",
-              borderRadius: 6,
-              border: "1px solid #eee",
-              maxHeight: 180,
-              overflowY: "auto",
-              fontSize: "0.85rem",
-            }}
-          >
-            {JSON.stringify(emotionSignal, null, 2)}
-          </pre>
-        ) : (
-          <p style={{ margin: 0, color: "#555" }}>
-            Waiting for emotion bootstrap data…
-          </p>
-        )}
-      </div>
-
-      <div
-        style={{
-          padding: "12px",
-          border: "1px solid #ddd",
-          borderRadius: 8,
-          background: "#fefefe",
-          marginBottom: 20,
-        }}
-      >
-        <h3>Emotion Debug Panel (Features + Aggregate):</h3>
-        <pre
-          style={{
-            margin: 0,
-            maxHeight: 160,
-            overflowY: "auto",
-            background: "#111",
-            color: "#0f0",
-            padding: "10px",
-            borderRadius: 6,
-          }}
-        >
-          {JSON.stringify(emotionSignal, null, 2)}
-        </pre>
       </div>
 
       <div
