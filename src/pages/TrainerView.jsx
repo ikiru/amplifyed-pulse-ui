@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useSocketContext } from "../socket/SocketContext.jsx";
+import { useSocket } from "../socket/SocketContext.jsx";
 
 const MOMENT_HISTORY_LIMIT = 18;
 
 export default function TrainerView() {
-  const { emit, onEvent, offEvent, connectionStatus } = useSocketContext();
+  const { emit, onEvent, offEvent, connectionStatus } = useSocket();
+  const [focus, setFocus] = useState(null);
+  const [focusInput, setFocusInput] = useState("");
   const [livePulse, setLivePulse] = useState(null);
   const [messages, setMessages] = useState([]);
   const [momentData, setMomentData] = useState(null);
@@ -109,6 +111,27 @@ export default function TrainerView() {
   }, [onEvent, offEvent]);
 
   // -------------------------------
+  // Focus sync
+  // -------------------------------
+  useEffect(() => {
+    const handleFocusUpdate = (payload) => {
+      setFocus(payload?.focus ?? null);
+    };
+
+    const handleFocusCleared = () => {
+      setFocus(null);
+    };
+
+    onEvent("focus:update", handleFocusUpdate);
+    onEvent("focus:cleared", handleFocusCleared);
+
+    return () => {
+      offEvent("focus:update", handleFocusUpdate);
+      offEvent("focus:cleared", handleFocusCleared);
+    };
+  }, [onEvent, offEvent]);
+
+  // -------------------------------
   // Trainer action emitter
   // -------------------------------
   const sendTrainerAction = (actionType) => {
@@ -116,6 +139,19 @@ export default function TrainerView() {
       actionType,
       ts: Date.now(),
     });
+  };
+
+  const handleSetFocus = (event) => {
+    event.preventDefault();
+    const text = focusInput.trim();
+    if (!text) return;
+
+    emit("focus:set", { text });
+    setFocusInput("");
+  };
+
+  const handleClearFocus = () => {
+    emit("focus:clear");
   };
 
   const toggleCompareSelection = (moment) => {
@@ -208,6 +244,34 @@ export default function TrainerView() {
           Insights
         </button>
       </header>
+
+      <section style={{ marginBottom: "1rem" }}>
+        <h3>Session Focus</h3>
+
+        {focus ? (
+          <div style={{ marginBottom: "0.5rem" }}>
+            <strong>Active Focus:</strong>
+            <div>{focus.text}</div>
+          </div>
+        ) : (
+          <div style={{ marginBottom: "0.5rem", opacity: 0.6 }}>
+            No active focus
+          </div>
+        )}
+
+        <input
+          type="text"
+          placeholder="Enter session focus"
+          value={focusInput}
+          onChange={(event) => setFocusInput(event.target.value)}
+          style={{ width: "100%", marginBottom: "0.5rem" }}
+        />
+
+        <button onClick={handleSetFocus}>Set Focus</button>
+        <button onClick={handleClearFocus} style={{ marginLeft: "0.5rem" }}>
+          Clear Focus
+        </button>
+      </section>
 
       {/* ---------------- TRAINER CONTROLS ---------------- */}
       <div
