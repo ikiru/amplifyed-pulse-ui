@@ -17,8 +17,10 @@ export default function AudienceInput() {
     if (!message.trim()) return;
 
     emit("message:audience", {
-      text: message.trim(),
-      timestamp: Date.now(),
+      content: {
+        type: "text",
+        text: message.trim(),
+      },
     });
 
     setMessage("");
