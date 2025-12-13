@@ -15,23 +15,46 @@
 // ------------------------------------------------------------------
 
 import { extractMessageSignal } from "./messageSignalExtractor.js";
+import { v4 as uuidv4 } from "uuid";
 
 export function createMessagePipeline(io, momentBuilder = null) {
 
-  function handleAudienceMessage({ socketId, text }) {
-    if (!text) return;
+  function handleAudienceMessage({ socketId, text, content }) {
+    const effectiveContent = content ?? (text ? { type: "text", text } : null);
+    if (!effectiveContent) return;
 
-    // 1. Emit raw message (unchanged existing behavior)
-    io.emit("message:audience", {
-      socketId,
-      text,
-      timestamp: Date.now()
-    });
+    const now = Date.now();
+    const sessionId = this.getSessionIdForSocket?.(socketId);
 
-    // 2. Derive message-level signal
-    const messageSignal = extractMessageSignal(text);
+    const message = {
+      messageId: uuidv4(),
+      sessionId,
+      timestamp: now,
 
-    // 3. Add message contribution to unified moment
+      sourceRole: "audience",
+      sourceRef: socketId,
+
+      content: effectiveContent,
+
+      parentMessageId: null,
+      threadRootId: null,
+
+      reactions: { up: 0, down: 0 },
+
+      state: { visible: true, locked: false },
+
+      // momentId is a referential hook only.
+      // Messages may reference an existing moment.
+      // Messages do not create, mutate, or evaluate moments.
+      // All behavior based on moment association is deferred to later phases.
+      momentId: null,
+    };
+
+    io.emit("message:audience", message);
+
+    const signalText = text ?? effectiveContent.text;
+    const messageSignal = signalText ? extractMessageSignal(signalText) : null;
+
     if (momentBuilder && messageSignal) {
       momentBuilder.addMessage({ messageSignal });
     }
