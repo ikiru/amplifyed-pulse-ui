@@ -1,102 +1,174 @@
-============================================================
-AMPLIFYED PULSE UI
+}
+
+# AMPLIFYED PULSE UI
+
 Front-End Interface for the AmplifyEd Platform
-OVERVIEW
 
-AmplifyEd Pulse UI is the front-end–only version of the
-AmplifyEd Thread Simulator and emotional intelligence display.
+---
 
-This project contains a clean React + Vite interface designed to
-support:
+## OVERVIEW
 
-• Thread Simulation UI
-• Emotion bars and trendlines
-• Facilitator visualization panels
-• Interpreter overlays
-• WebSocket-driven live data (future feature)
+AmplifyEd Pulse UI is the trainer-facing interface for the AmplifyEd platform, designed to **surface emotional signals and insights in a psychologically safe, read-only manner**.
 
-The UI is intentionally isolated from all backend, engine, and
-AI systems to keep development fast, modern, and maintainable.
+This UI focuses on **observation, interpretation, and clarity** — not control, recommendation, or adaptation.
 
-TECH STACK
+The system intentionally preserves trainer agency by ensuring that nothing reacts, adapts, or intervenes without explicit intent.
 
-• React 18
-• Vite 7
-• Styled Components
-• Socket.io Client
-• ES Modules
+---
 
-PROJECT STRUCTURE
+## CORE PRINCIPLES (LOCKED)
 
-amplifyed-pulse-ui/
-src/
-api/
-components/
-hooks/
-pages/
-utils/
-styles/
-public/
-scripts/
-archive/
-index.html
-package.json
-vite.config.js
+AmplifyEd Pulse UI is built on the following non-negotiable principles:
 
-This structure is flat, predictable, and aligns with modern
-industry standards used by professional React teams.
+* Psychological safety over automation
+* Trainer-first design
+* Predictable, non-reactive behavior
+* Clear separation between observation and response
+* Stability over features
+* Minimal, intentional UI surface area
 
-GETTING STARTED
+These principles are enforced throughout Phase 3 and beyond.
+
+---
+
+## WHAT THIS UI DOES
+
+The Pulse UI provides:
+
+* Real-time visualization of participant pulse signals
+* Emotional state displays and moment snapshots
+* Trainer-facing insight surfacing (**pull-only**)
+* Calm, readable facilitator views
+* Transparent, non-prescriptive signal interpretation
+
+The UI is **read-only** and **trainer-controlled**.
+
+---
+
+## WHAT THIS UI DOES NOT DO
+
+The Pulse UI explicitly does **not** include:
+
+* Recommendations or suggested actions
+* Automated alerts or nudges
+* Insight prioritization or ranking
+* Adaptive behavior
+* Trainer feedback loops
+* Cross-session learning
+* Inference or decision-making logic
+
+Any feature requiring the above belongs to **future phases** and is intentionally excluded here.
+
+---
+
+## PHASE STATUS
+
+**Phase 3 is complete and closed.**
+
+Phase 3 establishes:
+
+* Emotional interpretation pipelines
+* Insight generation (server-side)
+* Trainer-controlled, pull-only insight surfacing
+* Calm, trustworthy consumption surfaces
+
+Phase 3 behavior is **locked** and must not be extended.
+
+📄 See `PHASE_3_CLOSURE.md` for authoritative Phase 3 contracts and boundaries.
+
+---
+
+## TECH STACK
+
+* React 18
+* Vite
+* Socket.io Client
+* ES Modules
+
+The UI avoids unnecessary abstractions and remains intentionally direct and inspectable.
+
+---
+
+## PROJECT STRUCTURE
+
+```text
+/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   ├── hooks/
+│   ├── state/
+│   ├── utils/
+│   └── socket/
+├── server/          (integration reference only)
+├── archive/
+├── public/
+├── scripts/
+├── PHASE_3_CLOSURE.md
+├── index.html
+├── package.json
+└── vite.config.js
+```
+
+This structure is designed to remain stable across phases.
+
+---
+
+## GETTING STARTED
 
 Install dependencies:
-npm install
 
-Start the development server:
+```bash
+npm install
+```
+
+Start development server:
+
+```bash
 npm run dev
+```
 
 Open in browser:
+
+```text
 http://localhost:5173/
+```
 
-Build for production:
-npm run build
+---
 
-REQUIREMENTS
+## BACKEND INTEGRATION
 
-• Node.js 18 or higher
-• NPM 9 or higher
-• Modern web browser
+The UI connects to a WebSocket backend (default):
 
-BACKEND INTEGRATION
-
-The UI is designed to connect to a WebSocket backend at:
-
+```text
 ws://localhost:4001
+```
 
+If the backend is unavailable, the UI may display connection warnings.
+This is expected during UI-only or inspection-focused work.
 
-If this service is not running, the UI may show temporary
-connection errors. This is normal and expected during UI-only
-development. Backend logic lives in a separate repository.
+Backend logic lives separately and is governed by its own phase contracts.
 
-PROJECT GOALS
+---
 
-• Maintain a clean, isolated UI environment
-• Remove all legacy sandbox and engine artifacts
-• Establish a predictable architecture for future scaling
-• Provide a stable foundation for:
-- Live emotional signal streaming
-- Facilitator overlays
-- Multi-signal trendlines
-- Pulse bar enhancements
-- Full simulation interactions
+## PROJECT INTENT
 
-STATUS
+This project exists to:
 
-The project is stable and ready for Phase 3+ development work.
-Backend and simulation engine integration will occur later.
+* Preserve trust between trainers and the system
+* Make emotional signals understandable without judgment
+* Provide a stable foundation for future adaptive phases
+* Avoid premature intelligence or automation
 
-LICENSE
+Observation comes first.
+Response comes later — with guardrails.
+
+---
+
+## LICENSE
 
 Private / All rights reserved.
 
-============================================================
-END OF FILE — AMPLIFYED PULSE UI README
+---
+
+*End of README*
