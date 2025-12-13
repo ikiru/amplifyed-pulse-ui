@@ -1,0 +1,204 @@
+# Phase 9 — Persistence & Replay Governance
+
+**Status:** Locked  
+**Phase Type:** Boundaries & Constraints  
+**Implementation:** Not started (by design)
+
+---
+
+## Purpose
+
+Phase 9 defines **what may and may not be persisted and replayed** after a session ends.
+
+This phase exists to preserve:
+- historical truth
+- psychological safety
+- trainer authority
+- signal integrity
+
+Phase 9 explicitly avoids analytics, evaluation, or interpretation.
+
+---
+
+## Core Principle
+
+> **Persistence records what happened, not what it meant.**
+
+Replay must show reality, not conclusions.
+
+---
+
+## What Persistence Is Allowed To Do
+
+Persistence MAY:
+
+- Store **primary artifacts** exactly as they occurred
+- Preserve **temporal order**
+- Support **faithful replay**
+- Enable **post-session review** by trainers
+- Provide **contextual alignment** between artifacts
+
+Persistence is **descriptive**, not analytical.
+
+---
+
+## What May Be Persisted
+
+The following entities MAY be persisted:
+
+### Messages
+- messageId
+- authorRole (trainer / audience)
+- timestamp
+- text
+- parentMessageId (if applicable)
+- threadRootId (if applicable)
+
+Messages remain immutable.
+
+---
+
+### Focus (from Phase 8)
+
+- focusId
+- text
+- activatedAt
+- deactivatedAt
+- authorRole
+- sessionId
+
+Focus is persisted as **trainer intent**, not as a signal.
+
+---
+
+### Session Events
+
+- focus activated
+- focus cleared
+- session join / leave
+- session start / end
+- reconnect events (if already tracked)
+
+Session events are factual timeline markers.
+
+---
+
+## What Persistence Is Explicitly NOT Allowed To Do
+
+Persistence must NOT:
+
+- infer causation
+- score effectiveness
+- rank messages
+- reclassify emotion
+- weight pulse or mood
+- introduce analytics
+- summarize sentiment
+- collapse dissent
+- “optimize” facilitation
+
+No interpretation layer is allowed in Phase 9.
+
+---
+
+## Replay Rules (Critical)
+
+Replay MUST:
+
+- Respect original timestamps
+- Preserve original order
+- Show when focus was active or cleared
+- Show messages as they were posted
+- Avoid smoothing, normalization, or aggregation
+
+Replay MUST NOT:
+
+- recompute emotion
+- re-run focus logic
+- apply updated models
+- reinterpret historical data
+- “improve” clarity
+
+Replay is a **mirror**, not a lens.
+
+---
+
+## Focus ↔ Message Alignment (Clarification)
+
+During replay:
+
+- Messages may be shown alongside:
+  - the focus active at the time
+  - or an explicit “no focus” state
+
+Messages do NOT:
+- contain focus data
+- change based on focus
+- inherit focus semantics
+
+Alignment is temporal only.
+
+---
+
+## Trainer Authority in Replay
+
+- Trainers may review sessions
+- Trainers may reflect on patterns
+- The system must not:
+  - judge trainer actions
+  - suggest alternative facilitation
+  - highlight “missed opportunities”
+
+Replay preserves agency.
+
+---
+
+## Psychological Safety Guardrails
+
+Persistence and replay must never:
+
+- surface individual participant identity
+- expose behavioral scoring
+- imply correctness or incorrectness
+- penalize silence or dissent
+- create surveillance pressure
+
+The system records sessions, not people.
+
+---
+
+## Explicitly Out of Scope (Locked)
+
+The following are NOT part of Phase 9:
+
+- cross-session analytics
+- comparative scoring
+- facilitator grading
+- focus effectiveness metrics
+- sentiment trend evaluation
+- automated insights
+- recommendations
+
+These belong to **future phases**, if ever.
+
+---
+
+## Exit Criteria
+
+Phase 9 is complete when:
+
+- Persistence boundaries are unambiguous
+- Replay constraints are explicit
+- No analytics or interpretation paths exist
+- Implementation has not yet begun
+
+---
+
+## Phase Boundary
+
+> Phase 9 preserves **truth over time**.  
+> It does not create insight, judgment, or optimization.
+
+---
+
+**Next Phase:** Phase 10 — Reporting & Insight (If and Only If Explicitly Approved)

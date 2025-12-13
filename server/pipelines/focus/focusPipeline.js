@@ -1,20 +1,19 @@
-/**
- * Focus Pipeline (Step 6.2 — Scaffold Only)
- * No behavior. No socket emits. No persistence.
- */
+import { handleSetFocus } from "./focus.handleSet.js";
+import { handleClearFocus } from "./focus.handleClear.js";
 
-export function createFocusPipeline(io) {
-  return {
+export function registerFocusHandlers({ io, socket }) {
+  socket.on("focus:set", ({ text }) => {
+    handleSetFocus({
+      io,
+      sessionId: socket.sessionId,
+      text,
+    });
+  });
 
-    // Trainer sets a focus state (e.g., “barrier,” “discussion,” “break”)
-    handleSetFocus({ socketId, value }) {
-      // placeholder — activation will occur in Step 7
-    },
-
-    // Trainer clears the focus state
-    handleClearFocus({ socketId }) {
-      // placeholder — activation will occur in Step 7
-    }
-
-  };
+  socket.on("focus:clear", () => {
+    handleClearFocus({
+      io,
+      sessionId: socket.sessionId,
+    });
+  });
 }
