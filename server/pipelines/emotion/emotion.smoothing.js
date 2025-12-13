@@ -3,6 +3,17 @@
  * Pure function. No state. No inference.
  */
 
+export function isStableEmotion(window, emotionValue) {
+  if (!Array.isArray(window) || window.length === 0) return false;
+
+  return window.every(
+    (entry) =>
+      entry &&
+      entry.emotion &&
+      entry.emotion.value === emotionValue
+  );
+}
+
 export function smoothEmotionValues(
   current = {},
   previous = null,
