@@ -362,6 +362,9 @@ export default function TrainerView() {
               display: "flex",
               flexDirection: "column",
               gap: 8,
+              maxHeight: 320,
+              overflowY: "auto",
+              paddingRight: 4,
             }}
           >
             {moments.map((moment) => (
@@ -603,10 +606,14 @@ function MomentRow({ moment, onClick, selected }) {
       })
     : "waiting";
 
-  const emotionLabel =
-    moment.emotion && typeof moment.emotion === "string"
-      ? moment.emotion.charAt(0).toUpperCase() + moment.emotion.slice(1)
-      : "Unknown";
+  const primaryLabel =
+    typeof moment.label === "string"
+      ? moment.label
+      : moment.trainer && typeof moment.trainer === "object"
+        ? moment.trainer.actionType ?? "Trainer Action"
+        : typeof moment.emotion === "string"
+          ? moment.emotion.charAt(0).toUpperCase() + moment.emotion.slice(1)
+          : "Moment";
 
   const trainerLabel =
     moment.trainer && typeof moment.trainer === "object"
@@ -638,7 +645,7 @@ function MomentRow({ moment, onClick, selected }) {
           fontWeight: 600,
         }}
       >
-        <span>{emotionLabel}</span>
+        <span>{primaryLabel}</span>
         <span style={{ fontSize: "0.75rem", color: "#555" }}>
           {formattedTime}
         </span>
