@@ -8,6 +8,7 @@ export default function TrainerView() {
   const [momentData, setMomentData] = useState(null);
   const [trainerSignal, setTrainerSignal] = useState(null);
   const [showInsights, setShowInsights] = useState(false);
+  const [hiddenInsights, setHiddenInsights] = useState(null);
 
   // -------------------------------
   // Socket listeners
@@ -32,11 +33,19 @@ export default function TrainerView() {
     const handleMomentUpdate = (payload) => {
       if (!payload) {
         setMomentData(null);
+        setHiddenInsights(null);
         return;
       }
 
       // Normalize moment envelope to stable fields
       const ts = payload.ts ?? payload.timestamp ?? Date.now();
+
+      // Strip insights from live updates (pull-only enforcement)
+      if (Array.isArray(payload.insights)) {
+        setHiddenInsights(payload.insights);
+      } else {
+        setHiddenInsights(null);
+      }
 
       const normalized = {
         ts,
@@ -129,7 +138,9 @@ export default function TrainerView() {
           <p style={{ margin: 0, color: "#666" }}>Socket: {connectionStatus}</p>
         </div>
         <button
-          onClick={() => setShowInsights((v) => !v)}
+          onClick={() => {
+            setShowInsights((v) => !v);
+          }}
           style={{ padding: "6px 10px", cursor: "pointer" }}
         >
           Insights
@@ -225,9 +236,9 @@ export default function TrainerView() {
         >
           <h3 style={{ marginTop: 0 }}>Trainer Insights</h3>
 
-          {Array.isArray(momentData?.insights) && momentData.insights.length ? (
+          {Array.isArray(hiddenInsights) && hiddenInsights.length ? (
             <ul style={{ margin: 0, paddingLeft: 16 }}>
-              {momentData.insights.map((insight) => (
+              {hiddenInsights.map((insight) => (
                 <li key={insight.id} style={{ marginBottom: 8 }}>
                   <strong>{insight.category}</strong>: {insight.language}
                   {typeof insight.confidence === "number" && (
