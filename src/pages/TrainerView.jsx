@@ -231,7 +231,7 @@ export default function TrainerView() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0 }}>Trainer View</h1>
+          <h1 style={{ margin: 0 }}>Session View</h1>
           <p style={{ margin: 0, color: "#666" }}>Socket: {connectionStatus}</p>
         </div>
         <button
@@ -246,22 +246,22 @@ export default function TrainerView() {
       </header>
 
       <section style={{ marginBottom: "1rem" }}>
-        <h3>Session Focus</h3>
+        <h3>Focus</h3>
 
         {focus ? (
           <div style={{ marginBottom: "0.5rem" }}>
-            <strong>Active Focus:</strong>
+            <strong>Current focus:</strong>
             <div>{focus.text}</div>
           </div>
         ) : (
           <div style={{ marginBottom: "0.5rem", opacity: 0.6 }}>
-            No active focus
+            No focus set
           </div>
         )}
 
         <input
           type="text"
-          placeholder="Enter session focus"
+          placeholder=""
           value={focusInput}
           onChange={(event) => setFocusInput(event.target.value)}
           style={{ width: "100%", marginBottom: "0.5rem" }}
@@ -283,13 +283,13 @@ export default function TrainerView() {
           background: "#fafafa",
         }}
       >
-        <h3 style={{ marginTop: 0, marginBottom: 8 }}>Trainer Controls</h3>
+        <h3 style={{ marginTop: 0, marginBottom: 8 }}>Controls</h3>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {[
-            ["slowdown", "Slow Down"],
-            ["speedup", "Speed Up"],
+            ["slowdown", "Slowdown"],
+            ["speedup", "Speedup"],
             ["break", "Break"],
-            ["checkin", "Check-in"],
+            ["checkin", "Checkin"],
           ].map(([type, label]) => (
             <button
               key={type}
@@ -318,7 +318,7 @@ export default function TrainerView() {
           marginBottom: 20,
         }}
       >
-        <h3 style={{ marginTop: 0 }}>Audience Messages</h3>
+        <h3 style={{ marginTop: 0 }}>Messages</h3>
         {messages.length ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {messages.slice(-3).map((msg, index) => (
@@ -344,9 +344,7 @@ export default function TrainerView() {
               </div>
             ))}
           </div>
-        ) : (
-          <p style={{ margin: 0, color: "#555" }}>No audience messages yet.</p>
-        )}
+        ) : null}
       </div>
 
       {/* ---------------- TRAINER INSIGHTS (PULL-ONLY) ---------------- */}
@@ -360,7 +358,7 @@ export default function TrainerView() {
             background: "#fff",
           }}
         >
-          <h3 style={{ marginTop: 0 }}>Trainer Insights</h3>
+          <h3 style={{ marginTop: 0 }}>Insights</h3>
 
           {Array.isArray(visibleInsights) && visibleInsights.length ? (
             Object.entries(
@@ -400,7 +398,7 @@ export default function TrainerView() {
             ))
           ) : (
             <p style={{ margin: 0, color: "#555" }}>
-              No insights available for this moment.
+              No insights available
             </p>
           )}
         </div>
@@ -415,9 +413,9 @@ export default function TrainerView() {
           background: "#fff",
         }}
       >
-        <h3 style={{ marginTop: 0 }}>Moment History</h3>
+        <h3 style={{ marginTop: 0 }}>Moments</h3>
         <p style={{ margin: "0 0 12px", color: "#555" }}>
-          Tap up to three moments to hold them side-by-side for context.
+          Select up to three moments
         </p>
 
         {moments.length ? (
@@ -444,14 +442,14 @@ export default function TrainerView() {
           </div>
         ) : (
           <p style={{ margin: 0, color: "#555" }}>
-            Waiting for moment history…
+            No moments yet
           </p>
         )}
 
         {compareSelection.length >= 2 && (
-          <button
-            type="button"
-            onClick={openComparison}
+            <button
+              type="button"
+              onClick={openComparison}
             style={{
               marginTop: 12,
               padding: "8px 12px",
@@ -462,8 +460,8 @@ export default function TrainerView() {
               cursor: "pointer",
             }}
           >
-            Compare Moments
-          </button>
+            Compare
+            </button>
         )}
 
         {showCompare && compareSnapshot && (
@@ -485,7 +483,7 @@ export default function TrainerView() {
                 marginBottom: 12,
               }}
             >
-              <strong>Moment comparison</strong>
+              <strong>Comparison</strong>
               <button
                 type="button"
                 onClick={closeComparison}
@@ -552,28 +550,30 @@ export default function TrainerView() {
       {/* ========================= */}
       {/*  Live Pulse Feed Section  */}
       {/* ========================= */}
-      <h2>Live Pulse Feed</h2>
-      <pre
-        style={{
-          background: "black",
-          color: "lime",
-          padding: 16,
-          maxHeight: 200,
-          overflowY: "auto",
-        }}
-      >
-        {livePulse ? JSON.stringify(livePulse, null, 2) : "No data yet"}
-      </pre>
+      <h2>Pulse</h2>
+      {livePulse && (
+        <pre
+          style={{
+            background: "black",
+            color: "lime",
+            padding: 16,
+            maxHeight: 200,
+            overflowY: "auto",
+          }}
+        >
+          {JSON.stringify(livePulse, null, 2)}
+        </pre>
+      )}
 
-      <h2>Pulse Vote Summary</h2>
+      <h2>Pulse Summary</h2>
 
       <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "-8px" }}>
-        Last pulse update: {formattedLastMoment}
+        Last update: {formattedLastMoment}
       </p>
 
       {(() => {
         if (!livePulse || !livePulse.votes) {
-          return <p>No pulse data yet.</p>;
+          return null;
         }
 
         const votes = Object.values(livePulse.votes);
@@ -607,11 +607,11 @@ Frustrated:  ${frustrated}`}
           background: "#f9f9f9",
         }}
       >
-        <h3 style={{ marginTop: 0 }}>Emotion / Moment Panel</h3>
+        <h3 style={{ marginTop: 0 }}>Moment</h3>
         {momentData ? (
           <>
             <p style={{ margin: "4px 0" }}>
-              Current moment: {momentData.label ?? momentData.id ?? "unknown"}
+              Moment ID: {momentData.label ?? momentData.id ?? "unknown"}
             </p>
             <pre
               style={{
@@ -628,9 +628,7 @@ Frustrated:  ${frustrated}`}
           {JSON.stringify(currentMoment, null, 2)}
             </pre>
           </>
-        ) : (
-          <p style={{ margin: 0, color: "#555" }}>Waiting for moment data…</p>
-        )}
+        ) : null}
       </div>
 
       <div
@@ -641,7 +639,7 @@ Frustrated:  ${frustrated}`}
           background: "#f4f4f4",
         }}
       >
-        <h3 style={{ marginTop: 0, marginBottom: 8 }}>Trainer Signal Debug</h3>
+        <h3 style={{ marginTop: 0, marginBottom: 8 }}>Signals</h3>
         {trainerSignal ? (
           <pre
             style={{
@@ -654,7 +652,7 @@ Frustrated:  ${frustrated}`}
             {JSON.stringify(trainerSignal, null, 2)}
           </pre>
         ) : (
-          <p style={{ margin: 0, color: "#555" }}>No trainer signal yet</p>
+          <p style={{ margin: 0, color: "#555" }}>No signal data</p>
         )}
       </div>
     </div>
