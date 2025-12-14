@@ -21,6 +21,9 @@
 
 import { handleTrainerCommand } from "../pipelines/trainer/trainer.handleCommand.js";
 import { handleTrainerNudge } from "../pipelines/trainer/trainer.handleNudge.js";
+import { v4 as uuidv4 } from "uuid";
+
+const DEFAULT_SESSION_ID = "session:default";
 
 // ------------------------------------------------------------------
 // EventRouter
@@ -39,6 +42,35 @@ export default function registerEventRouter(io, socket, pipelines = {}) {
     trainerPipeline = null,
     momentPipeline = null, // Added Phase 2.4.2
   } = pipelines;
+
+  const assignSessionId = (requestedSessionId) => {
+    const targetSessionId = requestedSessionId ?? DEFAULT_SESSION_ID;
+
+    if (socket.sessionId && socket.sessionId !== targetSessionId) {
+      socket.leave(socket.sessionId);
+    }
+
+    socket.sessionId = targetSessionId;
+    socket.join(targetSessionId);
+    return targetSessionId;
+  };
+
+  const syncFocusState = (sessionId) => {
+    if (!sessionId || !focusPipeline?.getActiveFocus) {
+      return;
+    }
+
+    const focusState = focusPipeline.getActiveFocus(sessionId);
+    if (!focusState) return;
+
+    socket.emit("focus:update", {
+      sessionId,
+      focus: focusState,
+    });
+  };
+
+  const sessionId = assignSessionId(socket.sessionId ?? DEFAULT_SESSION_ID);
+  syncFocusState(sessionId);
 
   console.log("[ROUTER] client connected:", socket.id);
 
@@ -70,18 +102,24 @@ socket.on("audience:pulse", (payload = {}) => {
   // No activation of behavior. Pure wiring.
   // ----------------------------------------------------
   socket.on("focus:set", (payload = {}) => {
-    if (pipelines.focusPipeline?.handleSetFocus) {
-      pipelines.focusPipeline.handleSetFocus({
+    const currentSessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    console.log("[8.1] focus:set reached router", payload);
+    if (focusPipeline?.handleSetFocus) {
+      focusPipeline.handleSetFocus({
+        io,
         socketId: socket.id,
+        sessionId: currentSessionId,
         ...payload,
       });
     }
   });
 
   socket.on("focus:clear", () => {
-    if (pipelines.focusPipeline?.handleClearFocus) {
-      pipelines.focusPipeline.handleClearFocus({
+    const currentSessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (focusPipeline?.handleClearFocus) {
+      focusPipeline.handleClearFocus({
         socketId: socket.id,
+        sessionId: currentSessionId,
       });
     }
   });
@@ -91,6 +129,11 @@ socket.on("audience:pulse", (payload = {}) => {
   // Does not alter production behavior until frontend emits.
   // ----------------------------------------------------
   socket.on("session:join", (payload = {}) => {
+    const nextSessionId = assignSessionId(
+      payload?.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID
+    );
+    syncFocusState(nextSessionId);
+
     if (sessionPipeline?.handleJoin) {
       sessionPipeline.handleJoin({
         socketId: socket.id,
@@ -108,6 +151,7 @@ socket.on("audience:pulse", (payload = {}) => {
   });
 
   socket.on("session:reconnect", (payload = {}) => {
+    syncFocusState(socket.sessionId);
     if (sessionPipeline?.handleReconnect) {
       sessionPipeline.handleReconnect({
         socketId: socket.id,
@@ -158,6 +202,30 @@ socket.on("audience:pulse", (payload = {}) => {
         ...payload,
       });
     }
+  });
+
+  socket.on("message:interaction", (payload = {}) => {
+    const {
+      sessionId,
+      messageId,
+      interactionType,
+      actorRole,
+    } = payload;
+
+    if (!sessionId || !messageId) return;
+    if (!["upvote", "downvote"].includes(interactionType)) return;
+    if (!["audience", "trainer"].includes(actorRole)) return;
+
+    const interactionIntent = {
+      interactionId: uuidv4(),
+      sessionId,
+      messageId,
+      interactionType,
+      actorRole,
+      timestamp: Date.now(),
+    };
+
+    io.emit("message:interaction", interactionIntent);
   });
 
   socket.on("message:trainerReply", (payload) => {
