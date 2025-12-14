@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import { io } from "socket.io-client";
+import { useDevToolsBus } from "../utils/useDevToolsBus.js";
 
 export const SocketContext = createContext(null);
 
@@ -14,6 +15,9 @@ export function SocketProvider({ children }) {
   const socketRef = useRef(null);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
   const [socketState, setSocketState] = useState(null);
+  // Phase 8 — Focus state
+  // Phase 8.1 — Focus (authoritative session state)
+  const [focus, setFocus] = useState(null);
   const registeredHandlers = useRef(new Map());
 
   // We intentionally use a mutable ref for event handler maps.
@@ -44,13 +48,36 @@ export function SocketProvider({ children }) {
     }
     const handleConnect = () => setConnectionStatus("connected");
     const handleDisconnect = () => setConnectionStatus("disconnected");
-
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
+
+    // ---- Focus events (Phase 8.2 fix) ----
+    socket.on("focus:update", (payload) => {
+      console.log("[socket] focus:update received", payload);
+      const nextFocus = payload?.focus ?? payload ?? null;
+
+      if (
+        process.env.NODE_ENV !== "production" &&
+        nextFocus &&
+        typeof nextFocus.text !== "string"
+      ) {
+        console.warn("[focus] malformed focus payload received:", payload);
+      }
+
+      setFocus(nextFocus);
+    });
+
+    socket.on("focus:cleared", () => {
+      console.log("[socket] focus:cleared received");
+      setFocus(null);
+    });
 
     return () => {
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
+
+      socket.off("focus:update");
+      socket.off("focus:cleared");
 
       registeredHandlers.current.forEach((handlers, event) => {
         handlers.forEach((handler) => {
@@ -65,7 +92,24 @@ export function SocketProvider({ children }) {
   const emit = useCallback((event, payload) => {
     const socket = socketRef.current;
     if (!socket) return;
+
+    // Phase 8.2 — optimistic focus update
+    if (event === "focus:set") {
+      setFocus(payload ?? null);
+    }
+
+    if (event === "focus:clear") {
+      setFocus(null);
+    }
+
     socket.emit(event, payload);
+  }, []);
+
+  const emitEvent = useCallback((eventType, payload) => {
+    useDevToolsBus.getState().push({
+      type: eventType,
+      payload,
+    });
   }, []);
 
   const onEvent = useCallback((event, handler) => {
@@ -113,6 +157,39 @@ export function SocketProvider({ children }) {
     });
   }, []);
 
+  useEffect(() => {
+    const socket = socketState;
+    if (!socket) return;
+
+    // ---- Focus events (Phase 8.3) ----
+    const handleFocusSet = (payload) => {
+      const sliced = payload?.focus ?? payload ?? null;
+      setFocus(sliced);
+      emitEvent("focus:update", sliced);
+    };
+
+    const handleFocusUpdate = (payload) => {
+      const sliced = payload?.focus ?? payload ?? null;
+      setFocus(sliced);
+      emitEvent("focus:update", sliced);
+    };
+
+    const handleFocusCleared = () => {
+      setFocus(null);
+      emitEvent("focus:cleared", null);
+    };
+
+    socket.on("focus:set", handleFocusSet);
+    socket.on("focus:update", handleFocusUpdate);
+    socket.on("focus:cleared", handleFocusCleared);
+
+    return () => {
+      socket.off("focus:set", handleFocusSet);
+      socket.off("focus:update", handleFocusUpdate);
+      socket.off("focus:cleared", handleFocusCleared);
+    };
+  }, [socketState, emitEvent]);
+
   return (
     <SocketContext.Provider
       value={{
@@ -126,6 +203,7 @@ export function SocketProvider({ children }) {
         connectionStatus,
         onEvent,
         offEvent,
+        focus,
       }}
     >
       {children}
@@ -141,4 +219,8 @@ export function useSocketContext() {
   }
 
   return context;
+}
+
+export function useSocket() {
+  return useSocketContext();
 }
