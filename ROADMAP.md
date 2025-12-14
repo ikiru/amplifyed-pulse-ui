@@ -8,10 +8,10 @@
 
 ## Project Overview
 
-**AmplifyEd** is a real-time, safety-first professional development platform for educators.
+**AmplifyEd** is a real-time, safety-first professional development platform.
 
 Its core function is to:
-- Collect live participant signals during training sessions
+- Collect live audience signals during sessions
 - Route them through disciplined server pipelines
 - Surface them to a trainer in a psychologically safe way
 - Preserve human agency and trainer authority
@@ -100,12 +100,10 @@ They **do not yet emit or render live data**.
 
 ---
 
-## Phase 6 — Pipeline Activation (NEXT BUILD PHASE)
+## Phase 6 — Pipeline Activation (AUTHORIZED BUILD PHASE)
 
 **Goal:**  
 Make non-pulse pipelines *real* for the first time.
-
-This phase activates functionality that has only been scaffolded so far.
 
 ### In Scope
 - **Messages**
@@ -120,7 +118,7 @@ This phase activates functionality that has only been scaffolded so far.
   - Low-resolution live signal
   - No scoring, no history
 - **TrainerView**
-  - Live rendering replaces “waiting” states
+  - Live rendering replaces placeholder states
 
 ### Out of Scope
 - Automation
@@ -161,45 +159,140 @@ Make activated pipelines survive real-world use.
 
 ---
 
-## Phase 8 — Adoption & Trust Hardening
+## Phase 8 — Live Session UX & Trust Hardening (DESIGN COMPLETE)
 
 **Goal:**  
-Make AmplifyEd safe to hand to real trainers and organizations.
+Ensure live UX creates safety, not pressure.
 
-### In Scope
-- Clear explanations of signal behavior
-- Clear explanations of system limits
-- Adoption-safe defaults
-- Trainer confidence UX
-- Participant expectation clarity
+### Covered
+- Session access UX (join code + QR)
+- Audience re-entry continuity
+- Trainer reboot recovery
+- Required participation posture (silent allowed)
+- No “waiting” or narrative pressure
+- Visual neutrality
+- Cognitive load minimization
 
-### Out of Scope
-- Scaling
-- Monetization
-- Admin dashboards
-- Optimization tooling
-
-### Phase 8 Done When
-- Trainers are not anxious using it
-- Organizations do not fear surveillance
-- Participants understand boundaries
-- You can walk away from a pilot session
+**Outcome:**  
+Live session UX contracts are complete and locked.
 
 ---
 
-## Phase Discipline Rules
+## Phase 9 — Replay, Persistence & Memory Limits (DESIGN COMPLETE)
 
-- Pipelines are activated before optimized
+**Goal:**  
+Define what the system may remember and what it must forget.
+
+### Covered
+- Replay posture
+- Non-persistable data list
+- Safety exception memory
+- Trainer replay limits
+
+**Outcome:**  
+Memory is bounded before any persistence is built.
+
+---
+
+## Phase 10 — Interpretation Limits (DESIGN COMPLETE)
+
+**Goal:**  
+Prevent post-hoc meaning extraction.
+
+### Covered
+- Organizational interpretation limits
+- Non-transferability of meaning
+- Ban on summaries, conclusions, and evaluations
+
+**Outcome:**  
+The system refuses to explain itself.
+
+---
+
+## Phase 11 — UX Translation & Build Rules (DESIGN COMPLETE)
+
+**Goal:**  
+Translate contracts into concrete UX rules.
+
+### Covered
+- AudienceInput UX rules
+- TrainerView UX rules
+- Copy lock & blacklist
+- Failure and edge-state handling
+- Silent collapse rules
+- Visual neutrality audits
+- Cognitive load audits
+
+**Outcome:**  
+UX is build-ready without interpretive drift.
+
+---
+
+## Phase 12 — Evidence, Safety & Forensic Capture (DESIGN COMPLETE)
+
+**Goal:**  
+Ensure safety events can be reviewed without surveillance or narrative.
+
+### Covered
+- Evidence schema & retention limits
+- Incident reconstruction rules
+- Post-session evidence access UX
+- Misuse prevention safeguards
+- Legal survivability across jurisdictions
+
+**Outcome:**  
+The system can survive scrutiny without betraying trust.
+
+---
+
+## Phase 13 — External Communication & Claim Discipline (DESIGN COMPLETE)
+
+**Goal:**  
+Prevent marketing, sales, or documentation from overselling power.
+
+### Covered
+- Allowed and banned claims
+- Demo constraints
+- Sales refusal language
+- Documentation tone rules
+
+**Outcome:**  
+The external story cannot contradict the internal truth.
+
+---
+
+## Phase 14 — Build Authorization & Drift Prevention (ACTIVE)
+
+**Goal:**  
+Allow engineering velocity without ethical regression.
+
+### Rules
+- Build only against locked contracts
+- Refusal must exist before features
+- Screenshot safety test applies globally
+- Silence is always valid
+- Any team member may halt drift
+
+**Outcome:**  
+Implementation may proceed safely.
+
+---
+
+## Phase Discipline Rules (Global)
+
+- Pipelines activate before they optimize
+- UX refuses before it explains
+- Memory is bounded before persistence
 - No phase introduces new intelligence
-- No phase assumes work from a later phase
 - If something feels “smart,” it is probably drift
-- Quiet, boring reliability is success
+- Quiet reliability is success
 
 ---
 
 ## Roadmap Summary
 
-- **Phase 0–5:** Foundation, safety, and restraint (complete)
-- **Phase 6:** Make messages, focus, and moments real
-- **Phase 7:** Make them stable
-- **Phase 8:** Make them trustworthy to adopt
+- **Phase 0–5:** Foundations, governance, restraint (complete)
+- **Phase 6–7:** Make pipelines real and stable
+- **Phase 8–11:** Lock live UX and interpretation limits
+- **Phase 12–13:** Bound memory and external narrative
+- **Phase 14:** Authorized implementation with drift guards
