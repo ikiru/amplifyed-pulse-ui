@@ -15,28 +15,9 @@
 // ------------------------------------------------------------------
 
 import { extractMessageSignal } from "./messageSignalExtractor.js";
+import { formatMessage } from "./message.format.js";
+import { broadcastAudienceMessage } from "./message.broadcast.js";
 import { v4 as uuidv4 } from "uuid";
-
-// In-memory message index per session (Phase 7.3)
-// sessionId -> Map(messageId -> message)
-const sessionMessages = new Map();
-
-function getSessionMap(sessionId) {
-  if (!sessionMessages.has(sessionId)) {
-    sessionMessages.set(sessionId, new Map());
-  }
-  return sessionMessages.get(sessionId);
-}
-
-function wouldCreateCycle(parentId, candidateId, map) {
-  let current = parentId;
-  while (current) {
-    if (current === candidateId) return true;
-    const msg = map.get(current);
-    current = msg?.parentMessageId ?? null;
-  }
-  return false;
-}
 
 export function createMessagePipeline(io, momentBuilder = null) {
 
@@ -51,48 +32,18 @@ export function createMessagePipeline(io, momentBuilder = null) {
 
     const now = Date.now();
     const sessionId = this.getSessionIdForSocket?.(socketId);
-    const map = getSessionMap(sessionId);
     const messageId = uuidv4();
 
-    const message = {
+    const message = formatMessage({
       messageId,
       sessionId,
+      authorRole: "audience",
       timestamp: now,
-
-      sourceRole: "audience",
-      sourceRef: socketId,
-
-      content: effectiveContent,
-
       parentMessageId: parentMessageId ?? null,
-      threadRootId: null,
+      content: effectiveContent,
+    });
 
-      reactions: { up: 0, down: 0 },
-
-      state: { visible: true, locked: false },
-
-      // momentId is a referential hook only.
-      // Messages may reference an existing moment.
-      // Messages do not create, mutate, or evaluate moments.
-      // All behavior based on moment association is deferred to later phases.
-      momentId: null,
-    };
-
-    if (message.parentMessageId) {
-      const parent = map.get(message.parentMessageId);
-      if (!parent || wouldCreateCycle(message.parentMessageId, message.messageId, map)) {
-        // Orphan reply or cycle → drop silently
-        return;
-      }
-
-      message.threadRootId = parent.threadRootId ?? parent.messageId;
-    } else {
-      message.threadRootId = message.messageId;
-    }
-
-    map.set(message.messageId, message);
-
-    io.emit("message:audience", message);
+    broadcastAudienceMessage(io, message);
 
     const signalText = text ?? effectiveContent.text;
     const messageSignal = signalText ? extractMessageSignal(signalText) : null;
