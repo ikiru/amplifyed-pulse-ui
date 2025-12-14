@@ -28,21 +28,20 @@ export default function AudienceInput() {
 
   return (
     <div>
-      <h1>Audience Input</h1>
 
       <div>
-        <button onClick={() => sendPulse("engaged")}>😀 Engaged</button>
-        <button onClick={() => sendPulse("neutral")}>😐 Neutral</button>
-        <button onClick={() => sendPulse("frustrated")}>😠 Frustrated</button>
+        <button onClick={() => sendPulse("pulse_1")} aria-label="Pulse option 1" />
+        <button onClick={() => sendPulse("pulse_2")} aria-label="Pulse option 2" />
+        <button onClick={() => sendPulse("pulse_3")} aria-label="Pulse option 3" />
       </div>
 
       <form onSubmit={handleMessage} style={{ marginTop: 16 }}>
         <input
-          placeholder="Say something…"
+          placeholder=""
           value={message}
           onChange={(e) => setMessage(e.target.value)}
         />
-        <button type="submit">Send</button>
+        <button type="submit" aria-label="Submit message" />
       </form>
     </div>
   );
