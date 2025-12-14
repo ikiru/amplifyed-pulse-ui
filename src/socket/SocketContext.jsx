@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { io } from "socket.io-client";
 import { useDevToolsBus } from "../utils/useDevToolsBus.js";
+import { useInteractionIntents } from "../state/useInteractionIntents";
 
 export const SocketContext = createContext(null);
 
@@ -18,6 +19,7 @@ export function SocketProvider({ children }) {
   // Phase 8 — Focus state
   // Phase 8.1 — Focus (authoritative session state)
   const [focus, setFocus] = useState(null);
+  const { addInteractionIntent } = useInteractionIntents();
   const registeredHandlers = useRef(new Map());
 
   // We intentionally use a mutable ref for event handler maps.
@@ -67,9 +69,14 @@ export function SocketProvider({ children }) {
       setFocus(nextFocus);
     });
 
-    socket.on("focus:cleared", () => {
+    const handleFocusCleared = () => {
       console.log("[socket] focus:cleared received");
       setFocus(null);
+    };
+    socket.on("focus:cleared", handleFocusCleared);
+
+    socket.on("message:interaction", (payload) => {
+      addInteractionIntent(payload);
     });
 
     return () => {
@@ -77,7 +84,8 @@ export function SocketProvider({ children }) {
       socket.off("disconnect", handleDisconnect);
 
       socket.off("focus:update");
-      socket.off("focus:cleared");
+      socket.off("focus:cleared", handleFocusCleared);
+      socket.off("message:interaction");
 
       registeredHandlers.current.forEach((handlers, event) => {
         handlers.forEach((handler) => {
