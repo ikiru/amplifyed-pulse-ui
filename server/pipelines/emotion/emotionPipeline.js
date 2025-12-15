@@ -58,7 +58,7 @@ export function createEmotionPipeline(io, momentPipeline) {
     };
 
     // Phase 2.17 — normalize schema for downstream consumers
-    const emotionEnvelope = normalizeEmotionEnvelope(baseEnvelope);
+    const normalizedEnvelope = normalizeEmotionEnvelope(baseEnvelope);
 
     const finalEnvelope = applyEmotion(normalizedEnvelope, rawFeatures);
 
@@ -67,8 +67,24 @@ export function createEmotionPipeline(io, momentPipeline) {
     return moment;
   }
 
-  return {
-    applyEmotion,
-    handleMoment,
-  };
+  // ✅ Callable wrapper for pulsePipeline compatibility
+  function emotionPipeline(pulseState, momentBuilder) {
+    // Phase-safe: do not assume structure, do not mutate upstream state
+    // If momentBuilder exists and is callable, build a moment, then handle it.
+    if (typeof momentBuilder === "function") {
+      const moment = momentBuilder(pulseState);
+      handleMoment(moment);
+      return moment;
+    }
+
+    // If a moment is passed through directly, handle it.
+    handleMoment(pulseState);
+    return pulseState;
+  }
+
+  // Keep method access for debugging / direct calls
+  emotionPipeline.applyEmotion = applyEmotion;
+  emotionPipeline.handleMoment = handleMoment;
+
+  return emotionPipeline;
 }
