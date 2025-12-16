@@ -1,10 +1,15 @@
 import React from "react";
+import { useEmotionStream } from "../../state/useEmotionStream";
 
 // Legacy socket hook removed
 export default function EmotionTrendline({ emotionState }) {
-  if (!emotionState) return null;
+  const emotionEnvelope =
+    emotionState ??
+    useEmotionStream((state) => state.emotionEnvelope);
 
-  const { stateMap = {}, ts } = emotionState;
+  if (!emotionEnvelope) return null;
+
+  const { stateMap = {}, ts } = emotionEnvelope;
   const formatDate = ts ? new Date(ts).toLocaleTimeString() : "waiting";
 
   return (
