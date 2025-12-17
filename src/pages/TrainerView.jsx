@@ -220,117 +220,446 @@ export default function TrainerView() {
     : null;
 
   return (
-    <div style={{ padding: 16, fontFamily: "system-ui, sans-serif" }}>
-      <header
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          marginBottom: 16,
-          gap: 12,
-        }}
-      >
-        <div>
-          <h1 style={{ margin: 0 }}>Session View</h1>
-          <p style={{ margin: 0, color: "#666" }}>Socket: {connectionStatus}</p>
-        </div>
-        <button
-          onClick={() => {
-            setVisibleInsights(hiddenInsights);
-            setShowInsights((v) => !v);
-          }}
-          style={{ padding: "6px 10px", cursor: "pointer" }}
-        >
-          Insights
-        </button>
-      </header>
-
-      <section style={{ marginBottom: "1rem" }}>
-        <h3>Focus</h3>
-
-        {focus ? (
-          <div style={{ marginBottom: "0.5rem" }}>
-            <strong>Current focus:</strong>
-            <div>{focus.text}</div>
-          </div>
-        ) : (
-          <div style={{ marginBottom: "0.5rem", opacity: 0.6 }}>
-            No focus set
-          </div>
-        )}
-
-        <input
-          type="text"
-          placeholder=""
-          value={focusInput}
-          onChange={(event) => setFocusInput(event.target.value)}
-          style={{ width: "100%", marginBottom: "0.5rem" }}
-        />
-
-        <button onClick={handleSetFocus}>Set Focus</button>
-        <button onClick={handleClearFocus} style={{ marginLeft: "0.5rem" }}>
-          Clear Focus
-        </button>
-      </section>
-
-      {/* ---------------- TRAINER CONTROLS ---------------- */}
+    <div
+      style={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <div
         style={{
+          flex: 1,
+          display: "grid",
+          gridTemplateColumns: "1fr 2fr 1fr",
+          gap: "12px",
           padding: "12px",
-          border: "1px solid #ddd",
-          borderRadius: 8,
-          marginBottom: 12,
-          background: "#fafafa",
         }}
       >
-        <h3 style={{ marginTop: 0, marginBottom: 8 }}>Controls</h3>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {[
-            ["slowdown", "Slowdown"],
-            ["speedup", "Speedup"],
-            ["break", "Break"],
-            ["checkin", "Checkin"],
-          ].map(([type, label]) => (
-            <button
-              key={type}
-              onClick={() => sendTrainerAction(type)}
+        <div data-column="left">
+          <div style={{ padding: 16, fontFamily: "system-ui, sans-serif" }}>
+            <header
               style={{
-                padding: "8px 14px",
-                background: "#222",
-                color: "#fff",
-                border: "none",
-                borderRadius: 4,
-                cursor: "pointer",
+                display: "flex",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+                marginBottom: 16,
+                gap: 12,
               }}
             >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
+              <div>
+                <h1 style={{ margin: 0 }}>Session View</h1>
+                <p style={{ margin: 0, color: "#666" }}>
+                  Socket: {connectionStatus}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setVisibleInsights(hiddenInsights);
+                  setShowInsights((v) => !v);
+                }}
+                style={{ padding: "6px 10px", cursor: "pointer" }}
+              >
+                Insights
+              </button>
+            </header>
 
-      {/* ---------------- AUDIENCE MESSAGES ---------------- */}
-      <div
-        style={{
-          padding: "12px",
-          border: "1px solid #ddd",
-          borderRadius: 8,
-          marginBottom: 20,
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Messages</h3>
-        {messages.length ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {messages.slice(-3).map((msg, index) => (
+            <section style={{ marginBottom: "1rem" }}>
+              <h3>Focus</h3>
+
+              {focus ? (
+                <div style={{ marginBottom: "0.5rem" }}>
+                  <strong>Current focus:</strong>
+                  <div>{focus.text}</div>
+                </div>
+              ) : (
+                <div style={{ marginBottom: "0.5rem", opacity: 0.6 }}>
+                  No focus set
+                </div>
+              )}
+
+              <input
+                type="text"
+                placeholder=""
+                value={focusInput}
+                onChange={(event) => setFocusInput(event.target.value)}
+                style={{ width: "100%", marginBottom: "0.5rem" }}
+              />
+
+              <button onClick={handleSetFocus}>Set Focus</button>
+              <button onClick={handleClearFocus} style={{ marginLeft: "0.5rem" }}>
+                Clear Focus
+              </button>
+            </section>
+
+            {/* ---------------- TRAINER CONTROLS ---------------- */}
+            <div
+              style={{
+                padding: "12px",
+                border: "1px solid #ddd",
+                borderRadius: 8,
+                marginBottom: 12,
+                background: "#fafafa",
+              }}
+            >
+              <h3 style={{ marginTop: 0, marginBottom: 8 }}>Controls</h3>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {[
+                  ["slowdown", "Slowdown"],
+                  ["speedup", "Speedup"],
+                  ["break", "Break"],
+                  ["checkin", "Checkin"],
+                ].map(([type, label]) => (
+                  <button
+                    key={type}
+                    onClick={() => sendTrainerAction(type)}
+                    style={{
+                      padding: "8px 14px",
+                      background: "#222",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 4,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ---------------- AUDIENCE MESSAGES ---------------- */}
+            <div
+              style={{
+                padding: "12px",
+                border: "1px solid #ddd",
+                borderRadius: 8,
+                marginBottom: 20,
+              }}
+            >
+              <h3 style={{ marginTop: 0 }}>Messages</h3>
+              {messages.length ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {messages.slice(-3).map((msg, index) => (
+                    <div
+                      key={`${msg.id ?? index}-${index}`}
+                      style={{
+                        padding: "8px",
+                        background: "#fff",
+                        borderRadius: 6,
+                        border: "1px solid #eee",
+                      }}
+                    >
+                      <pre
+                        style={{
+                          margin: 0,
+                          fontSize: "0.8rem",
+                          whiteSpace: "pre-wrap",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {JSON.stringify(msg, null, 2)}
+                      </pre>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            {/* ---------------- TRAINER INSIGHTS (PULL-ONLY) ---------------- */}
+            {showInsights && visibleInsights && (
               <div
-                key={`${msg.id ?? index}-${index}`}
                 style={{
-                  padding: "8px",
+                  padding: "12px",
+                  border: "1px solid #ddd",
+                  borderRadius: 8,
+                  marginBottom: 20,
                   background: "#fff",
-                  borderRadius: 6,
-                  border: "1px solid #eee",
                 }}
               >
+                <h3 style={{ marginTop: 0 }}>Insights</h3>
+
+                {Array.isArray(visibleInsights) && visibleInsights.length ? (
+                  Object.entries(
+                    visibleInsights.reduce((acc, insight) => {
+                      const key = insight.category ?? "Other";
+                      acc[key] = acc[key] || [];
+                      acc[key].push(insight);
+                      return acc;
+                    }, {})
+                  ).map(([category, insights]) => (
+                    <div key={category} style={{ marginBottom: 16 }}>
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                          letterSpacing: "0.04em",
+                          color: "#555",
+                          marginBottom: 6,
+                        }}
+                      >
+                        {category.toUpperCase()}
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 16 }}>
+                        {insights.map((insight) => (
+                          <li key={insight.id} style={{ marginBottom: 6 }}>
+                            {insight.language}
+                            {typeof insight.confidence === "number" && (
+                              <span style={{ color: "#777", fontSize: "0.8rem" }}>
+                                {" "}
+                                (confidence {Math.round(insight.confidence * 100)}%)
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ margin: 0, color: "#555" }}>
+                    No insights available
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div
+              style={{
+                padding: "12px",
+                border: "1px solid #ddd",
+                borderRadius: 8,
+                marginBottom: 20,
+                background: "#fff",
+              }}
+            >
+              <h3 style={{ marginTop: 0 }}>Moments</h3>
+              <p style={{ margin: "0 0 12px", color: "#555" }}>
+                Select up to three moments
+              </p>
+
+              {moments.length ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    maxHeight: 320,
+                    overflowY: "auto",
+                    paddingRight: 4,
+                  }}
+                >
+                  {moments.map((moment) => (
+                    <MomentRow
+                      key={moment.id}
+                      moment={moment}
+                      selected={compareSelection.some(
+                        (entry) => entry.id === moment.id
+                      )}
+                      onClick={() => toggleCompareSelection(moment)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p style={{ margin: 0, color: "#555" }}>
+                  No moments yet
+                </p>
+              )}
+
+              {compareSelection.length >= 2 && (
+                <button
+                  type="button"
+                  onClick={openComparison}
+                  style={{
+                    marginTop: 12,
+                    padding: "8px 12px",
+                    borderRadius: 6,
+                    border: "1px solid #222",
+                    background: "#222",
+                    color: "#fff",
+                    cursor: "pointer",
+                  }}
+                >
+                  Compare
+                </button>
+              )}
+
+              {showCompare && compareSnapshot && (
+                <div
+                  className="moment-compare-panel"
+                  style={{
+                    marginTop: 12,
+                    border: "1px solid #ccc",
+                    borderRadius: 8,
+                    padding: 12,
+                    background: "#fefefe",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 12,
+                    }}
+                  >
+                    <strong>Comparison</strong>
+                    <button
+                      type="button"
+                      onClick={closeComparison}
+                      style={{
+                        border: "none",
+                        background: "transparent",
+                        color: "#222",
+                        cursor: "pointer",
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {compareSnapshot.map((moment, index) => (
+                      <div
+                        key={index}
+                        className="moment-column"
+                        style={{
+                          flex: "1 1 200px",
+                          border: "1px solid #eee",
+                          borderRadius: 6,
+                          padding: 8,
+                          background: "#fff",
+                        }}
+                      >
+                        <div
+                          className="moment-header"
+                          style={{
+                            marginBottom: 6,
+                            fontSize: "0.85rem",
+                            fontWeight: 600,
+                            color: "#333",
+                          }}
+                        >
+                          Moment {index + 1}
+                        </div>
+                        <pre
+                          style={{
+                            margin: 0,
+                            maxHeight: 220,
+                            overflowY: "auto",
+                            fontSize: "0.7rem",
+                            whiteSpace: "pre-wrap",
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {JSON.stringify(moment, null, 2)}
+                        </pre>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ========================= */}
+            {/*  Live Pulse Feed Section  */}
+            {/* ========================= */}
+            <h2>Pulse</h2>
+            {livePulse && (
+              <pre
+                style={{
+                  background: "black",
+                  color: "lime",
+                  padding: 16,
+                  maxHeight: 200,
+                  overflowY: "auto",
+                }}
+              >
+                {JSON.stringify(livePulse, null, 2)}
+              </pre>
+            )}
+
+            <h2>Pulse Summary</h2>
+
+            <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "-8px" }}>
+              Last update: {formattedLastMoment}
+            </p>
+
+            {(() => {
+              if (!livePulse || !livePulse.votes) {
+                return null;
+              }
+
+              const votes = Object.values(livePulse.votes);
+              const engaged = votes.filter((v) => v === "engaged").length;
+              const neutral = votes.filter((v) => v === "neutral").length;
+              const frustrated = votes.filter((v) => v === "frustrated").length;
+
+              return (
+                <pre
+                  style={{
+                    background: "#111",
+                    color: "white",
+                    padding: "10px",
+                    marginBottom: "20px",
+                    lineHeight: "1.4",
+                  }}
+                >
+                  {`Engaged:     ${engaged}
+Neutral:     ${neutral}
+Frustrated:  ${frustrated}`}
+                </pre>
+              );
+            })()}
+
+            <div
+              style={{
+                padding: "12px",
+                border: "1px solid #ddd",
+                borderRadius: 8,
+                marginBottom: 20,
+                background: "#f9f9f9",
+              }}
+            >
+              <h3 style={{ marginTop: 0 }}>Moment</h3>
+              {momentData ? (
+                <>
+                  <p style={{ margin: "4px 0" }}>
+                    Moment ID: {momentData.label ?? momentData.id ?? "unknown"}
+                  </p>
+                  <pre
+                    style={{
+                      background: "#fff",
+                      padding: "10px",
+                      borderRadius: 6,
+                      border: "1px solid #eee",
+                      maxHeight: 220,
+                      overflowY: "auto",
+                      margin: 0,
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    {JSON.stringify(currentMoment, null, 2)}
+                  </pre>
+                </>
+              ) : null}
+            </div>
+
+            <div
+              style={{
+                padding: "12px",
+                borderRadius: 8,
+                border: "1px solid #ddd",
+                background: "#f4f4f4",
+              }}
+            >
+              <h3 style={{ marginTop: 0, marginBottom: 8 }}>Signals</h3>
+              {trainerSignal ? (
                 <pre
                   style={{
                     margin: 0,
@@ -339,321 +668,17 @@ export default function TrainerView() {
                     wordBreak: "break-word",
                   }}
                 >
-                  {JSON.stringify(msg, null, 2)}
+                  {JSON.stringify(trainerSignal, null, 2)}
                 </pre>
-              </div>
-            ))}
+              ) : (
+                <p style={{ margin: 0, color: "#555" }}>No signal data</p>
+              )}
+            </div>
           </div>
-        ) : null}
-      </div>
-
-      {/* ---------------- TRAINER INSIGHTS (PULL-ONLY) ---------------- */}
-      {showInsights && visibleInsights && (
-        <div
-          style={{
-            padding: "12px",
-            border: "1px solid #ddd",
-            borderRadius: 8,
-            marginBottom: 20,
-            background: "#fff",
-          }}
-        >
-          <h3 style={{ marginTop: 0 }}>Insights</h3>
-
-          {Array.isArray(visibleInsights) && visibleInsights.length ? (
-            Object.entries(
-              visibleInsights.reduce((acc, insight) => {
-                const key = insight.category ?? "Other";
-                acc[key] = acc[key] || [];
-                acc[key].push(insight);
-                return acc;
-              }, {})
-            ).map(([category, insights]) => (
-              <div key={category} style={{ marginBottom: 16 }}>
-                <div
-                  style={{
-                    fontSize: "0.75rem",
-                    fontWeight: 600,
-                    letterSpacing: "0.04em",
-                    color: "#555",
-                    marginBottom: 6,
-                  }}
-                >
-                  {category.toUpperCase()}
-                </div>
-                <ul style={{ margin: 0, paddingLeft: 16 }}>
-                  {insights.map((insight) => (
-                    <li key={insight.id} style={{ marginBottom: 6 }}>
-                      {insight.language}
-                      {typeof insight.confidence === "number" && (
-                        <span style={{ color: "#777", fontSize: "0.8rem" }}>
-                          {" "}
-                          (confidence {Math.round(insight.confidence * 100)}%)
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))
-          ) : (
-            <p style={{ margin: 0, color: "#555" }}>
-              No insights available
-            </p>
-          )}
         </div>
-      )}
 
-      <div
-        style={{
-          padding: "12px",
-          border: "1px solid #ddd",
-          borderRadius: 8,
-          marginBottom: 20,
-          background: "#fff",
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Moments</h3>
-        <p style={{ margin: "0 0 12px", color: "#555" }}>
-          Select up to three moments
-        </p>
-
-        {moments.length ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-              maxHeight: 320,
-              overflowY: "auto",
-              paddingRight: 4,
-            }}
-          >
-            {moments.map((moment) => (
-              <MomentRow
-                key={moment.id}
-                moment={moment}
-                selected={compareSelection.some(
-                  (entry) => entry.id === moment.id
-                )}
-                onClick={() => toggleCompareSelection(moment)}
-              />
-            ))}
-          </div>
-        ) : (
-          <p style={{ margin: 0, color: "#555" }}>
-            No moments yet
-          </p>
-        )}
-
-        {compareSelection.length >= 2 && (
-            <button
-              type="button"
-              onClick={openComparison}
-            style={{
-              marginTop: 12,
-              padding: "8px 12px",
-              borderRadius: 6,
-              border: "1px solid #222",
-              background: "#222",
-              color: "#fff",
-              cursor: "pointer",
-            }}
-          >
-            Compare
-            </button>
-        )}
-
-        {showCompare && compareSnapshot && (
-          <div
-            className="moment-compare-panel"
-            style={{
-              marginTop: 12,
-              border: "1px solid #ccc",
-              borderRadius: 8,
-              padding: 12,
-              background: "#fefefe",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 12,
-              }}
-            >
-              <strong>Comparison</strong>
-              <button
-                type="button"
-                onClick={closeComparison}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  color: "#222",
-                  cursor: "pointer",
-                  fontSize: "0.85rem",
-                }}
-              >
-                Close
-              </button>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              {compareSnapshot.map((moment, index) => (
-                <div
-                  key={index}
-                  className="moment-column"
-                  style={{
-                    flex: "1 1 200px",
-                    border: "1px solid #eee",
-                    borderRadius: 6,
-                    padding: 8,
-                    background: "#fff",
-                  }}
-                >
-                  <div
-                    className="moment-header"
-                    style={{
-                      marginBottom: 6,
-                      fontSize: "0.85rem",
-                      fontWeight: 600,
-                      color: "#333",
-                    }}
-                  >
-                    Moment {index + 1}
-                  </div>
-                  <pre
-                    style={{
-                      margin: 0,
-                      maxHeight: 220,
-                      overflowY: "auto",
-                      fontSize: "0.7rem",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-word",
-                    }}
-                  >
-                    {JSON.stringify(moment, null, 2)}
-                  </pre>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ========================= */}
-      {/*  Live Pulse Feed Section  */}
-      {/* ========================= */}
-      <h2>Pulse</h2>
-      {livePulse && (
-        <pre
-          style={{
-            background: "black",
-            color: "lime",
-            padding: 16,
-            maxHeight: 200,
-            overflowY: "auto",
-          }}
-        >
-          {JSON.stringify(livePulse, null, 2)}
-        </pre>
-      )}
-
-      <h2>Pulse Summary</h2>
-
-      <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "-8px" }}>
-        Last update: {formattedLastMoment}
-      </p>
-
-      {(() => {
-        if (!livePulse || !livePulse.votes) {
-          return null;
-        }
-
-        const votes = Object.values(livePulse.votes);
-        const engaged = votes.filter((v) => v === "engaged").length;
-        const neutral = votes.filter((v) => v === "neutral").length;
-        const frustrated = votes.filter((v) => v === "frustrated").length;
-
-        return (
-          <pre
-            style={{
-              background: "#111",
-              color: "white",
-              padding: "10px",
-              marginBottom: "20px",
-              lineHeight: "1.4",
-            }}
-          >
-            {`Engaged:     ${engaged}
-Neutral:     ${neutral}
-Frustrated:  ${frustrated}`}
-          </pre>
-        );
-      })()}
-
-      <div
-        style={{
-          padding: "12px",
-          border: "1px solid #ddd",
-          borderRadius: 8,
-          marginBottom: 20,
-          background: "#f9f9f9",
-        }}
-      >
-        <h3 style={{ marginTop: 0 }}>Moment</h3>
-        {momentData ? (
-          <>
-            <p style={{ margin: "4px 0" }}>
-              Moment ID: {momentData.label ?? momentData.id ?? "unknown"}
-            </p>
-            <pre
-              style={{
-                background: "#fff",
-                padding: "10px",
-                borderRadius: 6,
-                border: "1px solid #eee",
-                maxHeight: 220,
-                overflowY: "auto",
-                margin: 0,
-                fontSize: "0.85rem",
-              }}
-            >
-          {JSON.stringify(currentMoment, null, 2)}
-            </pre>
-          </>
-        ) : null}
-      </div>
-
-      <div
-        style={{
-          padding: "12px",
-          borderRadius: 8,
-          border: "1px solid #ddd",
-          background: "#f4f4f4",
-        }}
-      >
-        <h3 style={{ marginTop: 0, marginBottom: 8 }}>Signals</h3>
-        {trainerSignal ? (
-          <pre
-            style={{
-              margin: 0,
-              fontSize: "0.8rem",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-            }}
-          >
-            {JSON.stringify(trainerSignal, null, 2)}
-          </pre>
-        ) : (
-          <p style={{ margin: 0, color: "#555" }}>No signal data</p>
-        )}
+        <div data-column="center" />
+        <div data-column="right" />
       </div>
     </div>
   );
