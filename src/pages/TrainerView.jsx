@@ -276,70 +276,6 @@ export default function TrainerView() {
               </button>
             </header>
 
-            <section style={{ marginBottom: "1rem" }}>
-              <h3>Focus</h3>
-
-              {focus ? (
-                <div style={{ marginBottom: "0.5rem" }}>
-                  <strong>Current focus:</strong>
-                  <div>{focus.text}</div>
-                </div>
-              ) : (
-                <div style={{ marginBottom: "0.5rem", opacity: 0.6 }}>
-                  No focus set
-                </div>
-              )}
-
-              <input
-                type="text"
-                placeholder=""
-                value={focusInput}
-                onChange={(event) => setFocusInput(event.target.value)}
-                style={{ width: "100%", marginBottom: "0.5rem" }}
-              />
-
-              <button onClick={handleSetFocus}>Set Focus</button>
-              <button onClick={handleClearFocus} style={{ marginLeft: "0.5rem" }}>
-                Clear Focus
-              </button>
-            </section>
-
-            {/* ---------------- TRAINER CONTROLS ---------------- */}
-            <div
-              style={{
-                padding: "12px",
-                border: "1px solid #ddd",
-                borderRadius: 8,
-                marginBottom: 12,
-                background: "#fafafa",
-              }}
-            >
-              <h3 style={{ marginTop: 0, marginBottom: 8 }}>Controls</h3>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {[
-                  ["slowdown", "Slowdown"],
-                  ["speedup", "Speedup"],
-                  ["break", "Break"],
-                  ["checkin", "Checkin"],
-                ].map(([type, label]) => (
-                  <button
-                    key={type}
-                    onClick={() => sendTrainerAction(type)}
-                    style={{
-                      padding: "8px 14px",
-                      background: "#222",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: 4,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* ---------------- TRAINER INSIGHTS (PULL-ONLY) ---------------- */}
             {showInsights && visibleInsights && (
               <div
@@ -731,40 +667,72 @@ Frustrated:  ${frustrated}`}
             )}
           </section>
         </div>
+        {/* ================= RIGHT COLUMN ================= */}
         <div data-column="right">
-          {/* ===== Insights (read-only placeholder) ===== */}
-          <section
+          <section style={{ marginBottom: "1rem" }}>
+            <h3>Focus</h3>
+
+            {focus ? (
+              <div style={{ marginBottom: "0.5rem" }}>
+                <strong>Current focus:</strong>
+                <div>{focus.text}</div>
+              </div>
+            ) : (
+              <div style={{ marginBottom: "0.5rem", opacity: 0.6 }}>
+                No focus set
+              </div>
+            )}
+
+            <input
+              type="text"
+              placeholder=""
+              value={focusInput}
+              onChange={(event) => setFocusInput(event.target.value)}
+              style={{ width: "100%", marginBottom: "0.5rem" }}
+            />
+
+            <button onClick={handleSetFocus}>Set Focus</button>
+            <button onClick={handleClearFocus} style={{ marginLeft: "0.5rem" }}>
+              Clear Focus
+            </button>
+          </section>
+
+          <div
             style={{
               padding: "12px",
               border: "1px solid #ddd",
               borderRadius: 8,
               marginBottom: 12,
-              background: "#fff",
+              background: "#fafafa",
             }}
           >
-            <h3 style={{ marginTop: 0 }}>Insights</h3>
-            <p style={{ fontSize: "0.85rem", color: "#666", margin: 0 }}>
-              No insights available.
-            </p>
-          </section>
+            <h3 style={{ marginTop: 0, marginBottom: 8 }}>Controls</h3>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[
+                ["slowdown", "Slowdown"],
+                ["speedup", "Speedup"],
+                ["break", "Break"],
+                ["checkin", "Checkin"],
+              ].map(([type, label]) => (
+                <button
+                  key={type}
+                  onClick={() => sendTrainerAction(type)}
+                  style={{
+                    padding: "8px 14px",
+                    background: "#222",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          {/* ===== Prior Moments (read-only placeholder) ===== */}
-          <section
-            style={{
-              padding: "12px",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              marginBottom: 12,
-              background: "#fff",
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>Prior Moments</h3>
-            <p style={{ fontSize: "0.85rem", color: "#666", margin: 0 }}>
-              No prior moments.
-            </p>
-          </section>
-
-          {/* ===== Session Info (read-only placeholder) ===== */}
+          {/* Session Metadata */}
           <section
             style={{
               padding: "12px",
@@ -777,6 +745,38 @@ Frustrated:  ${frustrated}`}
             <h3 style={{ marginTop: 0 }}>Session Info</h3>
             <p style={{ fontSize: "0.85rem", color: "#666", margin: 0 }}>
               Session metadata will appear here.
+            </p>
+          </section>
+
+          {/* Insights Placeholder (read-only) */}
+          <section
+            style={{
+              padding: "12px",
+              border: "1px solid #ddd",
+              borderRadius: 8,
+              marginBottom: 12,
+              background: "#fff",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Insights</h3>
+            <p style={{ fontSize: "0.85rem", color: "#666", margin: 0 }}>
+              Insights will appear here after the session.
+            </p>
+          </section>
+
+          {/* Prior Moments (read-only) */}
+          <section
+            style={{
+              padding: "12px",
+              border: "1px solid #ddd",
+              borderRadius: 8,
+              marginBottom: 12,
+              background: "#fff",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Prior Moments</h3>
+            <p style={{ fontSize: "0.85rem", color: "#666", margin: 0 }}>
+              No prior moments available.
             </p>
           </section>
         </div>
