@@ -26,14 +26,17 @@ export default function AudienceInput() {
     const trimmed = input.trim();
     if (!trimmed) return;
 
+    const messageId = crypto.randomUUID();
+
     emit("message:audience", {
-      content: {
-        type: "text",
-        text: trimmed,
-      },
+      content: { type: "text", text: trimmed },
+      parentMessageId: null,
     });
 
-    setMessages((prev) => [...prev, { text: trimmed }]);
+    setMessages((prev) => [
+      ...prev,
+      { messageId, text: trimmed, parentMessageId: null },
+    ]);
     setInput("");
   };
 
@@ -79,10 +82,34 @@ export default function AudienceInput() {
 
               {replyToIndex === idx && (
                 <div className="thread-replies">
-                  <form
-                    className="message-input-bar"
-                    onSubmit={(e) => e.preventDefault()}
-                  >
+              <form
+                className="message-input-bar"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const trimmed = replyInput.trim();
+                  if (!trimmed) return;
+
+                  const replyMessageId = crypto.randomUUID();
+                  const parentMessageId = msg.messageId;
+
+                  emit("message:audience", {
+                    content: { type: "text", text: trimmed },
+                    parentMessageId,
+                  });
+
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      messageId: replyMessageId,
+                      text: trimmed,
+                      parentMessageId,
+                    },
+                  ]);
+
+                  setReplyInput("");
+                  setReplyToIndex(null);
+                }}
+              >
                     <input
                       type="text"
                       placeholder="Write a reply…"
