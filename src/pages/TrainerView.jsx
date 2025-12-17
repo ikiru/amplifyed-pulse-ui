@@ -189,7 +189,7 @@ export default function TrainerView() {
   };
 
   const handleClearFocus = () => {
-    emit("focus:clear");
+    emit("focus:cleared");
   };
 
   const toggleCompareSelection = (moment) => {

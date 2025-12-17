@@ -6,6 +6,9 @@ import { createMomentPipeline } from "./pipelines/moment/momentPipeline.js";
 import { createPulsePipeline } from "./pipelines/pulse/pulsePipeline.js";
 import { createMessagePipeline } from "./pipelines/message/messagePipeline.js";
 import { createTrainerPipeline } from "./pipelines/trainer/trainerPipeline.js";
+import { handleSetFocus } from "./pipelines/focus/focus.handleSet.js";
+import { handleClearFocus } from "./pipelines/focus/focus.handleClear.js";
+import { getActiveFocus } from "./pipelines/focus/focus.state.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -25,6 +28,11 @@ const momentPipeline = createMomentPipeline(io);
 const pulsePipeline = createPulsePipeline(io, { momentPipeline });
 const messagePipeline = createMessagePipeline(io, pulsePipeline.momentBuilder);
 const trainerPipeline = createTrainerPipeline(io, pulsePipeline.momentBuilder);
+const focusPipeline = {
+  handleSetFocus,
+  handleClearFocus,
+  getActiveFocus,
+};
 const safetyPipeline = null;
 const sessionPipeline = null;
 // const emotionPipeline = createEmotionPipeline(io);
@@ -52,6 +60,7 @@ io.on("connection", (socket) => {
   console.log("[SERVER] connection received:", socket.id);
 
   registerEventRouter(io, socket, {
+    focusPipeline,
     pulsePipeline,
     trainerPipeline,
     messagePipeline,
