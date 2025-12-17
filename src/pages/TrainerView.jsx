@@ -731,7 +731,55 @@ Frustrated:  ${frustrated}`}
             )}
           </section>
         </div>
-        <div data-column="right" />
+        <div data-column="right">
+          {/* ===== Insights (read-only placeholder) ===== */}
+          <section
+            style={{
+              padding: "12px",
+              border: "1px solid #ddd",
+              borderRadius: 8,
+              marginBottom: 12,
+              background: "#fff",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Insights</h3>
+            <p style={{ fontSize: "0.85rem", color: "#666", margin: 0 }}>
+              No insights available.
+            </p>
+          </section>
+
+          {/* ===== Prior Moments (read-only placeholder) ===== */}
+          <section
+            style={{
+              padding: "12px",
+              border: "1px solid #ddd",
+              borderRadius: 8,
+              marginBottom: 12,
+              background: "#fff",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Prior Moments</h3>
+            <p style={{ fontSize: "0.85rem", color: "#666", margin: 0 }}>
+              No prior moments.
+            </p>
+          </section>
+
+          {/* ===== Session Info (read-only placeholder) ===== */}
+          <section
+            style={{
+              padding: "12px",
+              border: "1px solid #ddd",
+              borderRadius: 8,
+              marginBottom: 12,
+              background: "#fff",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Session Info</h3>
+            <p style={{ fontSize: "0.85rem", color: "#666", margin: 0 }}>
+              Session metadata will appear here.
+            </p>
+          </section>
+        </div>
       </div>
     </div>
   );
