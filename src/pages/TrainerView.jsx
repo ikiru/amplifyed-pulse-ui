@@ -116,34 +116,45 @@ export default function TrainerView() {
   useEffect(() => {
     // Phase 8.6.1 — normalize focus payloads at boundary
     const handleFocusUpdate = (payload) => {
+      console.log("[FOCUS] raw payload received:", payload);
+
       if (!payload) {
+        console.log("[FOCUS] payload empty → clearing focus");
         setFocus(null);
         return;
       }
 
       // Most common / expected
       if (typeof payload === "string") {
+        console.log("[FOCUS] normalized string:", payload);
         setFocus(payload);
         return;
       }
 
       // focus:update payload shape
       if (typeof payload.text === "string") {
+        console.log("[FOCUS] normalized payload.text:", payload.text);
         setFocus(payload.text);
         return;
       }
 
       // Defensive: nested focus object
       if (payload.focus && typeof payload.focus.text === "string") {
+        console.log(
+          "[FOCUS] normalized payload.focus.text:",
+          payload.focus.text
+        );
         setFocus(payload.focus.text);
         return;
       }
 
       // Unknown shape — do not render garbage
+      console.log("[FOCUS] unknown payload shape → clearing", payload);
       setFocus(null);
     };
 
     const handleFocusCleared = () => {
+      console.log("[FOCUS] focus:cleared event received");
       setFocus(null);
     };
 
