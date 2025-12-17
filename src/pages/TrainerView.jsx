@@ -231,6 +231,45 @@ export default function TrainerView() {
       }
     : null;
 
+  const renderPulseVotes = () => {
+    if (!livePulse || !livePulse.votes) {
+      return null;
+    }
+
+    const votes = Object.values(livePulse.votes);
+    const engaged = votes.filter((v) => v === "engaged").length;
+    const neutral = votes.filter((v) => v === "neutral").length;
+    const frustrated = votes.filter((v) => v === "frustrated").length;
+
+    return (
+      <pre
+        style={{
+          background: "#111",
+          color: "white",
+          padding: "10px",
+          marginBottom: "20px",
+          lineHeight: "1.4",
+        }}
+      >
+        {`Engaged:     ${engaged}
+Neutral:     ${neutral}
+Frustrated:  ${frustrated}`}
+      </pre>
+    );
+  };
+
+  const renderPulseSummary = () => (
+    <>
+      <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "-8px" }}>
+        Last update: {formattedLastMoment}
+      </p>
+      {renderPulseVotes()}
+    </>
+  );
+
+  const focusDisplayText =
+    focus?.text ?? (typeof focus === "string" ? focus : null);
+
   return (
     <div
       style={{
@@ -275,6 +314,21 @@ export default function TrainerView() {
                 Insights
               </button>
             </header>
+
+            {/* Pulse Summary (MOVED HERE) */}
+            <section
+              className="pulse-summary"
+              style={{
+                padding: "12px",
+                border: "1px solid #ddd",
+                borderRadius: 8,
+                marginBottom: 20,
+                background: "#fff",
+              }}
+            >
+              <h2>Pulse Summary</h2>
+              {renderPulseSummary()}
+            </section>
 
             {/* ---------------- TRAINER INSIGHTS (PULL-ONLY) ---------------- */}
             {showInsights && visibleInsights && (
@@ -555,40 +609,19 @@ export default function TrainerView() {
             )}
           </section>
 
-          {/* ===== Pulse Summary ===== */}
-          <section>
-            <h3>Pulse Summary</h3>
-
-            <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "-8px" }}>
-              Last update: {formattedLastMoment}
+          <section
+            style={{
+              padding: "12px",
+              border: "1px solid #ddd",
+              borderRadius: 8,
+              marginBottom: 12,
+              background: "#fff",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Focus</h3>
+            <p style={{ margin: 0, color: "#444" }}>
+              {focusDisplayText ?? "No focus set"}
             </p>
-
-            {(() => {
-              if (!livePulse || !livePulse.votes) {
-                return null;
-              }
-
-              const votes = Object.values(livePulse.votes);
-              const engaged = votes.filter((v) => v === "engaged").length;
-              const neutral = votes.filter((v) => v === "neutral").length;
-              const frustrated = votes.filter((v) => v === "frustrated").length;
-
-              return (
-                <pre
-                  style={{
-                    background: "#111",
-                    color: "white",
-                    padding: "10px",
-                    marginBottom: "20px",
-                    lineHeight: "1.4",
-                  }}
-                >
-                  {`Engaged:     ${engaged}
-Neutral:     ${neutral}
-Frustrated:  ${frustrated}`}
-                </pre>
-              );
-            })()}
           </section>
 
           <div
@@ -670,18 +703,16 @@ Frustrated:  ${frustrated}`}
         {/* ================= RIGHT COLUMN ================= */}
         <div data-column="right">
           <section style={{ marginBottom: "1rem" }}>
-            <h3>Focus</h3>
-
-            {focus ? (
-              <div style={{ marginBottom: "0.5rem" }}>
-                <strong>Current focus:</strong>
-                <div>{focus.text}</div>
-              </div>
-            ) : (
-              <div style={{ marginBottom: "0.5rem", opacity: 0.6 }}>
-                No focus set
-              </div>
-            )}
+            <h3>Focus Controls</h3>
+            <p
+              style={{
+                margin: "0 0 0.5rem",
+                color: "#555",
+                fontSize: "0.85rem",
+              }}
+            >
+              Current focus is visible above the messages panel.
+            </p>
 
             <input
               type="text"
