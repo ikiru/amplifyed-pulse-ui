@@ -566,57 +566,6 @@ export default function TrainerView() {
               )}
             </div>
 
-            {/* ========================= */}
-            {/*  Live Pulse Feed Section  */}
-            {/* ========================= */}
-            <h2>Pulse</h2>
-            {livePulse && (
-              <pre
-                style={{
-                  background: "black",
-                  color: "lime",
-                  padding: 16,
-                  maxHeight: 200,
-                  overflowY: "auto",
-                }}
-              >
-                {JSON.stringify(livePulse, null, 2)}
-              </pre>
-            )}
-
-            <h2>Pulse Summary</h2>
-
-            <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "-8px" }}>
-              Last update: {formattedLastMoment}
-            </p>
-
-            {(() => {
-              if (!livePulse || !livePulse.votes) {
-                return null;
-              }
-
-              const votes = Object.values(livePulse.votes);
-              const engaged = votes.filter((v) => v === "engaged").length;
-              const neutral = votes.filter((v) => v === "neutral").length;
-              const frustrated = votes.filter((v) => v === "frustrated").length;
-
-              return (
-                <pre
-                  style={{
-                    background: "#111",
-                    color: "white",
-                    padding: "10px",
-                    marginBottom: "20px",
-                    lineHeight: "1.4",
-                  }}
-                >
-                  {`Engaged:     ${engaged}
-Neutral:     ${neutral}
-Frustrated:  ${frustrated}`}
-                </pre>
-              );
-            })()}
-
             <div
               style={{
                 padding: "12px",
@@ -677,7 +626,61 @@ Frustrated:  ${frustrated}`}
           </div>
         </div>
 
-        <div data-column="center" />
+        <div data-column="center">
+          {/* ===== Pulse ===== */}
+          <section>
+            <h2>Pulse</h2>
+            {livePulse && (
+              <pre
+                style={{
+                  background: "black",
+                  color: "lime",
+                  padding: 16,
+                  maxHeight: 200,
+                  overflowY: "auto",
+                }}
+              >
+                {JSON.stringify(livePulse, null, 2)}
+              </pre>
+            )}
+          </section>
+
+          {/* ===== Pulse Summary ===== */}
+          <section>
+            <h3>Pulse Summary</h3>
+
+            <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "-8px" }}>
+              Last update: {formattedLastMoment}
+            </p>
+
+            {(() => {
+              if (!livePulse || !livePulse.votes) {
+                return null;
+              }
+
+              const votes = Object.values(livePulse.votes);
+              const engaged = votes.filter((v) => v === "engaged").length;
+              const neutral = votes.filter((v) => v === "neutral").length;
+              const frustrated = votes.filter((v) => v === "frustrated").length;
+
+              return (
+                <pre
+                  style={{
+                    background: "#111",
+                    color: "white",
+                    padding: "10px",
+                    marginBottom: "20px",
+                    lineHeight: "1.4",
+                  }}
+                >
+                  {`Engaged:     ${engaged}
+Neutral:     ${neutral}
+Frustrated:  ${frustrated}`}
+                </pre>
+              );
+            })()}
+          </section>
+        </div>
         <div data-column="right" />
       </div>
     </div>
