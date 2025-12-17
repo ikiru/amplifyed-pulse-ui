@@ -1,17 +1,18 @@
-import React, { useState } from "react";
-import { useSocketContext } from "../socket/SocketContext.jsx";
+import { useState } from "react";
+import { useSocket } from "../socket/SocketContext.jsx";
+import "./AudienceInput.css"; // optional, if you split styles later
 
 export default function AudienceInput() {
   const [message, setMessage] = useState("");
-  const { emit } = useSocketContext();
+  const [messages, setMessages] = useState([]);
+  // NOTE: UI placeholder — replace with real stream hookup later
+  const { emit } = useSocket();
 
-  // Correct pulse sender
   const sendPulse = (pulse) => {
-    console.log("[AUDIENCE] pulse:", pulse);
     emit("audience:pulse", { pulse });
   };
 
-  // Message sender (no pulse here!)
+  // TEMP: append own messages locally for UX sanity
   const handleMessage = (e) => {
     e.preventDefault();
     if (!message.trim()) return;
@@ -23,25 +24,40 @@ export default function AudienceInput() {
       },
     });
 
+    setMessages((prev) => [...prev, message.trim()]);
     setMessage("");
   };
 
   return (
-    <div>
-
-      <div>
-        <button onClick={() => sendPulse("pulse_1")} aria-label="Pulse option 1" />
-        <button onClick={() => sendPulse("pulse_2")} aria-label="Pulse option 2" />
-        <button onClick={() => sendPulse("pulse_3")} aria-label="Pulse option 3" />
+    <div className="audience-input">
+      {/* Pulse buttons */}
+      <div className="pulse-row">
+        <button onClick={() => sendPulse("frustrated")}>Frustrated</button>
+        <button onClick={() => sendPulse("neutral")}>Neutral</button>
+        <button onClick={() => sendPulse("engaged")}>Engaged</button>
       </div>
 
-      <form onSubmit={handleMessage} style={{ marginTop: 16 }}>
+      {/* Message list */}
+      <div className="message-list">
+        {messages.length === 0 && (
+          <div className="message-placeholder">No messages yet</div>
+        )}
+        {messages.map((msg, i) => (
+          <div key={i} className="message-item">
+            {msg}
+          </div>
+        ))}
+      </div>
+
+      {/* Message input */}
+      <form className="message-input" onSubmit={handleMessage}>
         <input
-          placeholder=""
+          type="text"
+          placeholder="Type a message..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
         />
-        <button type="submit" aria-label="Submit message" />
+        <button type="submit">Send</button>
       </form>
     </div>
   );
