@@ -219,6 +219,18 @@ export default function TrainerView() {
       }
     : null;
 
+  const activeMomentSignals = [
+    ...(Array.isArray(momentData?.signals) ? momentData.signals : []),
+    trainerSignal ? trainerSignal.actionType : null,
+  ].filter(Boolean);
+
+  const activeMoment = momentData
+    ? {
+        label: momentData.label ?? momentData.id ?? "Active moment",
+        signals: activeMomentSignals,
+      }
+    : null;
+
   return (
     <div
       style={{
@@ -683,6 +695,41 @@ Frustrated:  ${frustrated}`}
               <p style={{ margin: 0, color: "#555" }}>No messages yet</p>
             )}
           </div>
+
+          <section
+            style={{
+              padding: "12px",
+              border: "1px solid #ddd",
+              borderRadius: 8,
+              marginBottom: 20,
+              background: "#fafafa",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Active Moment</h3>
+
+            {activeMoment ? (
+              <div style={{ fontSize: "0.85rem", lineHeight: 1.4 }}>
+                <div>
+                  <strong>Moment:</strong> {activeMoment.label}
+                </div>
+
+                {activeMoment.signals?.length > 0 && (
+                  <div style={{ marginTop: 6 }}>
+                    <strong>Signals:</strong>
+                    <ul style={{ margin: "4px 0 0 16px" }}>
+                      {activeMoment.signals.map((signal, index) => (
+                        <li key={index}>{signal}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p style={{ margin: 0, color: "#666", fontSize: "0.85rem" }}>
+                No active moment detected.
+              </p>
+            )}
+          </section>
         </div>
         <div data-column="right" />
       </div>
