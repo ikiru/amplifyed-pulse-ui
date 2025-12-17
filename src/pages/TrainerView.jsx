@@ -114,8 +114,33 @@ export default function TrainerView() {
   // Focus sync
   // -------------------------------
   useEffect(() => {
+    // Phase 8.6.1 — normalize focus payloads at boundary
     const handleFocusUpdate = (payload) => {
-      setFocus(payload?.focus ?? null);
+      if (!payload) {
+        setFocus(null);
+        return;
+      }
+
+      // Most common / expected
+      if (typeof payload === "string") {
+        setFocus(payload);
+        return;
+      }
+
+      // focus:update payload shape
+      if (typeof payload.text === "string") {
+        setFocus(payload.text);
+        return;
+      }
+
+      // Defensive: nested focus object
+      if (payload.focus && typeof payload.focus.text === "string") {
+        setFocus(payload.focus.text);
+        return;
+      }
+
+      // Unknown shape — do not render garbage
+      setFocus(null);
     };
 
     const handleFocusCleared = () => {
@@ -123,10 +148,12 @@ export default function TrainerView() {
     };
 
     onEvent("focus:update", handleFocusUpdate);
+    onEvent("focus:set", handleFocusUpdate); // alias safety
     onEvent("focus:cleared", handleFocusCleared);
 
     return () => {
       offEvent("focus:update", handleFocusUpdate);
+      offEvent("focus:set", handleFocusUpdate);
       offEvent("focus:cleared", handleFocusCleared);
     };
   }, [onEvent, offEvent]);
@@ -266,9 +293,6 @@ Frustrated:  ${frustrated}`}
       {renderPulseVotes()}
     </>
   );
-
-  const focusDisplayText =
-    focus?.text ?? (typeof focus === "string" ? focus : null);
 
   return (
     <div
@@ -620,7 +644,7 @@ Frustrated:  ${frustrated}`}
           >
             <h3 style={{ marginTop: 0 }}>Focus</h3>
             <p style={{ margin: 0, color: "#444" }}>
-              {focusDisplayText ?? "No focus set"}
+              {focus ?? "No focus set"}
             </p>
           </section>
 
