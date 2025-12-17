@@ -1,0 +1,94 @@
+.audience-input-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 12px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.pulse-bar {
+  display: flex;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #fff;
+  z-index: 2;
+}
+
+.pulse-button {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid #cfd3d8;
+  background: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.pulse-button:hover {
+  border-color: #6a6f77;
+}
+
+.pulse-button.active {
+  background: #3678ff;
+  border-color: #3678ff;
+  color: #fff;
+}
+
+.message-stream {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.message-empty {
+  color: #777;
+  font-size: 0.95rem;
+  text-align: center;
+  margin-top: 24px;
+}
+
+.message-item {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.message-input-bar {
+  display: flex;
+  gap: 8px;
+  position: sticky;
+  bottom: 0;
+  padding-top: 10px;
+  border-top: 1px solid #ddd;
+  background: #fff;
+  z-index: 2;
+}
+
+.message-input-bar input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #cfd3d8;
+  border-radius: 999px;
+}
+
+.message-input-bar button {
+  padding: 10px 24px;
+  border-radius: 999px;
+  border: none;
+  background: #3678ff;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+}
