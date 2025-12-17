@@ -42,7 +42,6 @@ function ThreadItem({
     <div
       className="thread-item"
       data-depth={String(Math.min(depth, 3))}
-      style={{ marginLeft: depth * 16 }}
     >
       <div className="thread-message">
         <div className="thread-text">{node.text}</div>
