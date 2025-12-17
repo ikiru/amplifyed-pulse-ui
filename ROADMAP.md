@@ -177,6 +177,23 @@ Ensure live UX creates safety, not pressure.
 Live session UX contracts are complete and locked.
 
 ---
+## Phase 8.5 — Human-in-the-Loop Testing System Design (DEFERRED)
+
+**Goal:**  
+Design a non-production testing mechanism that simulates live session conditions in order to evaluate how trainers perceive, interpret, and act on real-time room signals under cognitive load.
+
+**Scope:**  
+- Design of the testing environment only (no execution)
+- Focus on human comprehension, situational awareness, and misread risk
+- Stress-testing trainer perception, not signal accuracy
+
+**Constraints:**  
+- No impact on production UX or pipelines  
+- No interpretation or recommendation logic  
+- No persistence, replay, or organizational reporting  
+
+**Status:**  
+Design explicitly deferred until Phase 8 UX semantics are stable and exercised.
 
 ## Phase 9 — Replay, Persistence & Memory Limits (DESIGN COMPLETE)
 
