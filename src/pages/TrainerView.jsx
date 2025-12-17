@@ -328,44 +328,6 @@ export default function TrainerView() {
               </div>
             </div>
 
-            {/* ---------------- AUDIENCE MESSAGES ---------------- */}
-            <div
-              style={{
-                padding: "12px",
-                border: "1px solid #ddd",
-                borderRadius: 8,
-                marginBottom: 20,
-              }}
-            >
-              <h3 style={{ marginTop: 0 }}>Messages</h3>
-              {messages.length ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {messages.slice(-3).map((msg, index) => (
-                    <div
-                      key={`${msg.id ?? index}-${index}`}
-                      style={{
-                        padding: "8px",
-                        background: "#fff",
-                        borderRadius: 6,
-                        border: "1px solid #eee",
-                      }}
-                    >
-                      <pre
-                        style={{
-                          margin: 0,
-                          fontSize: "0.8rem",
-                          whiteSpace: "pre-wrap",
-                          wordBreak: "break-word",
-                        }}
-                      >
-                        {JSON.stringify(msg, null, 2)}
-                      </pre>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-
             {/* ---------------- TRAINER INSIGHTS (PULL-ONLY) ---------------- */}
             {showInsights && visibleInsights && (
               <div
@@ -680,6 +642,47 @@ Frustrated:  ${frustrated}`}
               );
             })()}
           </section>
+
+          <div
+            style={{
+              padding: "12px",
+              border: "1px solid #ddd",
+              borderRadius: 8,
+              marginBottom: 20,
+              background: "#fff",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Messages</h3>
+
+            {messages.length ? (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  maxHeight: 200,
+                  overflowY: "auto",
+                  fontSize: "0.85rem",
+                }}
+              >
+                {messages.map((msg, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 6,
+                      background: "#f5f5f5",
+                      border: "1px solid #eee",
+                    }}
+                  >
+                    {typeof msg === "string" ? msg : JSON.stringify(msg)}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ margin: 0, color: "#555" }}>No messages yet</p>
+            )}
+          </div>
         </div>
         <div data-column="right" />
       </div>
