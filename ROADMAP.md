@@ -177,23 +177,103 @@ Ensure live UX creates safety, not pressure.
 Live session UX contracts are complete and locked.
 
 ---
-## Phase 8.5 — Human-in-the-Loop Testing System Design (DEFERRED)
+# Phase 8.5 — TrainerView UX Realization (LOCKED)
 
-**Goal:**  
-Design a non-production testing mechanism that simulates live session conditions in order to evaluate how trainers perceive, interpret, and act on real-time room signals under cognitive load.
+## Purpose
 
-**Scope:**  
-- Design of the testing environment only (no execution)
-- Focus on human comprehension, situational awareness, and misread risk
-- Stress-testing trainer perception, not signal accuracy
+Phase 8.5 exists to **realize the TrainerView user interface** exactly as defined by prior UX, governance, and interpretation contracts.
 
-**Constraints:**  
-- No impact on production UX or pipelines  
-- No interpretation or recommendation logic  
-- No persistence, replay, or organizational reporting  
+This phase **does not introduce discovery, testing, evaluation, or intelligence**.
+It translates *already-locked decisions* into a concrete, visible interface.
 
-**Status:**  
-Design explicitly deferred until Phase 8 UX semantics are stable and exercised.
+Phase 8.5 is about **making the TrainerView real**, not smarter.
+
+---
+
+## Scope (In Bounds)
+
+Phase 8.5 authorizes:
+
+* Building out the **TrainerView page UI**
+* Implementing the **three-column TrainerView layout**
+* Replacing placeholder states with governed, neutral UI
+* Materializing **Phase 8 UX refusal rules** visually
+* Enforcing **Phase 9 memory and replay limits by design**
+* Translating UX contracts into structure, spacing, hierarchy, and visibility rules
+
+This phase is **constructive**, not evaluative.
+
+---
+
+## Explicitly Out of Scope (Forbidden)
+
+Phase 8.5 must **not**:
+
+* Evaluate how trainers perceive or interpret signals
+* Test trainer cognition, judgment, or decision quality
+* Simulate cognitive load, stress, or pressure
+* Reduce ambiguity through explanation or guidance
+* Assist interpretation or meaning-making
+* Coach, nudge, warn, or optimize trainer behavior
+* Introduce scoring, recommendations, or intelligence
+* Persist, replay, summarize, or contextualize meaning
+* Measure or correct “misreads” of a room
+
+If an element helps a trainer *decide*, *infer*, or *conclude*, it does not belong in Phase 8.5.
+
+---
+
+## Design Posture (Non-Negotiable)
+
+TrainerView UX realized in Phase 8.5 must be:
+
+* **Structurally clear**
+* **Visually neutral**
+* **Interpretively silent**
+* **Authority-preserving**
+* **Pressure-free**
+
+The UI may **show state**, but must never **explain meaning**.
+
+---
+
+## Build Discipline (Mandatory)
+
+For every TrainerView section:
+
+1. The section’s **intent** must be stated
+2. The section’s **explicit refusals** must be named
+3. A **wireframe** must be presented
+4. Approval must be given before implementation begins
+
+No ambiguity.
+No retroactive correction.
+No silent scope expansion.
+
+---
+
+## Phase Alignment
+
+* **Phase 8** defines what live UX must refuse
+* **Phase 8.5** realizes those refusals visually
+* **Phase 9** constrains memory and replay downstream
+
+Phase 8.5 may not reopen meaning, interpretation, or governance questions.
+
+---
+
+## Completion Criteria
+
+Phase 8.5 is complete when:
+
+* The TrainerView page is fully built according to planned structure
+* All placeholder UI is replaced with governed UI
+* No interpretive assistance exists in the interface
+* All UX behavior is traceable to locked contracts
+* No section requires explanation during live use
+
+Quiet reliability is success.
+
 
 ## Phase 9 — Replay, Persistence & Memory Limits (DESIGN COMPLETE)
 

@@ -1,0 +1,190 @@
+# 📘 AmplifyEd — Phase 8 UX Decisions (LOCKED)
+
+**Scope:** End-to-end live session UX
+**Audience:** Product, UX, safety review, future contributors
+**Status:** COMPLETE
+
+Phase 8 defines how a live session is **entered, inhabited, interrupted, re-entered, and exited** without violating psychological safety, audience voice, or system neutrality.
+
+No backend, pipeline, or meaning-layer changes are implied.
+
+---
+
+## Phase 8.1 — Session Access UX
+
+**Join Code + QR**
+
+### Locked Decisions
+
+* Session join code and QR are purely **access mechanisms**
+* No language implying attendance, tracking, or participation
+* Joining grants presence, not obligation
+
+### Core Principle
+
+> **Access enables presence, not performance.**
+
+---
+
+## Phase 8.2 — Safety & In-Flow Protection
+
+**Safety Exceptions + Containment**
+
+### Safety Exception Triggers
+
+The following audience messages exit the public session flow:
+
+1. Explicit self-harm intent
+2. Explicit threats to others
+3. Explicit accusations of serious misconduct against identifiable individuals
+
+### UX Handling
+
+* Message is **contained**, not amplified
+* No public deletion, warning, or commentary
+* Audience member is not shamed or corrected
+* Safety is prioritized over discourse continuity
+
+### Trainer Notification
+
+* Trainer **is notified that containment occurred**
+* Trainer is **not shown content, names, tone, or details**
+* Trainer is **not prompted to act publicly**
+
+### Core Principle
+
+> **When speech creates credible harm risk, containment replaces amplification.**
+
+---
+
+## Phase 8.3 — Pulse Invitation Posture
+
+**“Invited Into Play”**
+
+### Locked Posture
+
+* Pulse is a **possibility**, not a request
+* Pulse is visually stable and non-reactive
+* Pulse never responds to:
+
+  * silence
+  * activity
+  * volume
+  * time
+
+### The One Forbidden Visual Mistake
+
+> **Pulse must never visually react to audience behavior or non-behavior.**
+
+If pulse reacts, silence becomes legible → pressure → safety failure.
+
+### Core Principle
+
+> **The audience is always invited into play — without being asked, prompted, or expected.**
+
+---
+
+## Phase 8.4 — Re-Entry, Continuity & Failure States
+
+**Audience + Trainer Re-Entry**
+
+### Audience Re-Entry
+
+* Re-entry is silent, neutral, and continuous
+* The system behaves as if the audience member never left
+* No “welcome back,” no “you missed,” no markers of absence
+
+### Message Continuity
+
+* Full message stream repopulates
+* No unread markers, summaries, highlights, or emphasis
+* Duration of absence is emotionally irrelevant
+
+### Pulse on Re-Entry
+
+* Pulse looks **identical** before, during, and after re-entry
+* No re-invitation, re-emphasis, or reset
+
+### TrainerView Awareness
+
+* Trainer must not see:
+
+  * audience re-entry
+  * presence counts
+  * join/leave events
+* Absence is not diagnostic
+
+### Trainer Reboot / Crash Addendum
+
+* Trainer disconnection does **not** alter the session
+* Audience does not rejoin, refresh, or wait
+* Trainer re-entry is silent and non-authoritative
+
+### Core Principle
+
+> **The session belongs to the room, not to any individual device.**
+
+---
+
+## Phase 8.5 — Exit, Closure & Post-Session Safety
+
+**Leaving Without Evaluation**
+
+### Audience Exit
+
+* Leaving is silent and neutral
+* No confirmation, completion, gratitude, or feedback framing
+* Exit feels like standing up and walking out of a room
+
+### Trainer Closure
+
+* Trainer may end the session procedurally
+* Trainer must not:
+
+  * summarize
+  * evaluate
+  * prompt final participation
+  * narrate meaning
+
+### Exit Never-List (Hard Guardrails)
+
+The following must never appear at exit:
+
+* Completion language
+* Surveys or ratings
+* Summaries or takeaways
+* “Last chance” prompts
+* Participation metrics
+* Attendance acknowledgment
+* Emotional closure rituals
+* Public reference to safety events
+
+### Core Principle
+
+> **Exit must not create meaning, obligation, evaluation, or memory shaping.**
+
+---
+
+## Phase 8 — Global Invariants
+
+Across all of Phase 8:
+
+* Silence is always valid
+* Absence is never legible
+* Authority is never re-centered
+* Participation is never owed
+* The system never reacts to non-use
+* Safety overrides visibility
+* UX posture precedes mechanics
+
+---
+
+## Phase 8 Status
+
+* ✔ Phase 8.1 — Complete
+* ✔ Phase 8.2 — Complete
+* ✔ Phase 8.3 — Complete
+* ✔ Phase 8.4 — Complete
+* ✔ Phase 8.5 — Complete
+
+**Phase 8 is CLOSED.**
