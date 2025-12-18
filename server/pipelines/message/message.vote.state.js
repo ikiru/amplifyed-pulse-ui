@@ -14,7 +14,9 @@ function setVote(participantId, messageId, voteStateValue) {
   voteState.set(getKey(participantId, messageId), voteStateValue);
 }
 
-module.exports = {
+const voteStateStore = {
   getVote,
   setVote,
 };
+
+export { voteStateStore };

@@ -1,9 +1,9 @@
-const voteStateStore = require("./message.vote.state");
-const voteBroadcast = require("./message.vote.broadcast");
+import { voteStateStore } from "./message.vote.state.js";
+import { voteBroadcast } from "./message.vote.broadcast.js";
 
 const ALLOWED = new Set(["up", "down", "none"]);
 
-function handleVoteIntent({ io, socket, payload }) {
+export function handleVoteIntent({ io, socket, payload }) {
   const { messageId, voteState } = payload || {};
   const participantId = socket.id;
 
@@ -21,7 +21,3 @@ function handleVoteIntent({ io, socket, payload }) {
     voteState,
   });
 }
-
-module.exports = {
-  handleVoteIntent,
-};
