@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
 import "./AudienceInput.css"; // optional, if you split styles later
 
@@ -35,8 +35,11 @@ function ThreadItem({
   replyDrafts,
   setReplyDrafts,
   handleSubmitReply,
+  emitVote,
 }) {
   const isReplyOpen = replyToId === node.messageId;
+  const voteScore =
+    typeof node.voteScore === "number" ? node.voteScore : 0;
 
   return (
     <div
@@ -44,6 +47,23 @@ function ThreadItem({
       data-depth={String(Math.min(depth, 3))}
     >
       <div className="thread-message">
+        <div className="thread-vote-controls">
+          <button
+            type="button"
+            aria-label="Upvote"
+            onClick={() => emitVote?.(node.messageId, "up")}
+          >
+            ↑
+          </button>
+          <span className="thread-vote-score">{voteScore}</span>
+          <button
+            type="button"
+            aria-label="Downvote"
+            onClick={() => emitVote?.(node.messageId, "down")}
+          >
+            ↓
+          </button>
+        </div>
         <div className="thread-text">{node.text}</div>
 
         <div className="thread-actions">
@@ -96,6 +116,7 @@ function ThreadItem({
               replyDrafts={replyDrafts}
               setReplyDrafts={setReplyDrafts}
               handleSubmitReply={handleSubmitReply}
+              emitVote={emitVote}
             />
           ))}
         </div>
@@ -104,13 +125,41 @@ function ThreadItem({
   );
 }
 
+// AudienceView only — vote wiring (arrows)
 export default function AudienceInput() {
-  const { emit } = useSocket();
+  const { emit, onEvent, offEvent } = useSocket();
   const [selectedPulse, setSelectedPulse] = useState("neutral");
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [replyToId, setReplyToId] = useState(null);
   const [replyDrafts, setReplyDrafts] = useState({});
+
+  useEffect(() => {
+    const handleVoteUpdate = ({ messageId, score }) => {
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.messageId === messageId
+            ? { ...message, voteScore: score }
+            : message
+        )
+      );
+    };
+
+    onEvent("message.vote.update", handleVoteUpdate);
+
+    return () => {
+      offEvent("message.vote.update", handleVoteUpdate);
+    };
+  }, [onEvent, offEvent]);
+
+  const emitVote = (messageId, direction) => {
+    if (!messageId) return;
+    emit("interaction", {
+      type: "message.vote",
+      messageId,
+      direction, // "up" | "down"
+    });
+  };
 
   const handlePulse = (pulse) => {
     setSelectedPulse(pulse);
@@ -131,7 +180,12 @@ export default function AudienceInput() {
 
     setMessages((prev) => [
       ...prev,
-      { messageId, text: trimmed, parentMessageId: null },
+      {
+        messageId,
+        text: trimmed,
+        parentMessageId: null,
+        voteScore: 0,
+      },
     ]);
     setInput("");
   };
@@ -149,7 +203,12 @@ export default function AudienceInput() {
 
     setMessages((prev) => [
       ...prev,
-      { messageId: replyMessageId, text: trimmed, parentMessageId },
+      {
+        messageId: replyMessageId,
+        text: trimmed,
+        parentMessageId,
+        voteScore: 0,
+      },
     ]);
 
     setReplyDrafts((prev) => {
@@ -194,6 +253,7 @@ export default function AudienceInput() {
               replyDrafts={replyDrafts}
               setReplyDrafts={setReplyDrafts}
               handleSubmitReply={handleSubmitReply}
+              emitVote={emitVote}
             />
           ))
         )}
