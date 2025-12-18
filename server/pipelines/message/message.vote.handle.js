@@ -1,23 +1,43 @@
 import { voteStateStore } from "./message.vote.state.js";
-import { voteBroadcast } from "./message.vote.broadcast.js";
-
-const ALLOWED = new Set(["up", "down", "none"]);
+import { broadcastVoteUpdate } from "./message.vote.broadcast.js";
 
 export function handleVoteIntent({ io, socket, payload }) {
-  const { messageId, voteState } = payload || {};
-  const participantId = socket.id;
-
-  if (!messageId || !ALLOWED.has(voteState)) return;
-
-  const current = voteStateStore.getVote(participantId, messageId);
-  if (current === voteState) return;
-
-  voteStateStore.setVote(participantId, messageId, voteState);
-
-  voteBroadcast.broadcastVoteUpdate({
-    io,
+  const {
+    sessionId,
     messageId,
-    participantId,
-    voteState,
+    voteType,
+    actorRole,
+  } = payload || {};
+
+  console.log("[VOTE][HANDLE] intent received", {
+    sessionId,
+    messageId,
+    voteType,
+    actorRole,
+    socketId: socket.id,
+  });
+
+  const result = voteStateStore.applyVote({
+    sessionId,
+    messageId,
+    voteType,
+    voterId: socket.id,
+    actorRole,
+  });
+
+  console.log("[VOTE][HANDLE] state updated", {
+    sessionId,
+    messageId,
+    totals: result?.totals,
+    voters: result?.voters,
+  });
+
+  if (!result) return;
+
+  broadcastVoteUpdate({
+    io,
+    sessionId,
+    messageId,
+    totals: result.totals,
   });
 }

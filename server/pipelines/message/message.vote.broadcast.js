@@ -1,11 +1,14 @@
-function broadcastVoteUpdate({ io, messageId, participantId, voteState }) {
-  io.emit("message:vote:update", {
+export function broadcastVoteUpdate({ io, sessionId, messageId, totals }) {
+  const payload = {
+    sessionId,
     messageId,
-    participantId,
-    voteState,
-  });
+    totals,
+  };
+
+  io.emit("message:vote:update", payload);
+  io.emit("message.vote.update", payload);
 }
 
-module.exports = {
+export const voteBroadcast = {
   broadcastVoteUpdate,
 };

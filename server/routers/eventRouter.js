@@ -22,7 +22,7 @@
 import { handleTrainerCommand } from "../pipelines/trainer/trainer.handleCommand.js";
 import { handleTrainerNudge } from "../pipelines/trainer/trainer.handleNudge.js";
 import { v4 as uuidv4 } from "uuid";
-import { handleVoteIntent } from "../pipelines/message/message.vote.handle.js";
+import * as messageVoteHandle from "../pipelines/message/message.vote.handle.js";
 
 const DEFAULT_SESSION_ID = "session:default";
 
@@ -240,7 +240,12 @@ socket.on("audience:pulse", (payload = {}) => {
 
   // --- Message Voting (Phase 8.8.3) ---
   socket.on("message:vote:intent", (payload = {}) => {
-    handleVoteIntent({
+    console.log("[VOTE][ROUTER] received", {
+      socketId: socket.id,
+      payload,
+    });
+
+    messageVoteHandle.handleVoteIntent({
       io,
       socket,
       payload,
