@@ -68,6 +68,7 @@ function ThreadItem({
   handleSubmitReply,
   voteTotals,
   voteTotalsMap,
+  emitVoteIntent,
 }) {
   const isReplyOpen = replyToId === node.messageId;
   return (
@@ -77,6 +78,28 @@ function ThreadItem({
     >
       <div className="thread-message">
         <div className="thread-text">{node.text}</div>
+        {voteTotals && (
+          <div className="thread-vote-totals">
+            <span>▲ {voteTotals.up ?? 0}</span>
+            <span>▼ {voteTotals.down ?? 0}</span>
+          </div>
+        )}
+        <div className="thread-vote-controls">
+          <button
+            type="button"
+            onClick={() => emitVoteIntent(node.messageId, "up")}
+            aria-label="Upvote"
+          >
+            ▲
+          </button>
+          <button
+            type="button"
+            onClick={() => emitVoteIntent(node.messageId, "down")}
+            aria-label="Downvote"
+          >
+            ▼
+          </button>
+        </div>
 
         <div className="thread-actions">
           <button
@@ -130,6 +153,7 @@ function ThreadItem({
               handleSubmitReply={handleSubmitReply}
               voteTotals={voteTotalsMap?.[child.messageId]}
               voteTotalsMap={voteTotalsMap}
+              emitVoteIntent={emitVoteIntent}
             />
           ))}
         </div>
@@ -222,6 +246,15 @@ export default function AudienceInput() {
     setReplyToId(null);
   };
 
+  const emitVoteIntent = (messageId, direction) => {
+    if (!messageId || !direction) return;
+
+    emit("message:vote:intent", {
+      messageId,
+      direction,
+    });
+  };
+
   const roots = buildMessageTree(messages);
 
   return (
@@ -258,6 +291,7 @@ export default function AudienceInput() {
               handleSubmitReply={handleSubmitReply}
               voteTotals={voteTotals[root.messageId]}
               voteTotalsMap={voteTotals}
+              emitVoteIntent={emitVoteIntent}
             />
           ))
         )}
