@@ -691,7 +691,29 @@ Frustrated:  ${frustrated}`}
                       border: "1px solid #eee",
                     }}
                   >
-                    {typeof msg === "string" ? msg : JSON.stringify(msg)}
+                    {typeof msg === "string" ? (
+                      msg
+                    ) : (
+                      <>
+                        <div style={{ marginBottom: 4 }}>
+                          {msg.content ?? JSON.stringify(msg)}
+                        </div>
+
+                        {msg.votes?.totals && (
+                          <div
+                            style={{
+                              fontSize: "0.7rem",
+                              color: "#666",
+                              display: "flex",
+                              gap: 12,
+                            }}
+                          >
+                            <span>▲ {msg.votes.totals.up ?? 0}</span>
+                            <span>▼ {msg.votes.totals.down ?? 0}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
