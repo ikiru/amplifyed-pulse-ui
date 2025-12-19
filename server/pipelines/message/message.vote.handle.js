@@ -25,14 +25,22 @@ export function handleVoteIntent({ io, socket, payload }) {
     actorRole,
   });
 
+  if (!result) {
+    console.log("[VOTE][HANDLE] vote rejected", {
+      sessionId,
+      messageId,
+      voteType,
+      actorRole,
+      socketId: socket.id,
+    });
+    return;
+  }
+
   console.log("[VOTE][HANDLE] state updated", {
     sessionId,
     messageId,
-    totals: result?.totals,
-    voters: result?.voters,
+    totals: result.totals,
   });
-
-  if (!result) return;
 
   broadcastVoteUpdate({
     io,
