@@ -2,6 +2,24 @@ import { useEffect, useState } from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
 import "./AudienceInput.css"; // optional, if you split styles later
 
+const voteState = new Map(); // sessionId -> Map(messageId -> { voters })
+
+function ensureStateEntry(sessionId, messageId) {
+  if (!voteState.has(sessionId)) {
+    voteState.set(sessionId, new Map());
+  }
+
+  const sessionMap = voteState.get(sessionId);
+
+  if (!sessionMap.has(messageId)) {
+    sessionMap.set(messageId, {
+      voters: new Map(),
+    });
+  }
+
+  return sessionMap.get(messageId);
+}
+
 function buildMessageTree(messages) {
   const map = {};
   const roots = [];
@@ -48,6 +66,8 @@ function ThreadItem({
   replyDrafts,
   setReplyDrafts,
   handleSubmitReply,
+  voteTotals,
+  voteTotalsMap,
 }) {
   const isReplyOpen = replyToId === node.messageId;
   return (
@@ -108,6 +128,8 @@ function ThreadItem({
               replyDrafts={replyDrafts}
               setReplyDrafts={setReplyDrafts}
               handleSubmitReply={handleSubmitReply}
+              voteTotals={voteTotalsMap?.[child.messageId]}
+              voteTotalsMap={voteTotalsMap}
             />
           ))}
         </div>
@@ -122,6 +144,7 @@ export default function AudienceInput() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [replyToId, setReplyToId] = useState(null);
+  const [voteTotals, setVoteTotals] = useState({});
   const [replyDrafts, setReplyDrafts] = useState({});
 
   useEffect(() => {
@@ -136,14 +159,31 @@ export default function AudienceInput() {
         const adapted = adaptMessage(message);
         if (!adapted) return prev;
 
-        return [...prev, adapted];
-      });
+                return [...prev, adapted];
+              });
+            };
+
+            onEvent("message:audience", handleMessageBroadcast);
+
+            return () => {
+              offEvent("message:audience", handleMessageBroadcast);
+            };
+          }, [onEvent, offEvent]);
+
+  useEffect(() => {
+    const handleVoteUpdate = ({ messageId, totals }) => {
+      if (!messageId || !totals) return;
+
+      setVoteTotals((prev) => ({
+        ...prev,
+        [messageId]: totals,
+      }));
     };
 
-    onEvent("message:audience", handleMessageBroadcast);
+    onEvent("message.vote.update", handleVoteUpdate);
 
     return () => {
-      offEvent("message:audience", handleMessageBroadcast);
+      offEvent("message.vote.update", handleVoteUpdate);
     };
   }, [onEvent, offEvent]);
 
@@ -216,6 +256,8 @@ export default function AudienceInput() {
               replyDrafts={replyDrafts}
               setReplyDrafts={setReplyDrafts}
               handleSubmitReply={handleSubmitReply}
+              voteTotals={voteTotals[root.messageId]}
+              voteTotalsMap={voteTotals}
             />
           ))
         )}
