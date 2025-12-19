@@ -117,10 +117,24 @@
   background: #ffffff;
 }
 
-.thread-text {
+.message-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.vote-btn {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.message-content {
+  flex: 1;
   font-size: 14px;
   line-height: 1.4;
-  margin-bottom: 6px;
+  word-break: break-word;
 }
 
 .thread-actions {

@@ -77,29 +77,33 @@ function ThreadItem({
       data-depth={String(Math.min(depth, 3))}
     >
       <div className="thread-message">
-        <div className="thread-text">{node.text}</div>
+        <div className="message-row">
+          <button
+            type="button"
+            className="vote-btn down"
+            onClick={() => emitVoteIntent(node.messageId, "down")}
+            aria-label="Downvote"
+          >
+            ▼
+          </button>
+
+          <div className="message-content">{node.text}</div>
+
+          <button
+            type="button"
+            className="vote-btn up"
+            onClick={() => emitVoteIntent(node.messageId, "up")}
+            aria-label="Upvote"
+          >
+            ▲
+          </button>
+        </div>
         {voteTotals && (
           <div className="thread-vote-totals">
             <span>▲ {voteTotals.up ?? 0}</span>
             <span>▼ {voteTotals.down ?? 0}</span>
           </div>
         )}
-        <div className="thread-vote-controls">
-          <button
-            type="button"
-            onClick={() => emitVoteIntent(node.messageId, "up")}
-            aria-label="Upvote"
-          >
-            ▲
-          </button>
-          <button
-            type="button"
-            onClick={() => emitVoteIntent(node.messageId, "down")}
-            aria-label="Downvote"
-          >
-            ▼
-          </button>
-        </div>
 
         <div className="thread-actions">
           <button
