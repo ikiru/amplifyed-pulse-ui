@@ -2,9 +2,10 @@
  * Message Pipeline — handleMessageFromAudience (Placeholder)
  */
 import { addMessage } from "./message.state.js";
+import { broadcastMessageState } from "./message.broadcast.js";
 import { formatAudienceMessage } from "./message.format.js";
 
-export function handleMessageFromAudience({ payload } = {}) {
+export function handleMessageFromAudience({ io, payload } = {}) {
   const { sessionId, actorRole, parentMessageId, content } = payload || {};
 
   if (!sessionId || !content) {
@@ -23,6 +24,10 @@ export function handleMessageFromAudience({ payload } = {}) {
     sessionId,
     message: formattedMessage,
   });
+
+  if (io) {
+    broadcastMessageState({ io, sessionId });
+  }
 
   console.log("[MESSAGE][AUDIENCE] stored", {
     sessionId,
