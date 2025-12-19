@@ -99,12 +99,12 @@ export default function TrainerView() {
       setTrainerSignal(signal);
     };
 
-    onEvent("message:audience", handleAudienceMessage);
+    onEvent("message:update", handleAudienceMessage);
     onEvent("moment:update", handleMomentUpdate);
     onEvent("trainer:signal", handleTrainerSignal);
 
     return () => {
-      offEvent("message:audience", handleAudienceMessage);
+      offEvent("message:update", handleAudienceMessage);
       offEvent("moment:update", handleMomentUpdate);
       offEvent("trainer:signal", handleTrainerSignal);
     };
