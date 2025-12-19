@@ -1,4 +1,4 @@
-const voteState = new Map(); // messageId -> { voters }
+const voteState = new Map(); // sessionId -> Map(messageId -> { voters })
 const NORMALIZATION = {
   upvote: "up",
   up: "up",
@@ -11,11 +11,18 @@ function normalizeVoteType(voteType) {
   return NORMALIZATION[voteType.trim().toLowerCase()] ?? null;
 }
 
-function ensureStateEntry(messageId) {
-  if (!voteState.has(messageId)) {
-    voteState.set(messageId, { voters: new Map() });
+function ensureStateEntry(sessionId, messageId) {
+  if (!voteState.has(sessionId)) {
+    voteState.set(sessionId, new Map());
   }
-  return voteState.get(messageId);
+
+  const sessionMap = voteState.get(sessionId);
+
+  if (!sessionMap.has(messageId)) {
+    sessionMap.set(messageId, { voters: new Map() });
+  }
+
+  return sessionMap.get(messageId);
 }
 
 function deriveTotals(voters) {
@@ -47,7 +54,7 @@ function buildResult(entry) {
 function applyVote({ sessionId, messageId, voteType, voterId, actorRole }) {
   if (!messageId || !voterId) return null;
 
-  const state = ensureStateEntry(messageId);
+  const state = ensureStateEntry(sessionId, messageId);
   console.log("[VOTE][STATE] before", {
     sessionId,
     messageId,
@@ -94,9 +101,17 @@ export const voteStateStore = {
 };
 
 export function getVoteState(messageId) {
-  const entry = voteState.get(messageId);
-  if (!entry) {
-    return { up: 0, down: 0 };
-  }
-  return deriveTotals(entry.voters);
+  let up = 0;
+  let down = 0;
+
+  voteState.forEach((sessionMap) => {
+    const entry = sessionMap.get(messageId);
+    if (!entry) return;
+
+    const totals = deriveTotals(entry.voters);
+    up += totals.up;
+    down += totals.down;
+  });
+
+  return { up, down };
 }

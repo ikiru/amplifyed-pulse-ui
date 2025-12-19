@@ -246,12 +246,12 @@ export default function AudienceInput() {
     setReplyToId(null);
   };
 
-  const emitVoteIntent = (messageId, direction) => {
-    if (!messageId || !direction) return;
+  const emitVoteIntent = (messageId, voteType) => {
+    if (!messageId || !voteType) return;
 
     emit("message:vote:intent", {
       messageId,
-      direction,
+      voteType,
     });
   };
 
