@@ -1,10 +1,9 @@
-const voteState = new Map(); // messageId -> { totals, voters }
+const voteState = new Map(); // messageId -> { voters }
 const NORMALIZATION = {
   upvote: "up",
   up: "up",
   downvote: "down",
   down: "down",
-  none: "none",
 };
 
 function normalizeVoteType(voteType) {
@@ -14,16 +13,19 @@ function normalizeVoteType(voteType) {
 
 function ensureStateEntry(messageId) {
   if (!voteState.has(messageId)) {
-    voteState.set(messageId, {
-      totals: { up: 0, down: 0 },
-      voters: new Map(),
-    });
+    voteState.set(messageId, { voters: new Map() });
   }
   return voteState.get(messageId);
 }
 
-function cloneTotals(totals) {
-  return { up: totals.up, down: totals.down };
+function deriveTotals(voters) {
+  let up = 0;
+  let down = 0;
+  voters.forEach((direction) => {
+    if (direction === "up") up += 1;
+    if (direction === "down") down += 1;
+  });
+  return { up, down };
 }
 
 function snapshotVoters(voters) {
@@ -35,8 +37,9 @@ function snapshotVoters(voters) {
 }
 
 function buildResult(entry) {
+  const totals = deriveTotals(entry.voters);
   return {
-    totals: cloneTotals(entry.totals),
+    totals,
     voters: snapshotVoters(entry.voters),
   };
 }
@@ -49,7 +52,7 @@ function applyVote({ sessionId, messageId, voteType, voterId, actorRole }) {
     sessionId,
     messageId,
     actorRole,
-    totals: { ...state.totals },
+    totals: deriveTotals(state.voters),
   });
 
   const normalized = normalizeVoteType(voteType);
@@ -65,23 +68,13 @@ function applyVote({ sessionId, messageId, voteType, voterId, actorRole }) {
 
   const previous = state.voters.get(voterId);
 
-  if (previous !== normalized) {
-    if (previous === "up") {
-      state.totals.up = Math.max(0, state.totals.up - 1);
-    }
-    if (previous === "down") {
-      state.totals.down = Math.max(0, state.totals.down - 1);
-    }
-
-    if (normalized === "up") {
-      state.totals.up += 1;
-      state.voters.set(voterId, normalized);
-    } else if (normalized === "down") {
-      state.totals.down += 1;
-      state.voters.set(voterId, normalized);
-    } else {
-      state.voters.delete(voterId);
-    }
+  if (previous === normalized) {
+    // no-op
+  } else if (normalized === "up" || normalized === "down") {
+    state.voters.set(voterId, normalized);
+  } else {
+    // explicit removal
+    state.voters.delete(voterId);
   }
 
   const result = buildResult(state);
@@ -90,7 +83,7 @@ function applyVote({ sessionId, messageId, voteType, voterId, actorRole }) {
     sessionId,
     messageId,
     actorRole,
-    totals: { ...state.totals },
+    totals: result.totals,
   });
 
   return result;
@@ -105,5 +98,5 @@ export function getVoteState(messageId) {
   if (!entry) {
     return { up: 0, down: 0 };
   }
-  return cloneTotals(entry.totals);
+  return deriveTotals(entry.voters);
 }
