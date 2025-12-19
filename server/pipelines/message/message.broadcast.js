@@ -8,8 +8,11 @@ export function broadcastAudienceMessage(io, message) {
   io.emit("message:audience", message);
 }
 
+/**
+ * Broadcast authoritative message state snapshot
+ */
 export function broadcastMessageState({ io, sessionId }) {
-  if (!sessionId) return;
+  if (!io || !sessionId) return;
 
   const messages = getSessionMessages(sessionId);
 
