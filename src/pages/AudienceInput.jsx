@@ -172,27 +172,22 @@ export default function AudienceInput() {
   const [replyDrafts, setReplyDrafts] = useState({});
 
   useEffect(() => {
-    const handleMessageBroadcast = (message) => {
-      setMessages((prev) => {
-        const envelope = message?.envelope;
-        if (!envelope?.messageId) return prev;
+    const handleMessageStateUpdate = ({ messages }) => {
+      if (!Array.isArray(messages)) return;
 
-        const exists = prev.some((m) => m.messageId === envelope.messageId);
-        if (exists) return prev;
+      const adapted = messages
+        .map(adaptMessage)
+        .filter(Boolean);
 
-        const adapted = adaptMessage(message);
-        if (!adapted) return prev;
+      setMessages(adapted);
+    };
 
-                return [...prev, adapted];
-              });
-            };
+    onEvent("message.state.update", handleMessageStateUpdate);
 
-            onEvent("message:audience", handleMessageBroadcast);
-
-            return () => {
-              offEvent("message:audience", handleMessageBroadcast);
-            };
-          }, [onEvent, offEvent]);
+    return () => {
+      offEvent("message.state.update", handleMessageStateUpdate);
+    };
+  }, [onEvent, offEvent]);
 
   useEffect(() => {
     const handleVoteUpdate = ({ messageId, totals }) => {
