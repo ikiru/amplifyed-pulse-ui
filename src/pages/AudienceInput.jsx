@@ -21,6 +21,19 @@ function buildMessageTree(messages) {
   return roots;
 }
 
+function adaptMessage(message) {
+  const envelope = message?.envelope;
+  if (!envelope) return null;
+
+  return {
+    messageId: envelope.messageId,
+    parentMessageId: envelope.parentMessageId,
+    text: message.payload?.content?.text ?? "",
+    envelope,
+    payload: message.payload,
+  };
+}
+
 const pulseOptions = [
   { value: "frustrated", label: "Frustrated" },
   { value: "neutral", label: "Neutral" },
@@ -35,35 +48,14 @@ function ThreadItem({
   replyDrafts,
   setReplyDrafts,
   handleSubmitReply,
-  emitVote,
 }) {
   const isReplyOpen = replyToId === node.messageId;
-  const voteScore =
-    typeof node.voteScore === "number" ? node.voteScore : 0;
-
   return (
     <div
       className="thread-item"
       data-depth={String(Math.min(depth, 3))}
     >
       <div className="thread-message">
-        <div className="thread-vote-controls">
-          <button
-            type="button"
-            aria-label="Upvote"
-            onClick={() => emitVote?.(node.messageId, "up")}
-          >
-            ↑
-          </button>
-          <span className="thread-vote-score">{voteScore}</span>
-          <button
-            type="button"
-            aria-label="Downvote"
-            onClick={() => emitVote?.(node.messageId, "down")}
-          >
-            ↓
-          </button>
-        </div>
         <div className="thread-text">{node.text}</div>
 
         <div className="thread-actions">
@@ -116,7 +108,6 @@ function ThreadItem({
               replyDrafts={replyDrafts}
               setReplyDrafts={setReplyDrafts}
               handleSubmitReply={handleSubmitReply}
-              emitVote={emitVote}
             />
           ))}
         </div>
@@ -125,7 +116,6 @@ function ThreadItem({
   );
 }
 
-// AudienceView only — vote wiring (arrows)
 export default function AudienceInput() {
   const { emit, onEvent, offEvent } = useSocket();
   const [selectedPulse, setSelectedPulse] = useState("neutral");
@@ -135,31 +125,27 @@ export default function AudienceInput() {
   const [replyDrafts, setReplyDrafts] = useState({});
 
   useEffect(() => {
-    const handleVoteUpdate = ({ messageId, score }) => {
-      setMessages((prev) =>
-        prev.map((message) =>
-          message.messageId === messageId
-            ? { ...message, voteScore: score }
-            : message
-        )
-      );
+    const handleMessageBroadcast = (message) => {
+      setMessages((prev) => {
+        const envelope = message?.envelope;
+        if (!envelope?.messageId) return prev;
+
+        const exists = prev.some((m) => m.messageId === envelope.messageId);
+        if (exists) return prev;
+
+        const adapted = adaptMessage(message);
+        if (!adapted) return prev;
+
+        return [...prev, adapted];
+      });
     };
 
-    onEvent("message.vote.update", handleVoteUpdate);
+    onEvent("message:audience", handleMessageBroadcast);
 
     return () => {
-      offEvent("message.vote.update", handleVoteUpdate);
+      offEvent("message:audience", handleMessageBroadcast);
     };
   }, [onEvent, offEvent]);
-
-  const emitVote = (messageId, direction) => {
-    if (!messageId) return;
-    emit("interaction", {
-      type: "message.vote",
-      messageId,
-      direction, // "up" | "down"
-    });
-  };
 
   const handlePulse = (pulse) => {
     setSelectedPulse(pulse);
@@ -171,22 +157,11 @@ export default function AudienceInput() {
     const trimmed = input.trim();
     if (!trimmed) return;
 
-    const messageId = crypto.randomUUID();
-
     emit("message:audience", {
       content: { type: "text", text: trimmed },
       parentMessageId: null,
     });
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        messageId,
-        text: trimmed,
-        parentMessageId: null,
-        voteScore: 0,
-      },
-    ]);
     setInput("");
   };
 
@@ -194,22 +169,10 @@ export default function AudienceInput() {
     const trimmed = (replyDrafts[parentMessageId] || "").trim();
     if (!trimmed) return;
 
-    const replyMessageId = crypto.randomUUID();
-
     emit("message:audience", {
       content: { type: "text", text: trimmed },
       parentMessageId,
     });
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        messageId: replyMessageId,
-        text: trimmed,
-        parentMessageId,
-        voteScore: 0,
-      },
-    ]);
 
     setReplyDrafts((prev) => {
       const next = { ...prev };
@@ -253,7 +216,6 @@ export default function AudienceInput() {
               replyDrafts={replyDrafts}
               setReplyDrafts={setReplyDrafts}
               handleSubmitReply={handleSubmitReply}
-              emitVote={emitVote}
             />
           ))
         )}
