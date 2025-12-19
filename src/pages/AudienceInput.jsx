@@ -179,11 +179,7 @@ export default function AudienceInput() {
     const handleMessageStateUpdate = ({ messages }) => {
       if (!Array.isArray(messages)) return;
 
-      const adapted = messages
-        .map(adaptMessage)
-        .filter(Boolean);
-
-      setMessages(adapted);
+      setMessages(messages);
     };
 
     onEvent("message.state.update", handleMessageStateUpdate);
@@ -208,27 +204,6 @@ export default function AudienceInput() {
     return () => {
       offEvent("message.vote.update", handleVoteUpdate);
     };
-  }, [onEvent, offEvent]);
-
-  useEffect(() => {
-    const handleMessageBroadcast = (payload) => {
-      const message = payload?.message ?? payload;
-      setMessages((prev) => {
-        const envelope = message?.envelope;
-        if (!envelope?.messageId) return prev;
-
-        const exists = prev.some((m) => m.messageId === envelope.messageId);
-        if (exists) return prev;
-
-        const adapted = adaptMessage(message);
-        if (!adapted) return prev;
-
-        return [...prev, adapted];
-      });
-    };
-
-    onEvent("message:audience", handleMessageBroadcast);
-    return () => offEvent("message:audience", handleMessageBroadcast);
   }, [onEvent, offEvent]);
 
   const handlePulse = (pulse) => {
