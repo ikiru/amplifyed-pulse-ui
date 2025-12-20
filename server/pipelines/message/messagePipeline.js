@@ -16,7 +16,11 @@
 
 import { extractMessageSignal } from "./messageSignalExtractor.js";
 import { formatMessage } from "./message.format.js";
-import { broadcastAudienceMessage } from "./message.broadcast.js";
+import {
+  broadcastAudienceMessage,
+  broadcastMessageState,
+} from "./message.broadcast.js";
+import { addMessage } from "./message.state.js";
 import { v4 as uuidv4 } from "uuid";
 
 export function createMessagePipeline(io, momentBuilder = null) {
@@ -43,7 +47,13 @@ export function createMessagePipeline(io, momentBuilder = null) {
       content: effectiveContent,
     });
 
+    // ✅ Authoritative state mutation
+    addMessage({ sessionId, message });
+
     broadcastAudienceMessage(io, message);
+
+    // ✅ Authoritative snapshot broadcast (Trainer + Audience + Late Join)
+    broadcastMessageState({ io, sessionId });
 
     const signalText = text ?? effectiveContent.text;
     const messageSignal = signalText ? extractMessageSignal(signalText) : null;
