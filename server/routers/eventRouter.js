@@ -205,6 +205,16 @@ socket.on("audience:pulse", (payload = {}) => {
     }
   });
 
+  // --- Message Intent (Phase 8.9) ---
+  socket.on("message:intent", (payload = {}) => {
+    if (!messagePipeline?.handleAudienceMessage) return;
+
+    messagePipeline.handleAudienceMessage({
+      socketId: socket.id,
+      ...payload,
+    });
+  });
+
   socket.on("message:interaction", (payload = {}) => {
     const {
       sessionId,

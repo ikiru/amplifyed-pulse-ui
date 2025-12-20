@@ -174,6 +174,8 @@ export default function AudienceInput() {
   const [replyToId, setReplyToId] = useState(null);
   const [voteTotals, setVoteTotals] = useState({});
   const [replyDrafts, setReplyDrafts] = useState({});
+  const actorRole = "audience";
+  const sessionId = "session:default";
 
   useEffect(() => {
     const handleMessageStateUpdate = ({ messages }) => {
@@ -216,7 +218,9 @@ export default function AudienceInput() {
     const trimmed = input.trim();
     if (!trimmed) return;
 
-    emit("message:audience", {
+    emit("message:create:intent", {
+      sessionId,
+      actorRole,
       content: { type: "text", text: trimmed },
       parentMessageId: null,
     });
@@ -228,7 +232,9 @@ export default function AudienceInput() {
     const trimmed = (replyDrafts[parentMessageId] || "").trim();
     if (!trimmed) return;
 
-    emit("message:audience", {
+    emit("message:create:intent", {
+      sessionId,
+      actorRole,
       content: { type: "text", text: trimmed },
       parentMessageId,
     });
