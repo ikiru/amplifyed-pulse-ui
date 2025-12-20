@@ -16,8 +16,14 @@ export function broadcastMessageState({ io, sessionId }) {
 
   const messages = getSessionMessages(sessionId);
 
-  io.to(sessionId).emit("message.state.update", {
+  const payload = {
     sessionId,
     messages,
-  });
+  };
+
+  // Session-scoped (trainer + joined audience)
+  io.to(sessionId).emit("message.state.update", payload);
+
+  // Global fallback (unjoined audience clients)
+  io.emit("message.state.update", payload);
 }

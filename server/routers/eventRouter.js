@@ -197,6 +197,11 @@ socket.on("audience:pulse", (payload = {}) => {
   // Handles intent-based audience messages.
   // ----------------------------------------------------
   socket.on("message:intent", (payload = {}) => {
+    console.log("[ROUTER][MESSAGE] intent received", {
+      socketId: socket.id,
+      sessionId: socket.sessionId,
+      payload,
+    });
     if (!messagePipeline?.handleAudienceMessage) return;
 
     messagePipeline.handleAudienceMessage({

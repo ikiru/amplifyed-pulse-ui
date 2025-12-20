@@ -36,12 +36,13 @@ export function createMessagePipeline(io, momentBuilder = null) {
     if (!effectiveContent) return;
 
     const now = Date.now();
-    if (!sessionId) return; // hard guard — no silent corruption
+    const resolvedSessionId = sessionId;
+    if (!resolvedSessionId) return; // hard guard — no silent corruption
     const messageId = uuidv4();
 
     const message = formatMessage({
       messageId,
-      sessionId,
+      sessionId: resolvedSessionId,
       authorRole: "audience",
       timestamp: now,
       parentMessageId: parentMessageId ?? null,
@@ -49,12 +50,12 @@ export function createMessagePipeline(io, momentBuilder = null) {
     });
 
     // ✅ Authoritative state mutation
-    addMessage({ sessionId, message });
+    addMessage({ sessionId: resolvedSessionId, message });
 
     broadcastAudienceMessage(io, message);
 
     // ✅ Authoritative snapshot broadcast (Trainer + Audience + Late Join)
-    broadcastMessageState({ io, sessionId });
+    broadcastMessageState({ io, sessionId: resolvedSessionId });
 
     const signalText = text ?? effectiveContent.text;
     const messageSignal = signalText ? extractMessageSignal(signalText) : null;

@@ -10,6 +10,7 @@ import { io } from "socket.io-client";
 import { useDevToolsBus } from "../utils/useDevToolsBus.js";
 import { useInteractionIntents } from "../state/useInteractionIntents";
 import { useEmotionStream } from "../state/useEmotionStream";
+import { useSessionId } from "../state/useSessionId";
 
 
 export const SocketContext = createContext(null);
@@ -21,6 +22,7 @@ export function SocketProvider({ children }) {
   // Phase 8 — Focus state
   // Phase 8.1 — Focus (authoritative session state)
   const [focus, setFocus] = useState(null);
+  const sessionId = useSessionId();
   const registeredHandlers = useRef(new Map());
 
   // We intentionally use a mutable ref for event handler maps.
@@ -89,8 +91,15 @@ export function SocketProvider({ children }) {
       });
       registeredHandlers.current.clear();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket || !sessionId) return;
+
+    socket.emit("session:join", { sessionId });
+  }, [sessionId]);
 
   const emit = useCallback((event, payload) => {
     const socket = socketRef.current;

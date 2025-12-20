@@ -218,7 +218,7 @@ export default function AudienceInput() {
     const trimmed = input.trim();
     if (!trimmed) return;
 
-    emit("message:create:intent", {
+    emit("message:intent", {
       sessionId,
       actorRole,
       content: { type: "text", text: trimmed },
@@ -232,7 +232,7 @@ export default function AudienceInput() {
     const trimmed = (replyDrafts[parentMessageId] || "").trim();
     if (!trimmed) return;
 
-    emit("message:create:intent", {
+    emit("message:intent", {
       sessionId,
       actorRole,
       content: { type: "text", text: trimmed },
