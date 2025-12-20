@@ -201,6 +201,7 @@ socket.on("audience:pulse", (payload = {}) => {
 
     messagePipeline.handleAudienceMessage({
       socketId: socket.id,
+      sessionId: socket.sessionId,
       text: payload.text,
       content: payload.content,
       parentMessageId: payload.parentMessageId ?? null,

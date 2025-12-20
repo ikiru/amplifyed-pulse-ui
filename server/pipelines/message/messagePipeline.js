@@ -27,6 +27,7 @@ export function createMessagePipeline(io, momentBuilder = null) {
 
   function handleAudienceMessage({
     socketId,
+    sessionId,
     text,
     content,
     parentMessageId,
@@ -35,7 +36,7 @@ export function createMessagePipeline(io, momentBuilder = null) {
     if (!effectiveContent) return;
 
     const now = Date.now();
-    const sessionId = this.getSessionIdForSocket?.(socketId);
+    if (!sessionId) return; // hard guard — no silent corruption
     const messageId = uuidv4();
 
     const message = formatMessage({
