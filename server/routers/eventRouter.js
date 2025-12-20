@@ -200,6 +200,7 @@ socket.on("audience:pulse", (payload = {}) => {
     if (messagePipeline?.handleAudienceMessage) {
       messagePipeline.handleAudienceMessage({
         socketId: socket.id,
+        sessionId: socket.sessionId ?? DEFAULT_SESSION_ID,
         ...payload,
       });
     }

@@ -16,13 +16,15 @@
 
 import { extractMessageSignal } from "./messageSignalExtractor.js";
 import { formatMessage } from "./message.format.js";
-import { broadcastAudienceMessage } from "./message.broadcast.js";
+import { broadcastAudienceMessage, broadcastMessageState } from "./message.broadcast.js";
+import { addMessage } from "./message.state.js";
 import { v4 as uuidv4 } from "uuid";
 
 export function createMessagePipeline(io, momentBuilder = null) {
 
   function handleAudienceMessage({
     socketId,
+    sessionId: providedSessionId,
     text,
     content,
     parentMessageId,
@@ -31,7 +33,9 @@ export function createMessagePipeline(io, momentBuilder = null) {
     if (!effectiveContent) return;
 
     const now = Date.now();
-    const sessionId = this.getSessionIdForSocket?.(socketId);
+    const sessionId =
+      providedSessionId ?? this.getSessionIdForSocket?.(socketId);
+    if (!sessionId) return;
     const messageId = uuidv4();
 
     const message = formatMessage({
@@ -43,7 +47,14 @@ export function createMessagePipeline(io, momentBuilder = null) {
       content: effectiveContent,
     });
 
-    broadcastAudienceMessage(io, message);
+    const storedMessage = addMessage({
+      sessionId,
+      message,
+    });
+    if (!storedMessage) return;
+
+    broadcastAudienceMessage(io, storedMessage);
+    broadcastMessageState({ io, sessionId });
 
     const signalText = text ?? effectiveContent.text;
     const messageSignal = signalText ? extractMessageSignal(signalText) : null;
