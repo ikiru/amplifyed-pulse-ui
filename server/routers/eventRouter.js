@@ -193,25 +193,17 @@ socket.on("audience:pulse", (payload = {}) => {
   });
 
   // ----------------------------------------------------
-  // MESSAGE PIPELINE (Step 6.1 — Scaffold Only)
-  // Does NOT activate message pipeline behavior.
+  // MESSAGE PIPELINE (Phase 8.9)
+  // Handles intent-based audience messages.
   // ----------------------------------------------------
-  socket.on("message:audience", (payload) => {
-    if (messagePipeline?.handleAudienceMessage) {
-      messagePipeline.handleAudienceMessage({
-        socketId: socket.id,
-        ...payload,
-      });
-    }
-  });
-
-  // --- Message Intent (Phase 8.9) ---
   socket.on("message:intent", (payload = {}) => {
     if (!messagePipeline?.handleAudienceMessage) return;
 
     messagePipeline.handleAudienceMessage({
       socketId: socket.id,
-      ...payload,
+      text: payload.text,
+      content: payload.content,
+      parentMessageId: payload.parentMessageId ?? null,
     });
   });
 
