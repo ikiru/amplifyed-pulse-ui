@@ -53,6 +53,9 @@ export default function registerEventRouter(io, socket, pipelines = {}) {
 
     socket.sessionId = targetSessionId;
     socket.join(targetSessionId);
+    if (messagePipeline?.syncSessionState) {
+      messagePipeline.syncSessionState(targetSessionId);
+    }
     return targetSessionId;
   };
 

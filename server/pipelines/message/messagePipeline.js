@@ -64,7 +64,13 @@ export function createMessagePipeline(io, momentBuilder = null) {
     }
   }
 
+  function syncSessionState(sessionId) {
+    if (!sessionId) return;
+    broadcastMessageState({ io, sessionId });
+  }
+
   return {
-    handleAudienceMessage
+    handleAudienceMessage,
+    syncSessionState,
   };
 }
