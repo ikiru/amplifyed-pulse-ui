@@ -22,6 +22,7 @@ export function SocketProvider({ children }) {
   // Phase 8 — Focus state
   // Phase 8.1 — Focus (authoritative session state)
   const [focus, setFocus] = useState(null);
+  const [messages, setMessages] = useState([]);
   const sessionId = useSessionId();
   const registeredHandlers = useRef(new Map());
 
@@ -191,14 +192,21 @@ export function SocketProvider({ children }) {
       emitEvent("focus:cleared", null);
     };
 
+    const handleMessageStateUpdate = (payload) => {
+      if (!Array.isArray(payload?.messages)) return;
+      setMessages(payload.messages);
+    };
+
     socket.on("focus:set", handleFocusSet);
     socket.on("focus:update", handleFocusUpdate);
     socket.on("focus:cleared", handleFocusCleared);
+    socket.on("message.state.update", handleMessageStateUpdate);
 
     return () => {
       socket.off("focus:set", handleFocusSet);
       socket.off("focus:update", handleFocusUpdate);
       socket.off("focus:cleared", handleFocusCleared);
+      socket.off("message.state.update", handleMessageStateUpdate);
     };
   }, [socketState, emitEvent]);
 
@@ -216,6 +224,7 @@ export function SocketProvider({ children }) {
         onEvent,
         offEvent,
         focus,
+        messages,
       }}
     >
       {children}
