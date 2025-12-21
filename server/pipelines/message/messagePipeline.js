@@ -67,6 +67,7 @@ export function createMessagePipeline(io, momentBuilder = null) {
 
   function syncSessionState(sessionId) {
     if (!sessionId) return;
+    // Always broadcast authoritative message state on session sync
     broadcastMessageState({ io, sessionId });
   }
 
