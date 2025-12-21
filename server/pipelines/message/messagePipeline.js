@@ -67,6 +67,52 @@ export function createMessagePipeline(io, momentBuilder = null) {
     }
   }
 
+  function handleTrainerReply({
+    socketId,
+    sessionId: providedSessionId,
+    text,
+    content,
+    parentMessageId,
+  } = {}) {
+    const effectiveContent = content ?? (text ? { type: "text", text } : null);
+    if (!effectiveContent) return;
+
+    const now = Date.now();
+    const sessionId =
+      providedSessionId ?? this.getSessionIdForSocket?.(socketId);
+    if (!sessionId) return;
+    const messageId = uuidv4();
+
+    const message = formatMessage({
+      messageId,
+      sessionId,
+      authorRole: "trainer",
+      timestamp: now,
+      parentMessageId: parentMessageId ?? null,
+      content: effectiveContent,
+    });
+
+    const storedMessage = addMessage({
+      sessionId,
+      message,
+    });
+    if (!storedMessage) return;
+
+    broadcastMessageState({ io, sessionId });
+
+    const signalText =
+      typeof text === "string"
+        ? text
+        : typeof effectiveContent === "string"
+          ? effectiveContent
+          : effectiveContent?.text ?? null;
+    const messageSignal = signalText ? extractMessageSignal(signalText) : null;
+
+    if (momentBuilder && messageSignal) {
+      momentBuilder.addMessage({ messageSignal });
+    }
+  }
+
   function syncSessionState(sessionId) {
     if (!sessionId) return;
     // Always broadcast authoritative message state on session sync
@@ -85,6 +131,7 @@ export function createMessagePipeline(io, momentBuilder = null) {
 
   return {
     handleAudienceMessage,
+    handleTrainerReply,
     syncSessionState,
   };
 }

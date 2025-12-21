@@ -29,6 +29,9 @@ export default function TrainerView() {
   const [compareSelection, setCompareSelection] = useState([]);
   const [compareSnapshot, setCompareSnapshot] = useState(null);
   const [showCompare, setShowCompare] = useState(false);
+  const [trainerInput, setTrainerInput] = useState("");
+  const [trainerReplyToId, setTrainerReplyToId] = useState(null);
+  const [trainerReplyDrafts, setTrainerReplyDrafts] = useState({});
 
   // -------------------------------
   // Socket listeners
@@ -226,6 +229,41 @@ export default function TrainerView() {
 
   const handleClearFocus = () => {
     emit("focus:cleared");
+  };
+
+  const emitTrainerMessage = ({ text, parentMessageId = null }) => {
+    const trimmed = text?.trim();
+    if (!trimmed) {
+      return false;
+    }
+
+    emit("message:trainerReply", {
+      content: { type: "text", text: trimmed },
+      parentMessageId,
+    });
+
+    return true;
+  };
+
+  const handleTrainerSubmit = (event) => {
+    event.preventDefault();
+    if (emitTrainerMessage({ text: trainerInput })) {
+      setTrainerInput("");
+    }
+  };
+
+  const handleTrainerReplySubmit = (parentMessageId) => {
+    const draft = trainerReplyDrafts[parentMessageId] ?? "";
+    if (!emitTrainerMessage({ text: draft, parentMessageId })) {
+      return;
+    }
+
+    setTrainerReplyDrafts((prev) => {
+      const next = { ...prev };
+      delete next[parentMessageId];
+      return next;
+    });
+    setTrainerReplyToId(null);
   };
 
   const toggleCompareSelection = (moment) => {
@@ -747,16 +785,30 @@ Frustrated:  ${frustrated}`}
                       key={root.messageId}
                       node={root}
                       depth={0}
+                      replyToId={trainerReplyToId}
+                      setReplyToId={setTrainerReplyToId}
+                      replyDrafts={trainerReplyDrafts}
+                      setReplyDrafts={setTrainerReplyDrafts}
+                      handleSubmitReply={handleTrainerReplySubmit}
                       voteTotals={voteTotals[root.messageId]}
                       voteTotalsMap={voteTotals}
                       showVoteControls={false}
-                      showReplyControls={false}
                     />
                   ))}
                 </div>
               ) : (
                 <p style={{ margin: 0, color: "#555" }}>No messages yet</p>
               )}
+
+              <form className="message-input-bar" onSubmit={handleTrainerSubmit}>
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  value={trainerInput}
+                  onChange={(event) => setTrainerInput(event.target.value)}
+                />
+                <button type="submit">Send</button>
+              </form>
             </div>
 
           <section

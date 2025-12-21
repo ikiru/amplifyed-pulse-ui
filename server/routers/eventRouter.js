@@ -227,10 +227,11 @@ socket.on("audience:pulse", (payload = {}) => {
     });
   });
 
-  socket.on("message:trainerReply", (payload) => {
+  socket.on("message:trainerReply", (payload = {}) => {
     if (messagePipeline?.handleTrainerReply) {
       messagePipeline.handleTrainerReply({
         socketId: socket.id,
+        sessionId: socket.sessionId ?? DEFAULT_SESSION_ID,
         ...payload,
       });
     }
