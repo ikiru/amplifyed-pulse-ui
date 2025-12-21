@@ -723,7 +723,14 @@ Frustrated:  ${frustrated}`}
           </div>
         </div>
 
-        <div data-column="center">
+        <div
+          data-column="center"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+          }}
+        >
           {/* ===== Pulse ===== */}
           <section>
             <h2>Pulse</h2>
@@ -764,6 +771,10 @@ Frustrated:  ${frustrated}`}
                 borderRadius: 8,
                 marginBottom: 20,
                 background: "#fff",
+                display: "flex",
+                flexDirection: "column",
+                flex: 1,
+                minHeight: 420,
               }}
             >
               <h3 style={{ marginTop: 0 }}>Messages</h3>
@@ -775,7 +786,8 @@ Frustrated:  ${frustrated}`}
                     display: "flex",
                     flexDirection: "column",
                     gap: 8,
-                    maxHeight: 200,
+                    flex: 1,
+                    minHeight: 360,
                     overflowY: "auto",
                     fontSize: "0.85rem",
                   }}
