@@ -33,9 +33,12 @@ export function ThreadItem({
   voteTotals,
   voteTotalsMap,
   emitVoteIntent,
+  voteSelectionMap,
   showVoteControls = true,
+  showVoteTotals = true,
   showReplyControls = true,
 }) {
+  const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
   const isReplyOpen = replyToId === node.messageId;
 
   const handleReplyToggle = () => {
@@ -59,9 +62,12 @@ export function ThreadItem({
           {showVoteControls && emitVoteIntent && (
             <button
               type="button"
-              className="vote-btn down"
+              className={`vote-btn down ${
+                selectedVote === "down" ? "selected" : ""
+              }`}
               onClick={() => emitVoteIntent(node.messageId, "down")}
               aria-label="Downvote"
+              aria-pressed={selectedVote === "down"}
             >
               ▼
             </button>
@@ -72,16 +78,19 @@ export function ThreadItem({
           {showVoteControls && emitVoteIntent && (
             <button
               type="button"
-              className="vote-btn up"
+              className={`vote-btn up ${
+                selectedVote === "up" ? "selected" : ""
+              }`}
               onClick={() => emitVoteIntent(node.messageId, "up")}
               aria-label="Upvote"
+              aria-pressed={selectedVote === "up"}
             >
               ▲
             </button>
           )}
         </div>
 
-        {voteTotals && (
+        {showVoteTotals && voteTotals && (
           <div className="thread-vote-totals">
             <span>▲ {voteTotals.up ?? 0}</span>
             <span>▼ {voteTotals.down ?? 0}</span>
@@ -135,8 +144,10 @@ export function ThreadItem({
               voteTotals={voteTotalsMap?.[child.messageId]}
               voteTotalsMap={voteTotalsMap}
               emitVoteIntent={emitVoteIntent}
+              voteSelectionMap={voteSelectionMap}
               showVoteControls={showVoteControls}
               showReplyControls={showReplyControls}
+              showVoteTotals={showVoteTotals}
             />
           ))}
         </div>

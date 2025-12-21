@@ -4,24 +4,6 @@ import { adaptMessage } from "./messageHelpers.js";
 import { buildMessageTree, ThreadItem } from "./messageThread.jsx";
 import "./AudienceInput.css"; // optional, if you split styles later
 
-const voteState = new Map(); // sessionId -> Map(messageId -> { voters })
-
-function ensureStateEntry(sessionId, messageId) {
-  if (!voteState.has(sessionId)) {
-    voteState.set(sessionId, new Map());
-  }
-
-  const sessionMap = voteState.get(sessionId);
-
-  if (!sessionMap.has(messageId)) {
-    sessionMap.set(messageId, {
-      voters: new Map(),
-    });
-  }
-
-  return sessionMap.get(messageId);
-}
-
 const pulseOptions = [
   { value: "frustrated", label: "Frustrated" },
   { value: "neutral", label: "Neutral" },
@@ -36,6 +18,7 @@ export default function AudienceInput() {
   const [replyToId, setReplyToId] = useState(null);
   const [voteTotals, setVoteTotals] = useState({});
   const [replyDrafts, setReplyDrafts] = useState({});
+  const [selectedVotes, setSelectedVotes] = useState({});
 
   useEffect(() => {
     const handleMessageStateUpdate = ({ messages }) => {
@@ -112,6 +95,11 @@ export default function AudienceInput() {
   const emitVoteIntent = (messageId, voteType) => {
     if (!messageId || !voteType) return;
 
+    setSelectedVotes((prev) => ({
+      ...prev,
+      [messageId]: voteType,
+    }));
+
     emit("message:vote:intent", {
       messageId,
       voteType,
@@ -155,6 +143,8 @@ export default function AudienceInput() {
               voteTotals={voteTotals[root.messageId]}
               voteTotalsMap={voteTotals}
               emitVoteIntent={emitVoteIntent}
+              showVoteTotals={false}
+              voteSelectionMap={selectedVotes}
             />
           ))
         )}

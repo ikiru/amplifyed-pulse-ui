@@ -128,6 +128,26 @@
   width: 32px;
   height: 32px;
   flex-shrink: 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #f3f3f3;
+  color: #111;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.vote-btn.selected {
+  border-color: #0066ff;
+  color: #fff;
+  background: #0066ff;
+}
+
+.vote-btn.up.selected {
+  background: #0e7e1a;
+}
+
+.vote-btn.down.selected {
+  background: #b22222;
 }
 
 .message-content {
