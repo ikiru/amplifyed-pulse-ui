@@ -210,27 +210,8 @@ export default function AudienceInput() {
     };
   }, [onEvent, offEvent]);
 
-  useEffect(() => {
-    const handleMessageBroadcast = (payload) => {
-      const message = payload?.message ?? payload;
-      setMessages((prev) => {
-        const envelope = message?.envelope;
-        if (!envelope?.messageId) return prev;
-
-        const exists = prev.some((m) => m.messageId === envelope.messageId);
-        if (exists) return prev;
-
-        const adapted = adaptMessage(message);
-        if (!adapted) return prev;
-
-        return [...prev, adapted];
-      });
-    };
-
-    onEvent("message:audience", handleMessageBroadcast);
-    return () => offEvent("message:audience", handleMessageBroadcast);
-  }, [onEvent, offEvent]);
-
+  // Incremental audience broadcasts are disabled;
+  // rendering relies exclusively on `message.state.update`.
   const handlePulse = (pulse) => {
     setSelectedPulse(pulse);
     emit("audience:pulse", { pulse });
