@@ -28,6 +28,7 @@
 
 import { handleTrainerCommand } from "../pipelines/trainer/trainer.handleCommand.js";
 import { handleTrainerNudge } from "../pipelines/trainer/trainer.handleNudge.js";
+import { handleVoteIntent } from "../pipelines/message/message.vote.handle.js";
 
 const DEFAULT_SESSION_ID = "session:default";
 
@@ -212,6 +213,18 @@ socket.on("audience:pulse", (payload = {}) => {
         ...payload,
       });
     }
+  });
+
+  socket.on("message:vote:intent", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    handleVoteIntent({
+      io,
+      socket,
+      payload: {
+        sessionId,
+        ...payload,
+      },
+    });
   });
 
   socket.on("message:trainerReply", (payload) => {

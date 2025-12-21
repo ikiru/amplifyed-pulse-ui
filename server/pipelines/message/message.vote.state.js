@@ -96,6 +96,20 @@ function applyVote({ sessionId, messageId, voteType, voterId, actorRole }) {
   return result;
 }
 
+export function getSessionVoteTotals(sessionId) {
+  const sessionMap = voteState.get(sessionId);
+  if (!sessionMap) {
+    return {};
+  }
+
+  const totalsByMessage = {};
+  sessionMap.forEach((entry, messageId) => {
+    totalsByMessage[messageId] = deriveTotals(entry.voters);
+  });
+
+  return totalsByMessage;
+}
+
 export const voteStateStore = {
   applyVote,
 };

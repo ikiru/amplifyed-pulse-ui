@@ -18,6 +18,8 @@ import { extractMessageSignal } from "./messageSignalExtractor.js";
 import { formatMessage } from "./message.format.js";
 import { broadcastAudienceMessage, broadcastMessageState } from "./message.broadcast.js";
 import { addMessage } from "./message.state.js";
+import { getSessionVoteTotals } from "./message.vote.state.js";
+import { broadcastVoteUpdate } from "./message.vote.broadcast.js";
 import { v4 as uuidv4 } from "uuid";
 
 export function createMessagePipeline(io, momentBuilder = null) {
@@ -69,6 +71,16 @@ export function createMessagePipeline(io, momentBuilder = null) {
     if (!sessionId) return;
     // Always broadcast authoritative message state on session sync
     broadcastMessageState({ io, sessionId });
+    // Replay stored vote totals so trainers receive aggregates on join/reconnect.
+    const voteTotals = getSessionVoteTotals(sessionId);
+    Object.entries(voteTotals).forEach(([messageId, totals]) => {
+      broadcastVoteUpdate({
+        io,
+        sessionId,
+        messageId,
+        totals,
+      });
+    });
   }
 
   return {
