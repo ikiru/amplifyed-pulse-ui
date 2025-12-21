@@ -18,17 +18,18 @@ function ensureSession(sessionId) {
 }
 
 export function addMessage({ sessionId, message }) {
-  if (!sessionId || !message?.messageId) return null;
+  const messageId = message?.messageId ?? message?.envelope?.messageId;
+  if (!sessionId || !messageId) return null;
 
   const session = ensureSession(sessionId);
 
   // Prevent duplicate insertion
-  if (session.messages.has(message.messageId)) {
-    return session.messages.get(message.messageId);
+  if (session.messages.has(messageId)) {
+    return session.messages.get(messageId);
   }
 
-  session.order.push(message.messageId);
-  session.messages.set(message.messageId, message);
+  session.order.push(messageId);
+  session.messages.set(messageId, message);
 
   return message;
 }
