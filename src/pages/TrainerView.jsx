@@ -1,44 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
+import { adaptMessage } from "./messageHelpers.js";
+import { buildMessageTree, ThreadItem } from "./messageThread.jsx";
+import "./AudienceInput.css";
 
 const MOMENT_HISTORY_LIMIT = 18;
-
-function formatMessageTimestamp(timestamp) {
-  if (!timestamp) {
-    return "waiting";
-  }
-  return new Date(timestamp).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-}
-
-function adaptTrainerMessage(message = {}) {
-  const envelope = message.envelope ?? {};
-  if (!envelope.messageId) {
-    return null;
-  }
-
-  const payload = message.payload ?? {};
-  const content = payload.content ?? {};
-  const contentType = typeof content.type === "string" ? content.type : "unknown";
-  const text =
-    typeof content.text === "string"
-      ? content.text
-      : typeof payload.text === "string"
-        ? payload.text
-        : `[${contentType}]`;
-
-  return {
-    messageId: envelope.messageId,
-    timestamp: envelope.timestamp ?? null,
-    authorRole: envelope.authorRole ?? "audience",
-    parentMessageId: envelope.parentMessageId ?? null,
-    contentType,
-    text,
-  };
-}
 
 export default function TrainerView() {
   const { emit, onEvent, offEvent, connectionStatus } = useSocket();
@@ -46,6 +12,7 @@ export default function TrainerView() {
   const [focusInput, setFocusInput] = useState("");
   const [livePulse, setLivePulse] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [voteTotals, setVoteTotals] = useState({});
   const [momentData, setMomentData] = useState(null);
   const [trainerSignal, setTrainerSignal] = useState(null);
   const [showInsights, setShowInsights] = useState(false);
@@ -73,10 +40,10 @@ export default function TrainerView() {
       if (!Array.isArray(canonicalMessages)) return;
 
       const adapted = canonicalMessages
-        .map(adaptTrainerMessage)
+        .map(adaptMessage)
         .filter(Boolean);
 
-      setMessages(adapted.slice(-5));
+      setMessages(adapted);
     };
 
     const handleMomentUpdate = (payload) => {
@@ -148,6 +115,22 @@ export default function TrainerView() {
       offEvent("moment:update", handleMomentUpdate);
       offEvent("trainer:signal", handleTrainerSignal);
     };
+  }, [onEvent, offEvent]);
+
+  useEffect(() => {
+    const handleVoteUpdate = ({ messageId, totals }) => {
+      if (!messageId || !totals) {
+        return;
+      }
+
+      setVoteTotals((prev) => ({
+        ...prev,
+        [messageId]: totals,
+      }));
+    };
+
+    onEvent("message.vote.update", handleVoteUpdate);
+    return () => offEvent("message.vote.update", handleVoteUpdate);
   }, [onEvent, offEvent]);
 
   // -------------------------------
@@ -308,6 +291,8 @@ export default function TrainerView() {
         signals: activeMomentSignals,
       }
     : null;
+
+  const messageRoots = buildMessageTree(messages);
 
   const renderPulseVotes = () => {
     if (!livePulse || !livePulse.votes) {
@@ -699,64 +684,45 @@ Frustrated:  ${frustrated}`}
             </p>
           </section>
 
-          <div
-            style={{
-              padding: "12px",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              marginBottom: 20,
-              background: "#fff",
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>Messages</h3>
+            <div
+              style={{
+                padding: "12px",
+                border: "1px solid #ddd",
+                borderRadius: 8,
+                marginBottom: 20,
+                background: "#fff",
+              }}
+            >
+              <h3 style={{ marginTop: 0 }}>Messages</h3>
 
-            {messages.length ? (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                  maxHeight: 200,
-                  overflowY: "auto",
-                  fontSize: "0.85rem",
-                }}
-              >
-                {messages.map((msg) => (
-                  <div
-                    key={msg.messageId}
-                    style={{
-                      padding: "8px 10px",
-                      borderRadius: 6,
-                      background: "#f5f5f5",
-                      border: "1px solid #eee",
-                    }}
-                  >
-                    <div style={{ fontSize: "0.9rem", fontWeight: 600 }}>
-                      {msg.text}
-                    </div>
-                    <div
-                      style={{
-                        marginTop: 4,
-                        fontSize: "0.75rem",
-                        color: "#555",
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 6,
-                      }}
-                    >
-                      <span>{msg.authorRole}</span>
-                      <span>·</span>
-                      <span>{msg.contentType}</span>
-                      <span>·</span>
-                      <span>{formatMessageTimestamp(msg.timestamp)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p style={{ margin: 0, color: "#555" }}>No messages yet</p>
-            )}
-          </div>
+              {messageRoots.length ? (
+                <div
+                  className="message-stream"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    maxHeight: 200,
+                    overflowY: "auto",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  {messageRoots.map((root) => (
+                    <ThreadItem
+                      key={root.messageId}
+                      node={root}
+                      depth={0}
+                      voteTotals={voteTotals[root.messageId]}
+                      voteTotalsMap={voteTotals}
+                      showVoteControls={false}
+                      showReplyControls={false}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p style={{ margin: 0, color: "#555" }}>No messages yet</p>
+              )}
+            </div>
 
           <section
             style={{

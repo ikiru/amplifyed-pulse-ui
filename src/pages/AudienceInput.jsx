@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
+import { adaptMessage } from "./messageHelpers.js";
+import { buildMessageTree, ThreadItem } from "./messageThread.jsx";
 import "./AudienceInput.css"; // optional, if you split styles later
 
 const voteState = new Map(); // sessionId -> Map(messageId -> { voters })
@@ -20,151 +22,11 @@ function ensureStateEntry(sessionId, messageId) {
   return sessionMap.get(messageId);
 }
 
-function buildMessageTree(messages) {
-  const map = {};
-  const roots = [];
-
-  messages.forEach((msg) => {
-    map[msg.messageId] = { ...msg, replies: [] };
-  });
-
-  messages.forEach((msg) => {
-    if (msg.parentMessageId && map[msg.parentMessageId]) {
-      map[msg.parentMessageId].replies.push(map[msg.messageId]);
-    } else {
-      roots.push(map[msg.messageId]);
-    }
-  });
-
-  return roots;
-}
-
-function adaptMessage(message) {
-  const envelope = message?.envelope;
-  if (!envelope) return null;
-
-  return {
-    messageId: envelope.messageId,
-    parentMessageId: envelope.parentMessageId,
-    text: message.payload?.content?.text ?? "",
-    envelope,
-    payload: message.payload,
-  };
-}
-
 const pulseOptions = [
   { value: "frustrated", label: "Frustrated" },
   { value: "neutral", label: "Neutral" },
   { value: "engaged", label: "Engaged" },
 ];
-
-function ThreadItem({
-  node,
-  depth,
-  replyToId,
-  setReplyToId,
-  replyDrafts,
-  setReplyDrafts,
-  handleSubmitReply,
-  voteTotals,
-  voteTotalsMap,
-  emitVoteIntent,
-}) {
-  const isReplyOpen = replyToId === node.messageId;
-  return (
-    <div
-      className="thread-item"
-      data-depth={String(Math.min(depth, 3))}
-    >
-      <div className="thread-message">
-        <div className="message-row">
-          <button
-            type="button"
-            className="vote-btn down"
-            onClick={() => emitVoteIntent(node.messageId, "down")}
-            aria-label="Downvote"
-          >
-            ▼
-          </button>
-
-          <div className="message-content">{node.text}</div>
-
-          <button
-            type="button"
-            className="vote-btn up"
-            onClick={() => emitVoteIntent(node.messageId, "up")}
-            aria-label="Upvote"
-          >
-            ▲
-          </button>
-        </div>
-        {voteTotals && (
-          <div className="thread-vote-totals">
-            <span>▲ {voteTotals.up ?? 0}</span>
-            <span>▼ {voteTotals.down ?? 0}</span>
-          </div>
-        )}
-
-        <div className="thread-actions">
-          <button
-            type="button"
-            className="thread-reply-button"
-            onClick={() =>
-              setReplyToId(isReplyOpen ? null : node.messageId)
-            }
-          >
-            Reply
-          </button>
-        </div>
-      </div>
-
-      {isReplyOpen && (
-        <div className="thread-replies">
-          <form
-            className="message-input-bar"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSubmitReply(node.messageId);
-            }}
-          >
-            <input
-              type="text"
-              placeholder="Write a reply…"
-              value={replyDrafts[node.messageId] || ""}
-              onChange={(e) =>
-                setReplyDrafts((prev) => ({
-                  ...prev,
-                  [node.messageId]: e.target.value,
-                }))
-              }
-            />
-            <button type="submit">Reply</button>
-          </form>
-        </div>
-      )}
-
-      {node.replies?.length > 0 && (
-        <div className="thread-replies">
-          {node.replies.map((child) => (
-            <ThreadItem
-              key={child.messageId}
-              node={child}
-              depth={depth + 1}
-              replyToId={replyToId}
-              setReplyToId={setReplyToId}
-              replyDrafts={replyDrafts}
-              setReplyDrafts={setReplyDrafts}
-              handleSubmitReply={handleSubmitReply}
-              voteTotals={voteTotalsMap?.[child.messageId]}
-              voteTotalsMap={voteTotalsMap}
-              emitVoteIntent={emitVoteIntent}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function AudienceInput() {
   const { emit, onEvent, offEvent } = useSocket();
