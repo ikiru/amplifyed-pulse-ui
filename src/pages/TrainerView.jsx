@@ -804,7 +804,7 @@ Frustrated:  ${frustrated}`}
                       handleSubmitReply={handleTrainerReplySubmit}
                       voteTotals={voteTotals[root.messageId]}
                       voteTotalsMap={voteTotals}
-                      showVoteControls={false}
+                      showVoteControls={true}
                     />
                   ))}
                 </div>

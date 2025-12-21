@@ -55,19 +55,27 @@ export function ThreadItem({
 
   const replyDraftValue = replyDrafts?.[node.messageId] ?? "";
 
+  const canVote = Boolean(emitVoteIntent);
+
+  const handleVoteClick = (voteType) => {
+    if (!emitVoteIntent) return;
+    emitVoteIntent(node.messageId, voteType);
+  };
+
   return (
     <div className="thread-item" data-depth={String(Math.min(depth, 3))}>
       <div className="thread-message">
         <div className="message-row">
-          {showVoteControls && emitVoteIntent && (
+          {showVoteControls && (
             <button
               type="button"
               className={`vote-btn down ${
                 selectedVote === "down" ? "selected" : ""
               }`}
-              onClick={() => emitVoteIntent(node.messageId, "down")}
+              onClick={() => handleVoteClick("down")}
               aria-label="Downvote"
               aria-pressed={selectedVote === "down"}
+              disabled={!canVote}
             >
               ▼
             </button>
@@ -75,15 +83,16 @@ export function ThreadItem({
 
           <div className="message-content">{node.text}</div>
 
-          {showVoteControls && emitVoteIntent && (
+          {showVoteControls && (
             <button
               type="button"
               className={`vote-btn up ${
                 selectedVote === "up" ? "selected" : ""
               }`}
-              onClick={() => emitVoteIntent(node.messageId, "up")}
+              onClick={() => handleVoteClick("up")}
               aria-label="Upvote"
               aria-pressed={selectedVote === "up"}
+              disabled={!canVote}
             >
               ▲
             </button>
