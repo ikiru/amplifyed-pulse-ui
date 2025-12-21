@@ -5,7 +5,10 @@ import { getSessionMessages } from "./message.state.js";
 
 // Thin transport layer. Sends whatever shape was composed upstream.
 export function broadcastAudienceMessage(io, message) {
-  io.emit("message:audience", message);
+  // DISABLED: Incremental audience message broadcast
+  // Rendering must rely exclusively on authoritative state snapshots
+  // via `message.state.update`
+  return;
 }
 
 /**
