@@ -1,5 +1,9 @@
 /**
- * Message Pipeline — handleMessageFromAudience (Placeholder)
+ * Message Pipeline — handleMessageFromAudience (LEGACY / NOT WIRED)
+ *
+ * This handler is not part of the active message pipeline.
+ * Do not wire without removing duplicate audience handling
+ * in messagePipeline.js.
  */
 import { addMessage } from "./message.state.js";
 import { broadcastMessageState } from "./message.broadcast.js";
