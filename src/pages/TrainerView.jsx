@@ -3,6 +3,43 @@ import { useSocket } from "../socket/SocketContext.jsx";
 
 const MOMENT_HISTORY_LIMIT = 18;
 
+function formatMessageTimestamp(timestamp) {
+  if (!timestamp) {
+    return "waiting";
+  }
+  return new Date(timestamp).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function adaptTrainerMessage(message = {}) {
+  const envelope = message.envelope ?? {};
+  if (!envelope.messageId) {
+    return null;
+  }
+
+  const payload = message.payload ?? {};
+  const content = payload.content ?? {};
+  const contentType = typeof content.type === "string" ? content.type : "unknown";
+  const text =
+    typeof content.text === "string"
+      ? content.text
+      : typeof payload.text === "string"
+        ? payload.text
+        : `[${contentType}]`;
+
+  return {
+    messageId: envelope.messageId,
+    timestamp: envelope.timestamp ?? null,
+    authorRole: envelope.authorRole ?? "audience",
+    parentMessageId: envelope.parentMessageId ?? null,
+    contentType,
+    text,
+  };
+}
+
 export default function TrainerView() {
   const { emit, onEvent, offEvent, connectionStatus } = useSocket();
   const [focus, setFocus] = useState(null);
@@ -32,11 +69,14 @@ export default function TrainerView() {
   }, [onEvent, offEvent]);
 
   useEffect(() => {
-    const handleAudienceMessage = (payload) => {
-      setMessages((prev) => {
-        const next = [...prev, payload];
-        return next.slice(-5);
-      });
+    const handleMessageStateUpdate = ({ messages: canonicalMessages }) => {
+      if (!Array.isArray(canonicalMessages)) return;
+
+      const adapted = canonicalMessages
+        .map(adaptTrainerMessage)
+        .filter(Boolean);
+
+      setMessages(adapted.slice(-5));
     };
 
     const handleMomentUpdate = (payload) => {
@@ -99,12 +139,12 @@ export default function TrainerView() {
       setTrainerSignal(signal);
     };
 
-    onEvent("message:audience", handleAudienceMessage);
+    onEvent("message.state.update", handleMessageStateUpdate);
     onEvent("moment:update", handleMomentUpdate);
     onEvent("trainer:signal", handleTrainerSignal);
 
     return () => {
-      offEvent("message:audience", handleAudienceMessage);
+      offEvent("message.state.update", handleMessageStateUpdate);
       offEvent("moment:update", handleMomentUpdate);
       offEvent("trainer:signal", handleTrainerSignal);
     };
@@ -681,9 +721,9 @@ Frustrated:  ${frustrated}`}
                   fontSize: "0.85rem",
                 }}
               >
-                {messages.map((msg, index) => (
+                {messages.map((msg) => (
                   <div
-                    key={index}
+                    key={msg.messageId}
                     style={{
                       padding: "8px 10px",
                       borderRadius: 6,
@@ -691,7 +731,25 @@ Frustrated:  ${frustrated}`}
                       border: "1px solid #eee",
                     }}
                   >
-                    {typeof msg === "string" ? msg : JSON.stringify(msg)}
+                    <div style={{ fontSize: "0.9rem", fontWeight: 600 }}>
+                      {msg.text}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: 4,
+                        fontSize: "0.75rem",
+                        color: "#555",
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 6,
+                      }}
+                    >
+                      <span>{msg.authorRole}</span>
+                      <span>·</span>
+                      <span>{msg.contentType}</span>
+                      <span>·</span>
+                      <span>{formatMessageTimestamp(msg.timestamp)}</span>
+                    </div>
                   </div>
                 ))}
               </div>

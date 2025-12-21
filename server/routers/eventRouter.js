@@ -17,12 +17,17 @@
  *    });
  *
  * This architecture allows expansion without rewriting handlers.
+ * 
+ * 
+ * 
+ * // focus:update arrives as { sessionId, focus } — normalize to Focus object only
+ * 
+ * // Contract: focus state MUST always be a Focus object { text, focusId, sessionId, ... }
+
  */
 
 import { handleTrainerCommand } from "../pipelines/trainer/trainer.handleCommand.js";
 import { handleTrainerNudge } from "../pipelines/trainer/trainer.handleNudge.js";
-import { v4 as uuidv4 } from "uuid";
-import * as messageVoteHandle from "../pipelines/message/message.vote.handle.js";
 
 const DEFAULT_SESSION_ID = "session:default";
 
@@ -209,30 +214,6 @@ socket.on("audience:pulse", (payload = {}) => {
     }
   });
 
-  socket.on("message:interaction", (payload = {}) => {
-    const {
-      sessionId,
-      messageId,
-      interactionType,
-      actorRole,
-    } = payload;
-
-    if (!sessionId || !messageId) return;
-    if (!["upvote", "downvote"].includes(interactionType)) return;
-    if (!["audience", "trainer"].includes(actorRole)) return;
-
-    const interactionIntent = {
-      interactionId: uuidv4(),
-      sessionId,
-      messageId,
-      interactionType,
-      actorRole,
-      timestamp: Date.now(),
-    };
-
-    io.emit("message:interaction", interactionIntent);
-  });
-
   socket.on("message:trainerReply", (payload) => {
     if (messagePipeline?.handleTrainerReply) {
       messagePipeline.handleTrainerReply({
@@ -240,20 +221,6 @@ socket.on("audience:pulse", (payload = {}) => {
         ...payload,
       });
     }
-  });
-
-  // --- Message Voting (Phase 8.8.3) ---
-  socket.on("message:vote:intent", (payload = {}) => {
-    console.log("[VOTE][ROUTER] received", {
-      socketId: socket.id,
-      payload,
-    });
-
-    messageVoteHandle.handleVoteIntent({
-      io,
-      socket,
-      payload,
-    });
   });
 
   // -------------------------------------------
