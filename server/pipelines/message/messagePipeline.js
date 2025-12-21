@@ -53,7 +53,8 @@ export function createMessagePipeline(io, momentBuilder = null) {
     });
     if (!storedMessage) return;
 
-    broadcastAudienceMessage(io, storedMessage);
+    // Incremental audience broadcast disabled.
+    // Authoritative message state is broadcast below.
     broadcastMessageState({ io, sessionId });
 
     const signalText = text ?? effectiveContent.text;
