@@ -3,6 +3,7 @@ import { useSocket } from "../socket/SocketContext.jsx";
 import { adaptMessage } from "./messageHelpers.js";
 import { buildMessageTree, ThreadItem } from "./messageThread.jsx";
 import "./AudienceInput.css";
+import "./TrainerView.css";
 
 const MOMENT_HISTORY_LIMIT = 18;
 const pulseOptions = [
@@ -731,7 +732,7 @@ Frustrated:  ${frustrated}`}
 
               {messageRoots.length ? (
                 <div
-                  className="message-stream"
+                  className="message-stream trainer-message-stream"
                   style={{
                     display: "flex",
                     flexDirection: "column",

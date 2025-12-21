@@ -1,0 +1,43 @@
+.trainer-message-stream .thread-message {
+  position: relative;
+  padding-left: 48px;
+  padding-right: 48px;
+}
+
+.trainer-message-stream .thread-message .message-row {
+  justify-content: center;
+}
+
+.trainer-message-stream .thread-message .message-content {
+  max-width: calc(100% - 96px);
+  margin: 0 auto;
+  text-align: center;
+}
+
+.trainer-message-stream .thread-message .thread-vote-totals {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  font-size: 0.8rem;
+  color: #333;
+}
+
+.trainer-message-stream .thread-message .thread-vote-totals span {
+  flex-basis: auto;
+  min-width: 60px;
+}
+
+.trainer-message-stream .thread-message .thread-vote-totals span:first-child {
+  order: 2;
+  text-align: right;
+}
+
+.trainer-message-stream .thread-message .thread-vote-totals span:last-child {
+  order: 1;
+  text-align: left;
+}
