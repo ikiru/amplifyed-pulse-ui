@@ -41,3 +41,164 @@
   order: 1;
   text-align: left;
 }
+
+.pulse-step-line {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pulse-step-line-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 0.8rem;
+  color: #333;
+}
+
+.pulse-step-line-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+}
+
+.pulse-step-line-scale {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.pulse-step-line-current {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #0066ff;
+  white-space: nowrap;
+}
+
+.pulse-step-line-track {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px;
+}
+
+.pulse-step-line-svg {
+  width: 100%;
+  height: 120px;
+  display: block;
+}
+
+.pulse-step-line-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #555;
+}
+
+.pulse-step-line-empty {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px;
+  background: #fff;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.pulse-step-line-empty-label {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #777;
+}
+
+.pulse-step-line-notation {
+  font-size: 0.75rem;
+  color: #444;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+}
+
+.pulse-timeline {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.pulse-timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.pulse-timeline-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.pulse-timeline-scale {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.pulse-timeline-current {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0066ff;
+  white-space: nowrap;
+}
+
+.pulse-timeline-track {
+  border: 1px solid #eee;
+  border-radius: 10px;
+  background: #fefefe;
+  padding: 8px;
+}
+
+.pulse-timeline-svg {
+  width: 100%;
+  height: 200px;
+  display: block;
+}
+
+.pulse-timeline-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #555;
+}
+
+.pulse-timeline-time-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #555;
+  letter-spacing: 0.02em;
+  margin-top: 6px;
+}
+
+.pulse-timeline-empty {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+  font-size: 0.85rem;
+  color: #222;
+}
+
+.pulse-timeline-empty-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.pulse-timeline-empty-label {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #666;
+}
