@@ -16,9 +16,11 @@ export const SocketContext = createContext(null);
 
 export function SocketProvider({ children }) {
   const socketRef = useRef(null);
+  const lastDisconnectedSocketIdRef = useRef(null);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
   const [socketState, setSocketState] = useState(null);
   // Phase 8 — Focus state
+  const isDev = process.env.NODE_ENV !== "production";
   // Phase 8.1 — Focus (authoritative session state)
   const [focus, setFocus] = useState(null);
   const registeredHandlers = useRef(new Map());
@@ -32,6 +34,10 @@ export function SocketProvider({ children }) {
       // Allow Socket.IO to auto-connect back to the dev server origin so Vite can proxy it.
       socketRef.current = io({
         transports: ["websocket"],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 4000,
       });
     }
 
@@ -49,10 +55,38 @@ export function SocketProvider({ children }) {
     if (typeof window !== "undefined") {
       window.__SOCKET__ = socket;
     }
-    const handleConnect = () => setConnectionStatus("connected");
-    const handleDisconnect = () => setConnectionStatus("disconnected");
+    const handleConnect = () => {
+      setConnectionStatus("connected");
+      lastDisconnectedSocketIdRef.current = null;
+    };
+
+    const handleDisconnect = () => {
+      setConnectionStatus("disconnected");
+      lastDisconnectedSocketIdRef.current = socket.id;
+    };
+
+    const handleReconnect = (attemptNumber) => {
+      if (!isDev) return;
+      const previousId = lastDisconnectedSocketIdRef.current;
+      const currentId = socket.id;
+      const logPayload = {
+        attempt: attemptNumber,
+        previousId,
+        currentId,
+      };
+      if (previousId && previousId !== currentId) {
+        console.warn("[socket] reconnect changed socket.id", logPayload);
+      } else {
+        console.log("[socket] reconnect completed", logPayload);
+      }
+      lastDisconnectedSocketIdRef.current = null;
+    };
+
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
+    if (isDev) {
+      socket.on("reconnect", handleReconnect);
+    }
 
     // ---- Focus events (Phase 8.2 fix) ----
     socket.on("focus:update", (payload) => {
@@ -81,6 +115,10 @@ export function SocketProvider({ children }) {
 
       socket.off("focus:update");
       socket.off("focus:cleared");
+
+      if (isDev) {
+        socket.off("reconnect", handleReconnect);
+      }
 
       registeredHandlers.current.forEach((handlers, event) => {
         handlers.forEach((handler) => {

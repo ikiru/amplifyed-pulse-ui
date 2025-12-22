@@ -23,6 +23,14 @@ const io = new Server(httpServer, {
   },
 });
 
+const isDevServer = process.env.NODE_ENV !== "production";
+const logSocketLifecycle = (event, detail) => {
+  if (!isDevServer) {
+    return;
+  }
+  console.log(`[SERVER] socket ${event}:`, detail);
+};
+
 const momentPipeline = createMomentPipeline(io);
 
 const pulsePipeline = createPulsePipeline(io, { momentPipeline });
@@ -58,6 +66,11 @@ const sessionPipeline = null;
 
 io.on("connection", (socket) => {
   console.log("[SERVER] connection received:", socket.id);
+  logSocketLifecycle("connect", { socketId: socket.id, reason: "connected" });
+
+  socket.on("disconnect", (reason) => {
+    logSocketLifecycle("disconnect", { socketId: socket.id, reason });
+  });
 
   registerEventRouter(io, socket, {
     focusPipeline,

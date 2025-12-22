@@ -11,6 +11,16 @@ export function createPulseBroadcast(io, pulseState) {
   function broadcastPulseUpdate(participants) {
     const { votes, eventLog } = pulseState.state;
 
+    if (
+      process.env.NODE_ENV !== "production" &&
+      participants === undefined
+    ) {
+      console.warn("[BROADCAST] pulse:update emitted without participants", {
+        votes,
+        eventLog,
+      });
+    }
+
     io.emit("pulse:update", {
       participants,
       votes,
