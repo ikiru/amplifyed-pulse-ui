@@ -34,6 +34,8 @@ export default function TrainerView() {
   const [trainerReplyDrafts, setTrainerReplyDrafts] = useState({});
 
   // PulseTimeline now relies directly on the `pulse:update` payload so the visual stays tied to the canonical stream without cached selectors.
+  // Source: canonical `livePulse` updates from the server (pulse:update) drive this value first via `participantCount`, with the participants map length as a derived fallback when the explicit count is missing.
+  // We consider `livePulse` the authoritative stream for participant information, so PulseSummary reads this same slot.
   const participantCount =
     typeof livePulse?.participantCount === "number"
       ? livePulse.participantCount
@@ -48,6 +50,30 @@ export default function TrainerView() {
       );
     }
   }, [livePulse, participantCount]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") {
+      return;
+    }
+
+    const timelineCount =
+      typeof participantCount === "number" ? participantCount : 0;
+
+    console.assert(
+      participantCount === timelineCount,
+      "[TrainerView DEV TRACE] PulseSummary participantCount diverges from PulseTimeline",
+      {
+        summary: {
+          value: participantCount,
+          source: "livePulse pulse:update (explicit count or derived from participants map)",
+        },
+        timeline: {
+          value: timelineCount,
+          source: "PulseTimeline participantsCount prop (defaults to 0 when canonical value missing)",
+        },
+      }
+    );
+  }, [participantCount]);
 
   // -------------------------------
   // Socket listeners
@@ -1000,7 +1026,18 @@ Frustrated:  ${frustrated}`}
   );
 }
 
-function PulseTimeline({ eventLog = [], participantsCount = 0 }) {
+function PulseTimeline(props) {
+  const { eventLog = [], participantsCount = 0 } = props;
+  const rawParticipantsCount = props.participantsCount;
+
+  if (process.env.NODE_ENV !== "production") {
+    console.debug(
+      "[PulseTimeline] participantsCount raw prop",
+      rawParticipantsCount
+    );
+  }
+
+  // Source: raw prop from TrainerView's livePulse payload. The timeline defaults to 0 for missing values, so the debug here shines light on when PulseSummary sees `undefined` while PulseTimeline consumes 0.
   const canonicalPulseMap = {
     engaged: 1,
     neutral: 0,

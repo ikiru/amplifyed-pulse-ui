@@ -76,6 +76,16 @@ export function createPulsePipeline(
       return;
     }
 
+    const previousVote = roomState.votes[userId];
+    if (previousVote === value) {
+      console.log("[PIPELINE] Ignoring duplicate pulse value:", {
+        userId,
+        value,
+        previousVote,
+      });
+      return { userId, value, skipped: true };
+    }
+
     console.log("[PIPELINE] handlePulseSubmit fired:", {
       userId,
       value,
