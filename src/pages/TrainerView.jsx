@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
 import { adaptMessage } from "./messageHelpers.js";
 import { buildMessageTree, ThreadItem } from "./messageThread.jsx";
@@ -33,35 +33,21 @@ export default function TrainerView() {
   const [trainerReplyToId, setTrainerReplyToId] = useState(null);
   const [trainerReplyDrafts, setTrainerReplyDrafts] = useState({});
 
-  // Pulse events are sourced directly from the `livePulse` payload (the canonical `pulse:update` socket event) and carry the authoritative ±1 / 0 / -1 values.
-  // Failure mode: memoizing on `livePulse?.eventLog` alone could miss updates when the socket reuses the same array reference, so derive the timeline data inline from the canonical payload.
-  const pulseEvents = (() => {
-    const logEntries = Array.isArray(livePulse?.eventLog)
-      ? [...livePulse.eventLog]
-      : [];
-
-    return logEntries
-      .map((entry) => {
-        if (!entry) return null;
-        const value = typeof entry.value === "number" ? entry.value : null;
-        if (value === null) return null;
-        if (value !== -1 && value !== 0 && value !== 1) {
-          return null;
-        }
-        return {
-          ts: entry.ts ?? entry.timestamp ?? 0,
-          value,
-        };
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.ts - b.ts);
-  })();
-
-  // participantCount tracks `livePulse.participants` (same `pulse:update` payload that drives Pulse Summary), so joins/leaves immediately update this scale-only value.
+  // PulseTimeline now relies directly on the `pulse:update` payload so the visual stays tied to the canonical stream without cached selectors.
   const participantCount =
-    livePulse && livePulse.participants
-      ? Object.keys(livePulse.participants).length
-      : 0;
+    typeof livePulse?.participantCount === "number"
+      ? livePulse.participantCount
+      : livePulse?.participants
+        ? Object.keys(livePulse.participants).length
+        : undefined;
+
+  useEffect(() => {
+    if (livePulse && participantCount === undefined) {
+      console.warn(
+        "[TrainerView] pulse:update payload missing participants info required for PulseTimeline scale."
+      );
+    }
+  }, [livePulse, participantCount]);
 
   // -------------------------------
   // Socket listeners
@@ -69,7 +55,23 @@ export default function TrainerView() {
   useEffect(() => {
     // src/pages/TrainerView.jsx — `livePulse` is the canonical state key updated by the server’s `pulse:update` event whenever audience votes change.
     const handlePulse = (payload) => {
-      setLivePulse(payload);
+      if (!payload) {
+        setLivePulse(null);
+        return;
+      }
+
+      const nextPulse = {
+        ...payload,
+        participants:
+          payload.participants && typeof payload.participants === "object"
+            ? { ...payload.participants }
+            : payload.participants,
+        eventLog: Array.isArray(payload.eventLog)
+          ? payload.eventLog.map((entry) => (entry ? { ...entry } : entry))
+          : payload.eventLog,
+      };
+
+      setLivePulse(nextPulse);
     };
 
     onEvent("pulse:update", handlePulse);
@@ -409,10 +411,7 @@ Frustrated:  ${frustrated}`}
         Last update: {formattedLastMoment}
       </p>
       {renderPulseVotes()}
-      <PulseStepLine
-        events={pulseEvents}
-        participantsCount={participantCount}
-      />
+      {/* LEFT COLUMN pulse timeline (non-authoritative) */}
     </>
   );
 
@@ -769,8 +768,9 @@ Frustrated:  ${frustrated}`}
           {/* ===== Pulse ===== */}
           <section>
             <h2>Pulse</h2>
+            {/* CENTER COLUMN pulse timeline (authoritative) */}
             <PulseTimeline
-              events={pulseEvents}
+              eventLog={livePulse?.eventLog ?? []}
               participantsCount={participantCount}
             />
           </section>
@@ -1000,166 +1000,93 @@ Frustrated:  ${frustrated}`}
   );
 }
 
-function PulseStepLine({ events = [], participantsCount = 0 }) {
-  const hasPulseData = events.length > 0;
-
-  if (!hasPulseData) {
-    return (
-      <div className="pulse-step-line pulse-step-line-empty">
-        <div className="pulse-step-line-title">Pulse timeline</div>
-        <p className="pulse-step-line-empty-label">
-          Awaiting authoritative pulse values…
-        </p>
-      </div>
-    );
-  }
-
-  const labelMap = {
-    1: "+1 Working",
-    0: "0 Neutral",
-    "-1": "-1 Not working",
+function PulseTimeline({ eventLog = [], participantsCount = 0 }) {
+  const canonicalPulseMap = {
+    engaged: 1,
+    neutral: 0,
+    frustrated: -1,
   };
 
-  const latestValue = events[events.length - 1].value;
-  const height = 120;
-  const totalPoints = events.length;
-  const width = Math.max(240, (totalPoints - 1) * 32);
-  const spacing = totalPoints > 1 ? width / (totalPoints - 1) : width;
+  const normalizedEvents = (Array.isArray(eventLog) ? eventLog : [])
+    .map((entry, index) => {
+      if (!entry) {
+        return null;
+      }
 
-  const yForValue = (value) => height - ((value + 1) / 2) * height;
+      const rawValue =
+        typeof entry.value === "number"
+          ? entry.value
+          : canonicalPulseMap[entry.value];
+      if (
+        rawValue === null ||
+        rawValue === undefined ||
+        (rawValue !== 1 && rawValue !== 0 && rawValue !== -1)
+      ) {
+        return null;
+      }
 
-  const commands = [];
-  let previousValue = events[0].value;
-  commands.push(`M 0 ${yForValue(previousValue).toFixed(2)}`);
+      return {
+        ts: entry.ts ?? entry.timestamp ?? Date.now() + index,
+        value: rawValue,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.ts - b.ts);
 
-  if (totalPoints === 1) {
-    commands.push(
-      `L ${width.toFixed(2)} ${yForValue(previousValue).toFixed(2)}`
-    );
-  } else {
-    for (let i = 1; i < totalPoints; i += 1) {
-      const x = i * spacing;
-      commands.push(
-        `L ${x.toFixed(2)} ${yForValue(previousValue).toFixed(2)}`
-      );
-      const nextValue = events[i].value;
-      commands.push(
-        `L ${x.toFixed(2)} ${yForValue(nextValue).toFixed(2)}`
-      );
-      previousValue = nextValue;
-    }
-  }
+  const hasParticipantData = Number.isFinite(participantsCount);
+  const axisScaleValue = hasParticipantData ? participantsCount : 1;
+  const safeScale = axisScaleValue === 0 ? 1 : Math.max(axisScaleValue, 1);
 
-  commands.push(
-    `L ${width.toFixed(2)} ${yForValue(previousValue).toFixed(2)}`
-  );
-  const pathD = commands.join(" ");
+  const timelinePoints = [];
+  const startTs = normalizedEvents[0]?.ts ?? Date.now();
+  timelinePoints.push({ ts: startTs, netValue: 0 });
 
-  return (
-    <div className="pulse-step-line">
-      <div className="pulse-step-line-header">
-        <div>
-          <div className="pulse-step-line-title">Pulse timeline</div>
-          <div className="pulse-step-line-scale">
-            Scale based on participants: ±{participantsCount || 1}
-          </div>
-        </div>
-        <div className="pulse-step-line-current">
-          {labelMap[latestValue] ?? latestValue}
-        </div>
-      </div>
-      <div className="pulse-step-line-notation">
-        Working (+1) / Neutral (0) / Not working (-1)
-      </div>
-      <div className="pulse-step-line-track">
-        <svg
-          className="pulse-step-line-svg"
-          viewBox={`0 0 ${width} ${height}`}
-          preserveAspectRatio="none"
-        >
-          {[-1, 0, 1].map((value) => (
-            <line
-              key={`axis-${value}`}
-              x1="0"
-              x2={width}
-              y1={yForValue(value)}
-              y2={yForValue(value)}
-              stroke="#ddd"
-              strokeWidth="0.5"
-            />
-          ))}
-          <path d={pathD} fill="none" stroke="#0066ff" strokeWidth="2" />
-        </svg>
-      </div>
-      <div className="pulse-step-line-legend">
-        <span>-1 Not working</span>
-        <span>0 Neutral</span>
-        <span>+1 Working</span>
-      </div>
-    </div>
-  );
-}
+  let previousVote = 0;
+  let netValueTotal = 0;
 
-function PulseTimeline({ events = [], participantsCount = 0 }) {
-  // Pulse values (+1/0/-1) are consumed directly from `events`—the canonical `livePulse.eventLog`—so no derivation happens here.
-  // `participantsCount` is sourced from the same session payload above and only controls the visual scale; Pulse Summary is left untouched per requirements.
-  const sanitizedEvents = events.map((entry) => ({
-    ...entry,
-    value:
-      entry?.value === 1 || entry?.value === 0 || entry?.value === -1
-        ? entry.value
-        : 0,
-  }));
+  normalizedEvents.forEach((entry) => {
+    const delta = entry.value - previousVote;
+    netValueTotal += delta;
 
-  const hasEvents = sanitizedEvents.length > 0;
-  const participantScale = participantsCount > 0 ? participantsCount : 1; // keeps axis bounds at ±participantCount while defaulting to ±1 if no live data yet
+    timelinePoints.push({
+      ts: entry.ts,
+      netValue: netValueTotal,
+    });
+
+    previousVote = entry.value;
+  });
+
   const width =
-    Math.max(360, Math.max(sanitizedEvents.length - 1, 0) * 48 + 80);
+    Math.max(360, Math.max(normalizedEvents.length - 1, 0) * 48 + 80);
   const height = 180;
   const centerY = height / 2;
   const amplitude = centerY - 16;
 
-  const earliestTs = sanitizedEvents[0]?.ts ?? Date.now();
-  const latestTs =
-    sanitizedEvents[sanitizedEvents.length - 1]?.ts ?? earliestTs;
+  const earliestTs = timelinePoints[0]?.ts ?? Date.now();
+  const latestTs = timelinePoints[timelinePoints.length - 1]?.ts ?? earliestTs;
   const span = Math.max(latestTs - earliestTs, 1);
 
   const xForTs = (ts) => {
-    const progress = span === 0 ? 0 : (ts - earliestTs) / span;
+    const progress = (ts - earliestTs) / span;
     return Math.max(0, Math.min(width, progress * width));
   };
 
   const yForValue = (value) =>
-    centerY - (value / participantScale) * amplitude;
+    centerY - (value / safeScale) * amplitude;
 
-  const commands = [];
-  let previousValue = hasEvents ? sanitizedEvents[0].value : 0;
-  commands.push(`M 0 ${yForValue(previousValue).toFixed(2)}`);
+  const commands = timelinePoints.map((point, index) => {
+    const x = xForTs(point.ts);
+    const y = yForValue(point.netValue);
+    return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+  });
 
-  for (let index = 1; index < sanitizedEvents.length; index += 1) {
-    const current = sanitizedEvents[index];
-    const x = xForTs(current.ts);
-    commands.push(
-      `L ${x.toFixed(2)} ${yForValue(previousValue).toFixed(2)}`
-    );
-    if (current.value !== previousValue) {
-      commands.push(
-        `L ${x.toFixed(2)} ${yForValue(current.value).toFixed(2)}`
-      );
-    }
-    previousValue = current.value;
-  }
-
+  const latestNetValue =
+    timelinePoints[timelinePoints.length - 1]?.netValue ?? 0;
   commands.push(
-    `L ${width.toFixed(2)} ${yForValue(previousValue).toFixed(2)}`
+    `L ${width.toFixed(2)} ${yForValue(latestNetValue).toFixed(2)}`
   );
+
   const pathD = commands.join(" ");
-  const latestValue = hasEvents ? sanitizedEvents[sanitizedEvents.length - 1].value : 0;
-  const labelMap = {
-    1: "+1 Working",
-    0: "0 Neutral",
-    "-1": "-1 Not working",
-  };
 
   const formatAxisTime = (timestamp) =>
     new Date(timestamp).toLocaleTimeString([], {
@@ -1168,17 +1095,34 @@ function PulseTimeline({ events = [], participantsCount = 0 }) {
       second: "2-digit",
     });
 
+  const netLabel =
+    latestNetValue >= 0 ? `+${latestNetValue}` : `${latestNetValue}`;
+  const voteLabelMap = {
+    1: "Engaged",
+    0: "Neutral",
+    "-1": "Frustrated",
+  };
+  const latestVote = normalizedEvents[normalizedEvents.length - 1]?.value ?? 0;
+
+  const scaleLabel = hasParticipantData
+    ? `Scale based on participants: ±${participantsCount}`
+    : "Scale based on participants: ±1 (participant data pending)";
+
+  const axisLineValues = [
+    hasParticipantData ? participantsCount : safeScale,
+    0,
+    hasParticipantData ? -participantsCount : -safeScale,
+  ];
+
   return (
     <div className="pulse-timeline">
       <div className="pulse-timeline-header">
         <div>
           <div className="pulse-timeline-title">Pulse timeline</div>
-          <div className="pulse-timeline-scale">
-            Scale based on participants: ±{participantScale}
-          </div>
+          <div className="pulse-timeline-scale">{scaleLabel}</div>
         </div>
         <div className="pulse-timeline-current">
-          {labelMap[latestValue] ?? latestValue}
+          Net movement: {netLabel} · Last vote: {voteLabelMap[latestVote] ?? "Neutral"}
         </div>
       </div>
       <div className="pulse-timeline-track">
@@ -1187,7 +1131,7 @@ function PulseTimeline({ events = [], participantsCount = 0 }) {
           viewBox={`0 0 ${width} ${height}`}
           preserveAspectRatio="none"
         >
-          {[participantScale, 0, -participantScale].map((value) => (
+          {axisLineValues.map((value) => (
             <line
               key={`axis-${value}`}
               x1="0"
@@ -1210,11 +1154,11 @@ function PulseTimeline({ events = [], participantsCount = 0 }) {
         </svg>
       </div>
       <div className="pulse-timeline-legend">
-        <span>-1 Not working</span>
-        <span>0 Neutral</span>
-        <span>+1 Working</span>
+        <span>Net movement history</span>
+        <span>±1 per vote</span>
+        <span>Driven by pulse:update</span>
       </div>
-      {hasEvents && (
+      {timelinePoints.length > 1 && (
         <div className="pulse-timeline-time-axis">
           <span>{formatAxisTime(earliestTs)}</span>
           <span>{formatAxisTime(latestTs)}</span>
