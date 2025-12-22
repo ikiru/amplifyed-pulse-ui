@@ -1034,8 +1034,12 @@ function PulseTimeline({ eventLog = [], participantsCount = 0 }) {
     .sort((a, b) => a.ts - b.ts);
 
   const hasParticipantData = Number.isFinite(participantsCount);
-  const axisScaleValue = hasParticipantData ? participantsCount : 1;
-  const safeScale = axisScaleValue === 0 ? 1 : Math.max(axisScaleValue, 1);
+  const participantScale = hasParticipantData ? participantsCount : 0;
+  // displayCount bottoms out at 1 so a visible ± range exists even with zero/missing participants, and the left labels are strictly diagnostics for verifying that participant-based scaling.
+  const displayCount = Math.max(1, participantScale);
+  const minY = -displayCount;
+  const maxY = displayCount;
+  const safeScale = displayCount;
 
   const timelinePoints = [];
   const startTs = normalizedEvents[0]?.ts ?? Date.now();
@@ -1108,11 +1112,7 @@ function PulseTimeline({ eventLog = [], participantsCount = 0 }) {
     ? `Scale based on participants: ±${participantsCount}`
     : "Scale based on participants: ±1 (participant data pending)";
 
-  const axisLineValues = [
-    hasParticipantData ? participantsCount : safeScale,
-    0,
-    hasParticipantData ? -participantsCount : -safeScale,
-  ];
+  const axisLineValues = [maxY, 0, minY];
 
   return (
     <div className="pulse-timeline">
@@ -1126,32 +1126,58 @@ function PulseTimeline({ eventLog = [], participantsCount = 0 }) {
         </div>
       </div>
       <div className="pulse-timeline-track">
-        <svg
-          className="pulse-timeline-svg"
-          viewBox={`0 0 ${width} ${height}`}
-          preserveAspectRatio="none"
+        <div
+          className="pulse-timeline-track-inner"
+          style={{ minHeight: height }}
         >
-          {axisLineValues.map((value) => (
-            <line
-              key={`axis-${value}`}
-              x1="0"
-              x2={width}
-              y1={yForValue(value)}
-              y2={yForValue(value)}
-              stroke="#eee"
-              strokeWidth="1"
-            />
-          ))}
-          <line
-            x1="0"
-            x2={width}
-            y1={height - 4}
-            y2={height - 4}
-            stroke="#ccc"
-            strokeWidth="1"
-          />
-          <path d={pathD} fill="none" stroke="#0066ff" strokeWidth="2" />
-        </svg>
+          <div
+            className="pulse-timeline-scale-axis"
+            style={{ height }}
+            aria-hidden="true"
+          >
+            {[
+              { value: maxY, label: maxY >= 0 ? `+${maxY}` : `${maxY}`, key: "max" },
+              { value: 0, label: "0", key: "zero" },
+              { value: minY, label: `${minY}`, key: "min" },
+            ].map(({ value, label, key }) => (
+              <span
+                key={`scale-label-${key}`}
+                className="pulse-timeline-scale-label"
+                style={{ top: `${yForValue(value)}px` }}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+          <div className="pulse-timeline-svg-wrapper">
+            <svg
+              className="pulse-timeline-svg"
+              viewBox={`0 0 ${width} ${height}`}
+              preserveAspectRatio="none"
+            >
+              {axisLineValues.map((value) => (
+                <line
+                  key={`axis-${value}`}
+                  x1="0"
+                  x2={width}
+                  y1={yForValue(value)}
+                  y2={yForValue(value)}
+                  stroke="#eee"
+                  strokeWidth="1"
+                />
+              ))}
+              <line
+                x1="0"
+                x2={width}
+                y1={height - 4}
+                y2={height - 4}
+                stroke="#ccc"
+                strokeWidth="1"
+              />
+              <path d={pathD} fill="none" stroke="#0066ff" strokeWidth="2" />
+            </svg>
+          </div>
+        </div>
       </div>
       <div className="pulse-timeline-legend">
         <span>Net movement history</span>
