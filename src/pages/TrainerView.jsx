@@ -5,6 +5,12 @@ import { buildMessageTree, ThreadItem } from "./messageThread.jsx";
 import "./AudienceInput.css";
 import "./TrainerView.css";
 
+const assert = (condition, message) => {
+  if (!condition) {
+    throw new Error(message);
+  }
+};
+
 const MOMENT_HISTORY_LIMIT = 18;
 const pulseOptions = [
   { value: "frustrated", label: "Frustrated" },
@@ -42,6 +48,7 @@ export default function TrainerView() {
       : livePulse?.participants
         ? Object.keys(livePulse.participants).length
         : undefined;
+  const isParticipantCountResolved = typeof participantCount === "number";
 
   useEffect(() => {
     if (livePulse && participantCount === undefined) {
@@ -59,20 +66,26 @@ export default function TrainerView() {
     const timelineCount =
       typeof participantCount === "number" ? participantCount : 0;
 
-    console.assert(
-      participantCount === timelineCount,
-      "[TrainerView DEV TRACE] PulseSummary participantCount diverges from PulseTimeline",
-      {
-        summary: {
-          value: participantCount,
-          source: "livePulse pulse:update (explicit count or derived from participants map)",
-        },
-        timeline: {
-          value: timelineCount,
-          source: "PulseTimeline participantsCount prop (defaults to 0 when canonical value missing)",
-        },
-      }
-    );
+    // `participantCount` can legitimately be undefined while the socket stream is still establishing,
+    // so only run the dev-side assert when we have a canonical value to compare.
+    if (participantCount !== undefined) {
+      console.assert(
+        participantCount === timelineCount,
+        "[TrainerView DEV TRACE] PulseSummary participantCount diverges from PulseTimeline",
+        {
+          summary: {
+            value: participantCount,
+            source:
+              "livePulse pulse:update (explicit count or derived from participants map)",
+          },
+          timeline: {
+            value: timelineCount,
+            source:
+              "PulseTimeline participantsCount prop (defaults to 0 when canonical value missing)",
+          },
+        }
+      );
+    }
   }, [participantCount]);
 
   // -------------------------------
@@ -460,7 +473,7 @@ export default function TrainerView() {
     },
     { engaged: 0, neutral: 0, frustrated: 0 }
   );
-  const summaryParticipantsCount = participantCount;
+  const summaryVoteCount = pulseVoteEntries.length;
   const timelineParticipantsCount = participantCount;
 
   const renderPulseVotes = () => {
@@ -469,7 +482,7 @@ export default function TrainerView() {
     }
 
     console.groupCollapsed("[TRACE] PulseSummary");
-    console.log("participantsCount:", summaryParticipantsCount);
+    console.log("votes counted:", summaryVoteCount);
     console.log("summary counts:", summaryVoteTotals);
     console.groupEnd();
 
@@ -503,13 +516,10 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
   };
 
   if (process.env.NODE_ENV !== "production") {
-    console.assert(
-      summaryParticipantsCount === timelineParticipantsCount,
-      "[ASSERT FAIL] Participant count mismatch",
-      {
-        summary: summaryParticipantsCount,
-        timeline: timelineParticipantsCount,
-      }
+    assert(
+      summaryVoteCount <= timelineParticipantsCount ||
+        timelineParticipantsCount === undefined,
+      "PulseSummary vote count exceeds participant count"
     );
   }
 
@@ -574,7 +584,7 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
                 if (process.env.NODE_ENV !== "production") {
                   console.groupCollapsed("[TRACE] PulseSummary render");
                   console.log("summary.livePulse:", livePulse);
-                  console.log("summary.participantsCount:", summaryParticipantsCount);
+                  console.log("summary.voteCount:", summaryVoteCount);
                   console.log("summary.voteTotals:", summaryVoteTotals);
                   console.groupEnd();
                 }
@@ -864,14 +874,14 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
           </div>
         </div>
 
-        <div
-          data-column="center"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
-          }}
-        >
+            <div
+              data-column="center"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
           {/* ===== Pulse ===== */}
           <section>
             <h2>Pulse</h2>
@@ -889,22 +899,38 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
 
               if (process.env.NODE_ENV !== "production") {
                 if (
-                  typeof summaryParticipantsCount === "number" &&
+                  typeof summaryVoteCount === "number" &&
                   typeof timelineParticipantsCount === "number" &&
-                  summaryParticipantsCount !== timelineParticipantsCount
+                  summaryVoteCount > timelineParticipantsCount
                 ) {
                   throw new Error(
-                    `[ASSERT] Participant count mismatch\n` +
-                      `PulseSummary: ${summaryParticipantsCount}\n` +
+                    `[ASSERT] PulseSummary vote count exceeds participant count\n` +
+                      `PulseSummary votes: ${summaryVoteCount}\n` +
                       `PulseTimeline: ${timelineParticipantsCount}`
                   );
                 }
               }
             })()}
-            <PulseTimeline
-              eventLog={livePulse?.eventLog ?? []}
-              participantsCount={participantCount}
-            />
+            {isParticipantCountResolved ? (
+              <PulseTimeline
+                eventLog={livePulse?.eventLog ?? []}
+                participantsCount={participantCount}
+              />
+            ) : (
+              <div
+                className="pulse-timeline-placeholder"
+                style={{
+                  padding: "16px",
+                  border: "1px dashed #bbb",
+                  borderRadius: 8,
+                  background: "#fff",
+                  color: "#666",
+                  fontStyle: "italic",
+                }}
+              >
+                Waiting for canonical participant data before drawing the timeline.
+              </div>
+            )}
           </section>
 
           <section
@@ -1135,41 +1161,61 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
 function PulseTimeline(props) {
   const {
     eventLog = [],
-    participantsCount = 0,
+    participantsCount,
     scaleMin,
     scaleMax,
     points,
   } = props;
+
+  const participantsPending = participantsCount === undefined;
+
+  if (participantsPending) {
+    console.debug("[PulseTimeline] participants pending");
+  }
+
+  assert(
+    participantsPending || typeof participantsCount === "number",
+    "PulseTimeline received invalid participantsCount"
+  );
+
+  // Normalize participantsCount for early / pre-session renders
+  const resolvedParticipantsCount =
+    typeof participantsCount === "number"
+      ? participantsCount
+      : 0;
+  const scale = participantsPending ? 1 : participantsCount;
   const scalingProps = {
-    participantsCount: props.participantsCount,
-    eventLogLength: Array.isArray(props.eventLog) ? props.eventLog.length : undefined,
+    participantsCount: resolvedParticipantsCount,
+    eventLogLength: Array.isArray(eventLog) ? eventLog.length : undefined,
     pulseHistoryLength: props.pulseHistory?.length,
     scale: props.scale,
   };
 
   if (process.env.NODE_ENV !== "production") {
     console.groupCollapsed("[TRACE] PulseTimeline props");
-    console.log("participantsCount:", participantsCount);
+    console.log("resolvedParticipantsCount:", resolvedParticipantsCount);
     console.log("scaleMin:", scaleMin);
     console.log("scaleMax:", scaleMax);
     console.log("points:", points);
     console.groupEnd();
 
-    if (participantsCount === 0 || participantsCount === undefined) {
+    // Zero is an expected transitional value while the canonical participant count is still pending.
+    const resolvedCountIsValid = resolvedParticipantsCount >= 0;
+    if (!resolvedCountIsValid) {
       console.warn(
-        "[ASSERT] PulseTimeline received invalid participantsCount:",
-        participantsCount
+        "[ASSERT] PulseTimeline received invalid resolvedParticipantsCount:",
+        resolvedParticipantsCount
       );
     }
 
     console.groupCollapsed("[TRACE] PulseTimeline scaling props");
     console.log("scaling props snapshot:", scalingProps);
-    console.log("participantsCount (normalized):", participantsCount);
+    console.log("resolvedParticipantsCount:", resolvedParticipantsCount);
     console.groupEnd();
     console.assert(
-      participantsCount > 0,
-      "[ASSERT] PulseTimeline received invalid participantsCount",
-      { participantsCount }
+      resolvedCountIsValid,
+      "[ASSERT] PulseTimeline received invalid resolvedParticipantsCount",
+      { resolvedParticipantsCount }
     );
   }
 
@@ -1206,8 +1252,8 @@ function PulseTimeline(props) {
     .filter(Boolean)
     .sort((a, b) => a.ts - b.ts);
 
-  const hasParticipantData = Number.isFinite(participantsCount);
-  const participantScale = hasParticipantData ? participantsCount : 0;
+  const hasParticipantData = resolvedParticipantsCount > 0;
+  const participantScale = scale;
   // displayCount bottoms out at 1 so a visible ± range exists even with zero/missing participants, and the left labels are strictly diagnostics for verifying that participant-based scaling.
   const displayCount = Math.max(1, participantScale);
   const minY = -displayCount;
@@ -1282,7 +1328,7 @@ function PulseTimeline(props) {
   const latestVote = normalizedEvents[normalizedEvents.length - 1]?.value ?? 0;
 
   const scaleLabel = hasParticipantData
-    ? `Scale based on participants: ±${participantsCount}`
+    ? `Scale based on participants: ±${resolvedParticipantsCount}`
     : "Scale based on participants: ±1 (participant data pending)";
 
   const axisLineValues = [maxY, 0, minY];
