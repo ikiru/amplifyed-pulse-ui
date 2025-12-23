@@ -460,9 +460,7 @@ export default function TrainerView() {
     },
     { engaged: 0, neutral: 0, frustrated: 0 }
   );
-  const summaryParticipantsCount = hasPulseVotes
-    ? pulseVoteEntries.length
-    : undefined;
+  const summaryParticipantsCount = participantCount;
   const timelineParticipantsCount = participantCount;
 
   const renderPulseVotes = () => {

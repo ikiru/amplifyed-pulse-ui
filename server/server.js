@@ -9,6 +9,7 @@ import { createTrainerPipeline } from "./pipelines/trainer/trainerPipeline.js";
 import { handleSetFocus } from "./pipelines/focus/focus.handleSet.js";
 import { handleClearFocus } from "./pipelines/focus/focus.handleClear.js";
 import { getActiveFocus } from "./pipelines/focus/focus.state.js";
+import { createSessionPipeline } from "./pipelines/session/sessionPipeline.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -32,8 +33,12 @@ const logSocketLifecycle = (event, detail) => {
 };
 
 const momentPipeline = createMomentPipeline(io);
+const sessionPipeline = createSessionPipeline(io);
 
-const pulsePipeline = createPulsePipeline(io, { momentPipeline });
+const pulsePipeline = createPulsePipeline(io, {
+  momentPipeline,
+  sessionPipeline,
+});
 const messagePipeline = createMessagePipeline(io, pulsePipeline.momentBuilder);
 const trainerPipeline = createTrainerPipeline(io, pulsePipeline.momentBuilder);
 const focusPipeline = {
@@ -42,7 +47,6 @@ const focusPipeline = {
   getActiveFocus,
 };
 const safetyPipeline = null;
-const sessionPipeline = null;
 // const emotionPipeline = createEmotionPipeline(io);
 // ----------------------------------------------------
 // FOCUS PIPELINE (Step 6.2 — Scaffold Only)

@@ -80,6 +80,10 @@ export default function registerEventRouter(io, socket, pipelines = {}) {
   };
 
   const sessionId = assignSessionId(socket.sessionId ?? DEFAULT_SESSION_ID);
+  sessionPipeline?.handleJoin({
+    socketId: socket.id,
+    payload: {},
+  });
   syncFocusState(sessionId);
 
   console.log("[ROUTER] client connected:", socket.id);

@@ -10,21 +10,29 @@ export function createPulseBroadcast(io, pulseState) {
   // Step 7.4.2 — participants now provided externally (Session Pipeline)
   function broadcastPulseUpdate(participants) {
     const { votes, eventLog } = pulseState.state;
+    const ts = Date.now();
 
-    if (
-      process.env.NODE_ENV !== "production" &&
-      participants === undefined
-    ) {
-      console.warn("[BROADCAST] pulse:update emitted without participants", {
-        votes,
-        eventLog,
-      });
+    if (participants == null) {
+      const errorMessage =
+        "[BROADCAST] pulse:update requires canonical participants map";
+      if (process.env.NODE_ENV !== "production") {
+        console.error(errorMessage, {
+          votes,
+          eventLog,
+          ts,
+        });
+      }
+      throw new Error(errorMessage);
     }
+
+    const participantsCount = Object.keys(participants).length;
 
     io.emit("pulse:update", {
       participants,
+      participantsCount,
       votes,
       eventLog,
+      ts,
     });
   }
 
