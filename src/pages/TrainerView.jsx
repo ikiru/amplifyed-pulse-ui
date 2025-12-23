@@ -440,7 +440,7 @@ export default function TrainerView() {
 
   const activeMoment = momentData
     ? {
-        label: momentData.label ?? momentData.id ?? "Active moment",
+        label: momentData.label ?? momentData.id ?? "Latest Update",
         signals: activeMomentSignals,
       }
     : null;
@@ -633,7 +633,7 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
                   ))
                 ) : (
                   <p style={{ margin: 0, color: "#555" }}>
-                    No insights available
+                    No Insights yet
                   </p>
                 )}
               </div>
@@ -648,9 +648,9 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
                 background: "#fff",
               }}
             >
-              <h3 style={{ marginTop: 0 }}>Moments</h3>
+              <h3 style={{ marginTop: 0 }}>What Just Happened</h3>
               <p style={{ margin: "0 0 12px", color: "#555" }}>
-                Select up to three moments
+                Select up to three latest updates
               </p>
 
               {moments.length ? (
@@ -677,7 +677,7 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
                 </div>
               ) : (
                 <p style={{ margin: 0, color: "#555" }}>
-                  No moments yet
+                  No latest updates yet
                 </p>
               )}
 
@@ -752,17 +752,17 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
                           background: "#fff",
                         }}
                       >
-                        <div
-                          className="moment-header"
-                          style={{
-                            marginBottom: 6,
-                            fontSize: "0.85rem",
-                            fontWeight: 600,
-                            color: "#333",
-                          }}
-                        >
-                          Moment {index + 1}
-                        </div>
+                          <div
+                            className="moment-header"
+                            style={{
+                              marginBottom: 6,
+                              fontSize: "0.85rem",
+                              fontWeight: 600,
+                              color: "#333",
+                            }}
+                          >
+                            Latest Update {index + 1}
+                          </div>
                         <pre
                           style={{
                             margin: 0,
@@ -791,11 +791,11 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
                 background: "#f9f9f9",
               }}
             >
-              <h3 style={{ marginTop: 0 }}>Moment</h3>
+              <h3 style={{ marginTop: 0 }}>Latest Update</h3>
               {momentData ? (
                 <>
                   <p style={{ margin: "4px 0" }}>
-                    Moment ID: {momentData.label ?? momentData.id ?? "unknown"}
+                    Latest Update ID: {momentData.label ?? momentData.id ?? "unknown"}
                   </p>
                   <pre
                     style={{
@@ -984,12 +984,12 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
               background: "#fafafa",
             }}
           >
-            <h3 style={{ marginTop: 0 }}>Active Moment</h3>
+            <h3 style={{ marginTop: 0 }}>What’s Happening Now</h3>
 
             {activeMoment ? (
               <div style={{ fontSize: "0.85rem", lineHeight: 1.4 }}>
                 <div>
-                  <strong>Moment:</strong> {activeMoment.label}
+                  <strong>Latest Update:</strong> {activeMoment.label}
                 </div>
 
                 {activeMoment.signals?.length > 0 && (
@@ -1005,7 +1005,7 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
               </div>
             ) : (
               <p style={{ margin: 0, color: "#666", fontSize: "0.85rem" }}>
-                No active moment detected.
+                No latest update detected.
               </p>
             )}
           </section>
@@ -1115,9 +1115,9 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
               background: "#fff",
             }}
           >
-            <h3 style={{ marginTop: 0 }}>Prior Moments</h3>
+            <h3 style={{ marginTop: 0 }}>Earlier Updates</h3>
             <p style={{ fontSize: "0.85rem", color: "#666", margin: 0 }}>
-              No prior moments available.
+              No earlier updates available.
             </p>
           </section>
         </div>
@@ -1397,7 +1397,7 @@ function MomentRow({ moment, onClick, selected }) {
         ? moment.trainer.actionType ?? "Trainer Action"
         : typeof moment.emotion === "string"
           ? moment.emotion.charAt(0).toUpperCase() + moment.emotion.slice(1)
-          : "Moment";
+          : "Latest Update";
 
   const trainerLabel =
     moment.trainer && typeof moment.trainer === "object"
