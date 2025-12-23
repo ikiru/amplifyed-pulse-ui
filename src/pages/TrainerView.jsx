@@ -12,12 +12,6 @@ const assert = (condition, message) => {
 };
 
 const MOMENT_HISTORY_LIMIT = 18;
-const pulseOptions = [
-  { value: "frustrated", label: "Frustrated" },
-  { value: "neutral", label: "Neutral" },
-  { value: "engaged", label: "Engaged" },
-];
-
 const isResolvedParticipantCount = (value) =>
   typeof value === "number" && Number.isFinite(value) && value >= 0;
 
@@ -28,7 +22,6 @@ export default function TrainerView() {
   const [livePulse, setLivePulse] = useState(null);
   const [messages, setMessages] = useState([]);
   const [voteTotals, setVoteTotals] = useState({});
-  const [selectedPulse, setSelectedPulse] = useState("neutral");
   const [momentData, setMomentData] = useState(null);
   const [trainerSignal, setTrainerSignal] = useState(null);
   const [showInsights, setShowInsights] = useState(false);
@@ -327,12 +320,6 @@ export default function TrainerView() {
     });
   };
 
-  const handlePulseSelection = (pulse) => {
-    if (!pulse) return;
-    setSelectedPulse(pulse);
-    emit("audience:pulse", { pulse });
-  };
-
   const handleSetFocus = (event) => {
     event.preventDefault();
     const text = focusInput.trim();
@@ -593,28 +580,6 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
                 }
                 return renderPulseSummary();
               })()}
-              <div
-                className="pulse-bar"
-                style={{
-                  position: "static",
-                  marginTop: 12,
-                  background: "transparent",
-                  borderBottom: "none",
-                  padding: 0,
-                }}
-              >
-                {pulseOptions.map((pulse) => (
-                  <button
-                    key={pulse.value}
-                    onClick={() => handlePulseSelection(pulse.value)}
-                    className={`pulse-button ${
-                      selectedPulse === pulse.value ? "active" : ""
-                    }`}
-                  >
-                    {pulse.label}
-                  </button>
-                ))}
-              </div>
             </section>
 
             {/* ---------------- TRAINER INSIGHTS (PULL-ONLY) ---------------- */}
