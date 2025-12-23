@@ -6,6 +6,7 @@
  * Phase: 2.3.7I
  */
 
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { createTrainerPipeline } from "../trainerPipeline.js";
 
 describe("TrainerPipeline boundary guard", () => {
@@ -15,12 +16,12 @@ describe("TrainerPipeline boundary guard", () => {
   let trainer;
 
   beforeEach(() => {
-    ioMock = { emit: jest.fn() };
-    builderMock = { addTrainer: jest.fn() };
+    ioMock = { emit: vi.fn() };
+    builderMock = { addTrainer: vi.fn() };
 
     trainer = createTrainerPipeline(ioMock, builderMock);
 
-    warnSpy = jest
+    warnSpy = vi
       .spyOn(console, "warn")
       .mockImplementation(() => {});
   });

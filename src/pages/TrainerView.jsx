@@ -18,6 +18,9 @@ const pulseOptions = [
   { value: "engaged", label: "Engaged" },
 ];
 
+const isResolvedParticipantCount = (value) =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0;
+
 export default function TrainerView() {
   const { emit, onEvent, offEvent, connectionStatus } = useSocket();
   const [focus, setFocus] = useState(null);
@@ -48,7 +51,7 @@ export default function TrainerView() {
       : livePulse?.participants
         ? Object.keys(livePulse.participants).length
         : undefined;
-  const isParticipantCountResolved = typeof participantCount === "number";
+  const isParticipantCountResolved = isResolvedParticipantCount(participantCount);
 
   useEffect(() => {
     if (livePulse && participantCount === undefined) {
@@ -1183,7 +1186,7 @@ function PulseTimeline(props) {
     typeof participantsCount === "number"
       ? participantsCount
       : 0;
-  const scale = participantsPending ? 1 : participantsCount;
+  const scale = participantsPending ? 1 : resolvedParticipantsCount;
   const scalingProps = {
     participantsCount: resolvedParticipantsCount,
     eventLogLength: Array.isArray(eventLog) ? eventLog.length : undefined,

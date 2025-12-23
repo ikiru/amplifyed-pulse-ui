@@ -39,6 +39,9 @@ describe("TrainerView participant counters", () => {
     const consoleAssertSpy = vi
       .spyOn(console, "assert")
       .mockImplementation(() => {});
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
     try {
       render(<TrainerView />);
@@ -49,6 +52,7 @@ describe("TrainerView participant counters", () => {
 
       expect(screen.queryByText(/Pulse timeline/i)).not.toBeInTheDocument();
       expect(consoleAssertSpy).not.toHaveBeenCalled();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
 
       const pulseUpdateHandler = getFirstHandler("pulse:update");
       act(() => {
@@ -65,6 +69,7 @@ describe("TrainerView participant counters", () => {
       });
     } finally {
       consoleAssertSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
     }
   });
 
