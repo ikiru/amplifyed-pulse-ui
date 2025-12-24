@@ -1135,6 +1135,8 @@ function PulseTimeline(props) {
     points,
   } = props;
 
+  const [nowTs, setNowTs] = useState(Date.now());
+
   const participantsPending = participantsCount === undefined;
 
   if (participantsPending) {
@@ -1228,24 +1230,47 @@ function PulseTimeline(props) {
   const maxY = displayCount;
   const safeScale = displayCount;
 
+  useEffect(() => {
+    let frameId;
+    const updateNow = () => {
+      setNowTs(Date.now());
+      frameId = requestAnimationFrame(updateNow);
+    };
+
+    frameId = requestAnimationFrame(updateNow);
+    return () => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, []);
+
   const timelinePoints = [];
-  const startTs = normalizedEvents[0]?.ts ?? Date.now();
-  timelinePoints.push({ ts: startTs, netValue: 0 });
+  if (normalizedEvents.length > 0) {
+    const startTs = normalizedEvents[0].ts;
+    timelinePoints.push({ ts: startTs, netValue: 0 });
 
-  let previousVote = 0;
-  let netValueTotal = 0;
+    let previousVote = 0;
+    let netValueTotal = 0;
 
-  normalizedEvents.forEach((entry) => {
-    const delta = entry.value - previousVote;
-    netValueTotal += delta;
+    normalizedEvents.forEach((entry) => {
+      const delta = entry.value - previousVote;
+      netValueTotal += delta;
 
-    timelinePoints.push({
-      ts: entry.ts,
-      netValue: netValueTotal,
+      timelinePoints.push({
+        ts: entry.ts,
+        netValue: netValueTotal,
+      });
+
+      previousVote = entry.value;
     });
-
-    previousVote = entry.value;
-  });
+  } else {
+    // Render a neutral baseline when no events have arrived yet.
+    const baselineDuration = 4000;
+    const baselineStartTs = Math.max(nowTs - baselineDuration, 0);
+    timelinePoints.push({ ts: baselineStartTs, netValue: 0 });
+    timelinePoints.push({ ts: nowTs, netValue: 0 });
+  }
 
   const width =
     Math.max(360, Math.max(normalizedEvents.length - 1, 0) * 48 + 80);
@@ -1256,10 +1281,12 @@ function PulseTimeline(props) {
   const earliestTs = timelinePoints[0]?.ts ?? Date.now();
   const latestTs = timelinePoints[timelinePoints.length - 1]?.ts ?? earliestTs;
   const span = Math.max(latestTs - earliestTs, 1);
+  const windowDuration = span;
+  const windowStartTs = nowTs - windowDuration;
 
   const xForTs = (ts) => {
-    const progress = (ts - earliestTs) / span;
-    return Math.max(0, Math.min(width, progress * width));
+    const progress = (ts - windowStartTs) / windowDuration;
+    return Math.max(0, progress * width);
   };
 
   const yForValue = (value) =>
@@ -1273,8 +1300,13 @@ function PulseTimeline(props) {
 
   const latestNetValue =
     timelinePoints[timelinePoints.length - 1]?.netValue ?? 0;
+  const finalSegmentEndX = Math.max(
+    xForTs(latestTs),
+    xForTs(nowTs)
+  );
+  const finalSegmentEndY = yForValue(latestNetValue);
   commands.push(
-    `L ${width.toFixed(2)} ${yForValue(latestNetValue).toFixed(2)}`
+    `L ${finalSegmentEndX.toFixed(2)} ${finalSegmentEndY.toFixed(2)}`
   );
 
   const pathD = commands.join(" ");
@@ -1362,6 +1394,13 @@ function PulseTimeline(props) {
                 strokeWidth="1"
               />
               <path d={pathD} fill="none" stroke="#0066ff" strokeWidth="2" />
+              <circle
+                cx={finalSegmentEndX}
+                cy={finalSegmentEndY}
+                r="3"
+                fill="#0066ff"
+                style={{ transition: "cy 100ms linear" }}
+              />
             </svg>
           </div>
         </div>
