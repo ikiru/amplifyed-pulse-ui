@@ -410,16 +410,6 @@ export default function TrainerView() {
     });
   }, [moments]);
 
-  const rawMomentTs = momentData?.ts ?? momentData?.timestamp ?? null;
-  const lastMomentTimestamp = rawMomentTs;
-  const formattedLastMoment = lastMomentTimestamp
-    ? new Date(lastMomentTimestamp).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      })
-    : "waiting";
-
   // Unified moment panel model (foundation for emotional trendline)
   const currentMoment = momentData
     ? {
@@ -446,8 +436,7 @@ export default function TrainerView() {
     : null;
 
   const messageRoots = buildMessageTree(messages);
-  const hasPulseVotes = Boolean(livePulse?.votes);
-  const pulseVoteEntries = hasPulseVotes
+  const pulseVoteEntries = livePulse?.votes
     ? Object.values(livePulse.votes)
     : [];
   const summaryVoteTotals = pulseVoteEntries.reduce(
@@ -465,45 +454,22 @@ export default function TrainerView() {
   );
   const summaryVoteCount = pulseVoteEntries.length;
   const timelineParticipantsCount = participantCount;
-
-  const renderPulseVotes = () => {
-    if (!hasPulseVotes) {
-      return null;
-    }
-
-    console.groupCollapsed("[TRACE] PulseSummary");
-    console.log("votes counted:", summaryVoteCount);
-    console.log("summary counts:", summaryVoteTotals);
-    console.groupEnd();
-
-    return (
-      <pre
-        style={{
-          background: "#111",
-          color: "white",
-          padding: "10px",
-          marginBottom: "20px",
-          lineHeight: "1.4",
-        }}
-      >
-          {`Engaged:     ${summaryVoteTotals.engaged}
-Neutral:     ${summaryVoteTotals.neutral}
-Frustrated:  ${summaryVoteTotals.frustrated}`}
-      </pre>
-    );
-  };
-
-  const renderPulseSummary = () => {
-    return (
-      <>
-        <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "-8px" }}>
-          Last update: {formattedLastMoment}
-        </p>
-        {renderPulseVotes()}
-        {/* LEFT COLUMN pulse timeline (non-authoritative) */}
-      </>
-    );
-  };
+  const netPulseDelta =
+    summaryVoteTotals.engaged - summaryVoteTotals.frustrated;
+  const netPulseLabel =
+    netPulseDelta >= 0 ? `+${netPulseDelta}` : `${netPulseDelta}`;
+  const pulseDominantLabel = (() => {
+    const entries = [
+      { label: "Engaged", count: summaryVoteTotals.engaged },
+      { label: "Neutral", count: summaryVoteTotals.neutral },
+      { label: "Frustrated", count: summaryVoteTotals.frustrated },
+    ];
+    return entries.reduce(
+      (winner, current) =>
+        current.count > winner.count ? current : winner,
+      entries[0]
+    ).label;
+  })();
 
   if (process.env.NODE_ENV !== "production") {
     assert(
@@ -557,30 +523,6 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
                 Insights
               </button>
             </header>
-
-            {/* Pulse Summary (MOVED HERE) */}
-            <section
-              className="pulse-summary"
-              style={{
-                padding: "12px",
-                border: "1px solid #ddd",
-                borderRadius: 8,
-                marginBottom: 20,
-                background: "#fff",
-              }}
-            >
-              <h2>Pulse Summary</h2>
-              {(() => {
-                if (process.env.NODE_ENV !== "production") {
-                  console.groupCollapsed("[TRACE] PulseSummary render");
-                  console.log("summary.livePulse:", livePulse);
-                  console.log("summary.voteCount:", summaryVoteCount);
-                  console.log("summary.voteTotals:", summaryVoteTotals);
-                  console.groupEnd();
-                }
-                return renderPulseSummary();
-              })()}
-            </section>
 
             {/* ---------------- TRAINER INSIGHTS (PULL-ONLY) ---------------- */}
             {showInsights && visibleInsights && (
@@ -853,6 +795,24 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
           {/* ===== Pulse ===== */}
           <section>
             <h2>Pulse</h2>
+            <div
+              style={{
+                marginBottom: 6,
+                fontSize: "0.95rem",
+                color: "#444",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <span style={{ fontWeight: 600, letterSpacing: "0.06em" }}>
+                PULSE
+              </span>
+              <span>
+                {netPulseLabel} • {pulseDominantLabel} • ±
+                {participantCount ?? 0} participants
+              </span>
+            </div>
             {/* CENTER COLUMN pulse timeline (authoritative) */}
             {(() => {
               console.group("[TRACE] TrainerView → PulseTimeline render");
@@ -899,6 +859,18 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
                 Waiting for canonical participant data before drawing the timeline.
               </div>
             )}
+            <div
+              style={{
+                marginTop: 8,
+                fontSize: "0.85rem",
+                color: "#555",
+                letterSpacing: "0.03em",
+              }}
+            >
+              Eng {summaryVoteTotals.engaged} &nbsp;&nbsp; Neu{" "}
+              {summaryVoteTotals.neutral} &nbsp;&nbsp; Frus{" "}
+              {summaryVoteTotals.frustrated}
+            </div>
           </section>
 
           <section
