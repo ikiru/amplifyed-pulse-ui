@@ -813,7 +813,7 @@ export default function TrainerView() {
               eventLog={livePulse?.eventLog ?? []}
               participantsCount={canonicalParticipantCount}
             />
-            {!livePulse && (
+            {connectionStatus !== "connected" && (
               <div
                 className="pulse-timeline-placeholder"
                 style={{
