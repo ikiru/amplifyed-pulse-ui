@@ -48,6 +48,7 @@ export default function registerEventRouter(io, socket, pipelines = {}) {
     safetyPipeline = null,
     trainerPipeline = null,
     momentPipeline = null, // Added Phase 2.4.2
+    confusionPipeline = null,
   } = pipelines;
 
   const assignSessionId = (requestedSessionId) => {
@@ -265,7 +266,27 @@ socket.on("audience:pulse", (payload = {}) => {
 
   /**
    * --------------------------------------------------
-   * Future event types (emotion, focus, camera, etc.)
+   * CONFUSION SIGNAL (Tier-1, Scaffold Only)
+   * Accepts normalized confusion signals.
+   * No scoring, no broadcast, no mutation outside pipeline.
+   * --------------------------------------------------
+   */
+  socket.on("confusion:signal", (payload = {}) => {
+    if (!confusionPipeline?.handleConfusionSignal) {
+      return;
+    }
+
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+
+    confusionPipeline.handleConfusionSignal({
+      sessionId,
+      ...payload,
+    });
+  });
+
+  /**
+   * --------------------------------------------------
+    * Future event types (emotion, focus, camera, etc.)
    *
    * Example shape (not active yet):
    *

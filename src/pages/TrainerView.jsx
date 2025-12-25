@@ -22,6 +22,7 @@ export default function TrainerView() {
   const [voteTotals, setVoteTotals] = useState({});
   const [momentData, setMomentData] = useState(null);
   const [trainerSignal, setTrainerSignal] = useState(null);
+  const [confusionAdvisory, setConfusionAdvisory] = useState(null);
   const [showInsights, setShowInsights] = useState(false);
   const [hiddenInsights, setHiddenInsights] = useState(null);
   const [visibleInsights, setVisibleInsights] = useState(null);
@@ -229,14 +230,32 @@ export default function TrainerView() {
       setTrainerSignal(signal);
     };
 
+    // --------------------------------------------------
+    // CONFUSION ADVISORY (Tier-1, Listener Only)
+    // No UI, no interpretation, no mutation of messages
+    // --------------------------------------------------
+    const handleConfusionUpdate = (payload) => {
+      if (!payload) {
+        setConfusionAdvisory(null);
+        return;
+      }
+
+      // Store advisory payload as-is.
+      // Expected shape:
+      // { sessionId, threads: [{ rootMessageId, level }] }
+      setConfusionAdvisory(payload);
+    };
+
     onEvent("message.state.update", handleMessageStateUpdate);
     onEvent("moment:update", handleMomentUpdate);
     onEvent("trainer:signal", handleTrainerSignal);
+    onEvent("confusion:update", handleConfusionUpdate);
 
     return () => {
       offEvent("message.state.update", handleMessageStateUpdate);
       offEvent("moment:update", handleMomentUpdate);
       offEvent("trainer:signal", handleTrainerSignal);
+      offEvent("confusion:update", handleConfusionUpdate);
     };
   }, [onEvent, offEvent]);
 
@@ -860,6 +879,24 @@ export default function TrainerView() {
               }}
             >
               <h3 style={{ marginTop: 0 }}>Messages</h3>
+
+              {/* ----------------------------------------- */}
+              {/* CONFUSION ADVISORY (Tier-1, Minimal) */}
+              {/* ----------------------------------------- */}
+              {confusionAdvisory?.threads?.length > 0 && (
+                <div
+                  style={{
+                    marginBottom: 8,
+                    padding: "6px 10px",
+                    fontSize: "0.75rem",
+                    color: "#555",
+                    background: "#f7f8fb",
+                    borderRadius: 6,
+                  }}
+                >
+                  Some discussion threads may need clarification.
+                </div>
+              )}
 
               {messageRoots.length ? (
                 <div
