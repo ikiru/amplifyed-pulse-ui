@@ -1326,7 +1326,16 @@ function PulseTimeline(props) {
   const yForValue = (value) =>
     centerY - (value / safeScale) * amplitude;
 
-  const commands = windowedTimelinePoints.map((point, index) => {
+  const hasEvents = windowedTimelinePoints.length > 0;
+  const baselinePoint = {
+    ts: nowTs,
+    netValue: 0,
+    synthetic: true,
+  };
+  // Right-anchored neutral baseline keeps the timeline visible before any events arrive.
+  const pointsForPath = hasEvents ? windowedTimelinePoints : [baselinePoint];
+
+  const commands = pointsForPath.map((point, index) => {
     const x = xForTs(point.ts);
     const y = yForValue(point.netValue);
     return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
