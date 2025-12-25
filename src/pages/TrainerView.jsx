@@ -1062,6 +1062,8 @@ export default function TrainerView() {
   );
 }
 
+const VISIBLE_WINDOW_MS = 60_000; // Show roughly one minute of data in the visual “cardiac monitor” window.
+
 function PulseSummary({ summaryVoteTotals }) {
   const totals = summaryVoteTotals ?? {
     engaged: 0,
@@ -1280,20 +1282,51 @@ function PulseTimeline(props) {
   const centerY = height / 2;
   const amplitude = centerY - 16;
 
-  const earliestTs = timelinePoints[0]?.ts ?? Date.now();
-  const latestTs = timelinePoints[timelinePoints.length - 1]?.ts ?? earliestTs;
-  const effectiveLatestTs = Math.max(latestTs, nowTs);
-  const span = Math.max(effectiveLatestTs - earliestTs, 1);
+  const latestHistoryTs =
+    timelinePoints[timelinePoints.length - 1]?.ts ?? Date.now();
+  const effectiveLatestTs = Math.max(latestHistoryTs, nowTs);
+  const windowStartTs = effectiveLatestTs - VISIBLE_WINDOW_MS;
+
+  let netValueBeforeWindow = timelinePoints[0]?.netValue ?? 0;
+  for (let i = timelinePoints.length - 1; i >= 0; i -= 1) {
+    if (timelinePoints[i].ts < windowStartTs) {
+      netValueBeforeWindow = timelinePoints[i].netValue;
+      break;
+    }
+  }
+
+  // Restrict rendering to the most recent window to preserve the fixed-width cardiac monitor feel.
+  const pointsInVisibleWindow = timelinePoints.filter(
+    (point) => point.ts >= windowStartTs
+  );
+
+  const windowedTimelinePoints = [];
+  if (pointsInVisibleWindow.length === 0) {
+    windowedTimelinePoints.push({
+      ts: windowStartTs,
+      netValue: netValueBeforeWindow,
+    });
+  } else {
+    if (pointsInVisibleWindow[0].ts > windowStartTs) {
+      windowedTimelinePoints.push({
+        ts: windowStartTs,
+        netValue: netValueBeforeWindow,
+      });
+    }
+    windowedTimelinePoints.push(...pointsInVisibleWindow);
+  }
+
+  const span = Math.max(effectiveLatestTs - windowStartTs, 1);
 
   const xForTs = (ts) => {
-    const progress = (ts - earliestTs) / span;
+    const progress = (ts - windowStartTs) / span;
     return Math.max(0, Math.min(width, progress * width));
   };
 
   const yForValue = (value) =>
     centerY - (value / safeScale) * amplitude;
 
-  const commands = timelinePoints.map((point, index) => {
+  const commands = windowedTimelinePoints.map((point, index) => {
     const x = xForTs(point.ts);
     const y = yForValue(point.netValue);
     return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
@@ -1386,7 +1419,7 @@ function PulseTimeline(props) {
         <span />
         <span />
       </div>
-      {timelinePoints.length > 1 && (
+      {windowedTimelinePoints.length > 1 && (
         <div className="pulse-timeline-time-axis">
           <span />
           <span />
