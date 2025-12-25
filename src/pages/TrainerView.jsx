@@ -505,33 +505,6 @@ export default function TrainerView() {
               </button>
             </header>
 
-            {/* Pulse Summary (MOVED HERE) */}
-            <section
-              className="pulse-summary"
-              style={{
-                padding: "12px 0 20px",
-                marginBottom: 20,
-              }}
-            >
-              <h2>Pulse Summary</h2>
-              <div className="pulse-summary-distribution">
-                {[
-                  { label: "Engaged", value: summaryVoteTotals.engaged },
-                  { label: "Neutral", value: summaryVoteTotals.neutral },
-                  { label: "Frustrated", value: summaryVoteTotals.frustrated },
-                ].map(({ label, value }) => (
-                  <div key={label} className="pulse-summary-distribution-column">
-                    <span className="pulse-summary-distribution-label">
-                      {label}
-                    </span>
-                    <span className="pulse-summary-distribution-value">
-                      {value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </section>
-
             {/* ---------------- TRAINER INSIGHTS (PULL-ONLY) ---------------- */}
             {showInsights && visibleInsights && (
               <div
@@ -861,6 +834,7 @@ export default function TrainerView() {
                 Waiting for canonical participant data before drawing the timeline.
               </div>
             )}
+            <PulseSummary summaryVoteTotals={summaryVoteTotals} />
           </section>
 
           <section
@@ -1084,6 +1058,68 @@ export default function TrainerView() {
           </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PulseSummary({ summaryVoteTotals }) {
+  const totals = summaryVoteTotals ?? {
+    engaged: 0,
+    neutral: 0,
+    frustrated: 0,
+  };
+  const columns = [
+    { label: "Engaged", value: totals.engaged },
+    { label: "Neutral", value: totals.neutral },
+    { label: "Frustrated", value: totals.frustrated },
+  ];
+
+  return (
+    <div
+      className="pulse-distribution"
+      style={{
+        marginTop: 12,
+        marginBottom: 8,
+        display: "grid",
+        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+        gap: 12,
+        opacity: 0.9,
+        fontFamily: "system-ui, sans-serif",
+      }}
+    >
+      {columns.map(({ label, value }) => (
+        <div
+          key={label}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 6,
+            color: "#555",
+          }}
+        >
+          <span
+            className="label"
+            style={{
+              fontSize: "0.7rem",
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+            }}
+          >
+            {label}
+          </span>
+          <span
+            className="value"
+            style={{
+              fontSize: "1.4rem",
+              fontWeight: 600,
+              color: "#222",
+            }}
+          >
+            {value}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

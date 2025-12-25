@@ -263,3 +263,35 @@
   font-weight: 600;
   color: #222;
 }
+
+.pulse-distribution {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 auto;
+  margin-top: 12px;
+  margin-bottom: 6px;
+  color: #4a4a4a;
+}
+
+.pulse-distribution > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.pulse-distribution .label {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.pulse-distribution .value {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #1f1f1f;
+}
