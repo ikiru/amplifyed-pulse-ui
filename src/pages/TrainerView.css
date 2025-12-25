@@ -232,3 +232,34 @@
   font-size: 0.75rem;
   color: #666;
 }
+
+.pulse-summary {
+  font-family: system-ui, sans-serif;
+}
+
+.pulse-summary-distribution {
+  margin-top: 12px;
+  display: flex;
+  gap: 12px;
+}
+
+.pulse-summary-distribution-column {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pulse-summary-distribution-label {
+  font-size: 0.75rem;
+  color: #666;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pulse-summary-distribution-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #222;
+}

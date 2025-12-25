@@ -50,7 +50,11 @@ describe("TrainerView participant counters", () => {
         expect(getFirstHandler("pulse:update")).toBeDefined();
       });
 
-      expect(screen.queryByText(/Pulse timeline/i)).not.toBeInTheDocument();
+      expect(
+        screen.getByText(
+          /Waiting for canonical participant data before drawing the timeline\./i
+        )
+      ).toBeInTheDocument();
       expect(consoleAssertSpy).not.toHaveBeenCalled();
       expect(consoleErrorSpy).not.toHaveBeenCalled();
 
@@ -58,22 +62,27 @@ describe("TrainerView participant counters", () => {
       act(() => {
         pulseUpdateHandler({
           participantCount: 1,
-          participants: { a: {} },
+          participants: { a: { actorRole: "audience" } },
           votes: {},
           eventLog: [],
         });
       });
 
       await waitFor(() => {
-        expect(screen.getByText(/Pulse timeline/i)).toBeInTheDocument();
+        expect(screen.getByText(/Room:/i)).toBeInTheDocument();
       });
+      expect(
+        screen.queryByText(
+          /Waiting for canonical participant data before drawing the timeline\./i
+        )
+      ).not.toBeInTheDocument();
     } finally {
       consoleAssertSpy.mockRestore();
       consoleErrorSpy.mockRestore();
     }
   });
 
-  it("fails when PulseTimeline receives truly invalid participant counts", async () => {
+  it("renders zeroed PulseSummary when no audience exists", async () => {
     render(<TrainerView />);
 
     await waitFor(() => {
@@ -81,15 +90,30 @@ describe("TrainerView participant counters", () => {
     });
 
     const pulseUpdateHandler = getFirstHandler("pulse:update");
-    expect(() =>
-      act(() => {
-        pulseUpdateHandler({
-          participantCount: -1,
-          participants: { a: {} },
-          votes: {},
-          eventLog: [],
-        });
-      })
-    ).toThrow("PulseSummary vote count exceeds participant count");
+    act(() => {
+      pulseUpdateHandler({
+        participants: { a: { actorRole: "trainer" } },
+        votes: { a: "engaged" },
+        eventLog: [],
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Room:/i)).toBeInTheDocument();
+    });
+
+    const engagedValue = screen
+      .getByText(/Engaged/i)
+      .nextElementSibling?.textContent?.trim();
+    const neutralValue = screen
+      .getByText(/Neutral/i)
+      .nextElementSibling?.textContent?.trim();
+    const frustratedValue = screen
+      .getByText(/Frustrated/i)
+      .nextElementSibling?.textContent?.trim();
+
+    expect(engagedValue).toBe("0");
+    expect(neutralValue).toBe("0");
+    expect(frustratedValue).toBe("0");
   });
 });

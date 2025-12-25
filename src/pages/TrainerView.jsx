@@ -36,23 +36,30 @@ export default function TrainerView() {
   const [trainerReplyDrafts, setTrainerReplyDrafts] = useState({});
 
   // PulseTimeline now relies directly on the `pulse:update` payload so the visual stays tied to the canonical stream without cached selectors.
-  // Source: canonical `livePulse` updates from the server (pulse:update) drive this value first via `participantCount`, with the participants map length as a derived fallback when the explicit count is missing.
+  // Source: canonical `livePulse` updates from the server (pulse:update) drive this value via `canonicalParticipantCount`, counting only `actorRole === "audience"` sockets.
   // We consider `livePulse` the authoritative stream for participant information, so PulseSummary reads this same slot.
-  const participantCount =
-    typeof livePulse?.participantCount === "number"
-      ? livePulse.participantCount
-      : livePulse?.participants
-        ? Object.keys(livePulse.participants).length
-        : undefined;
-  const isParticipantCountResolved = isResolvedParticipantCount(participantCount);
+  const canonicalParticipantCount =
+    livePulse?.participants && typeof livePulse.participants === "object"
+      ? Object.values(livePulse.participants).reduce(
+          (count, participant) =>
+            participant?.actorRole === "audience" ? count + 1 : count,
+          0
+        )
+      : undefined;
+  const hasAudience =
+    typeof canonicalParticipantCount === "number" &&
+    canonicalParticipantCount > 0;
+  const isParticipantCountResolved = isResolvedParticipantCount(
+    canonicalParticipantCount
+  );
 
   useEffect(() => {
-    if (livePulse && participantCount === undefined) {
+    if (livePulse && canonicalParticipantCount === undefined) {
       console.warn(
         "[TrainerView] pulse:update payload missing participants info required for PulseTimeline scale."
       );
     }
-  }, [livePulse, participantCount]);
+  }, [livePulse, canonicalParticipantCount]);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production") {
@@ -60,17 +67,19 @@ export default function TrainerView() {
     }
 
     const timelineCount =
-      typeof participantCount === "number" ? participantCount : 0;
+      typeof canonicalParticipantCount === "number"
+        ? canonicalParticipantCount
+        : 0;
 
-    // `participantCount` can legitimately be undefined while the socket stream is still establishing,
+    // `canonicalParticipantCount` can legitimately be undefined while the socket stream is still establishing,
     // so only run the dev-side assert when we have a canonical value to compare.
-    if (participantCount !== undefined) {
+    if (canonicalParticipantCount !== undefined) {
       console.assert(
-        participantCount === timelineCount,
-        "[TrainerView DEV TRACE] PulseSummary participantCount diverges from PulseTimeline",
+        canonicalParticipantCount === timelineCount,
+        "[TrainerView DEV TRACE] PulseSummary canonicalParticipantCount diverges from PulseTimeline",
         {
           summary: {
-            value: participantCount,
+            value: canonicalParticipantCount,
             source:
               "livePulse pulse:update (explicit count or derived from participants map)",
           },
@@ -82,7 +91,7 @@ export default function TrainerView() {
         }
       );
     }
-  }, [participantCount]);
+  }, [canonicalParticipantCount]);
 
   // -------------------------------
   // Socket listeners
@@ -98,12 +107,13 @@ export default function TrainerView() {
       const { participants } = payload;
       const explicitParticipantsCount = payload.participantsCount;
       const derivedParticipantsCount = participants
-        ? Object.keys(participants).length
+        ? Object.values(participants).reduce(
+            (count, participant) =>
+              participant?.actorRole === "audience" ? count + 1 : count,
+            0
+          )
         : undefined;
-      const canonicalParticipantCount =
-        typeof explicitParticipantsCount === "number"
-          ? explicitParticipantsCount
-          : derivedParticipantsCount;
+      const canonicalParticipantCount = derivedParticipantsCount;
 
       console.groupCollapsed("[TRACE] pulse:update received");
       console.log("raw participants:", participants);
@@ -410,16 +420,6 @@ export default function TrainerView() {
     });
   }, [moments]);
 
-  const rawMomentTs = momentData?.ts ?? momentData?.timestamp ?? null;
-  const lastMomentTimestamp = rawMomentTs;
-  const formattedLastMoment = lastMomentTimestamp
-    ? new Date(lastMomentTimestamp).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      })
-    : "waiting";
-
   // Unified moment panel model (foundation for emotional trendline)
   const currentMoment = momentData
     ? {
@@ -446,72 +446,19 @@ export default function TrainerView() {
     : null;
 
   const messageRoots = buildMessageTree(messages);
-  const hasPulseVotes = Boolean(livePulse?.votes);
-  const pulseVoteEntries = hasPulseVotes
-    ? Object.values(livePulse.votes)
-    : [];
-  const summaryVoteTotals = pulseVoteEntries.reduce(
-    (acc, vote) => {
-      if (vote === "engaged") {
-        acc.engaged += 1;
-      } else if (vote === "neutral") {
-        acc.neutral += 1;
-      } else if (vote === "frustrated") {
-        acc.frustrated += 1;
-      }
-      return acc;
-    },
-    { engaged: 0, neutral: 0, frustrated: 0 }
-  );
-  const summaryVoteCount = pulseVoteEntries.length;
-  const timelineParticipantsCount = participantCount;
-
-  const renderPulseVotes = () => {
-    if (!hasPulseVotes) {
-      return null;
-    }
-
-    console.groupCollapsed("[TRACE] PulseSummary");
-    console.log("votes counted:", summaryVoteCount);
-    console.log("summary counts:", summaryVoteTotals);
-    console.groupEnd();
-
-    return (
-      <pre
-        style={{
-          background: "#111",
-          color: "white",
-          padding: "10px",
-          marginBottom: "20px",
-          lineHeight: "1.4",
-        }}
-      >
-          {`Engaged:     ${summaryVoteTotals.engaged}
-Neutral:     ${summaryVoteTotals.neutral}
-Frustrated:  ${summaryVoteTotals.frustrated}`}
-      </pre>
-    );
-  };
-
-  const renderPulseSummary = () => {
-    return (
-      <>
-        <p style={{ fontSize: "0.9rem", color: "#666", marginTop: "-8px" }}>
-          Last update: {formattedLastMoment}
-        </p>
-        {renderPulseVotes()}
-        {/* LEFT COLUMN pulse timeline (non-authoritative) */}
-      </>
-    );
-  };
-
-  if (process.env.NODE_ENV !== "production") {
-    assert(
-      summaryVoteCount <= timelineParticipantsCount ||
-        timelineParticipantsCount === undefined,
-      "PulseSummary vote count exceeds participant count"
-    );
-  }
+  const canonicalParticipants =
+    livePulse?.participants && typeof livePulse.participants === "object"
+      ? livePulse.participants
+      : null;
+  const summaryCounts = hasAudience
+    ? computePulseSummaryCounts(livePulse, canonicalParticipants)
+    : { engaged: 0, neutral: 0, frustrated: 0 };
+  const summaryVoteTotals = summaryCounts;
+  const summaryVoteCount =
+    summaryCounts.engaged +
+    summaryCounts.neutral +
+    summaryCounts.frustrated;
+  const timelineParticipantsCount = canonicalParticipantCount;
 
   return (
     <div
@@ -562,24 +509,27 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
             <section
               className="pulse-summary"
               style={{
-                padding: "12px",
-                border: "1px solid #ddd",
-                borderRadius: 8,
+                padding: "12px 0 20px",
                 marginBottom: 20,
-                background: "#fff",
               }}
             >
               <h2>Pulse Summary</h2>
-              {(() => {
-                if (process.env.NODE_ENV !== "production") {
-                  console.groupCollapsed("[TRACE] PulseSummary render");
-                  console.log("summary.livePulse:", livePulse);
-                  console.log("summary.voteCount:", summaryVoteCount);
-                  console.log("summary.voteTotals:", summaryVoteTotals);
-                  console.groupEnd();
-                }
-                return renderPulseSummary();
-              })()}
+              <div className="pulse-summary-distribution">
+                {[
+                  { label: "Engaged", value: summaryVoteTotals.engaged },
+                  { label: "Neutral", value: summaryVoteTotals.neutral },
+                  { label: "Frustrated", value: summaryVoteTotals.frustrated },
+                ].map(({ label, value }) => (
+                  <div key={label} className="pulse-summary-distribution-column">
+                    <span className="pulse-summary-distribution-label">
+                      {label}
+                    </span>
+                    <span className="pulse-summary-distribution-value">
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </section>
 
             {/* ---------------- TRAINER INSIGHTS (PULL-ONLY) ---------------- */}
@@ -856,12 +806,21 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
             {/* CENTER COLUMN pulse timeline (authoritative) */}
             {(() => {
               console.group("[TRACE] TrainerView → PulseTimeline render");
-              console.log("participantsCount (render-scope):", participantCount);
-              console.log("typeof participantsCount:", typeof participantCount);
-              console.log("participantsCount === 0:", participantCount === 0);
               console.log(
-                "participantsCount === undefined:",
-                participantCount === undefined
+                "canonicalParticipantCount (render-scope):",
+                canonicalParticipantCount
+              );
+              console.log(
+                "typeof canonicalParticipantCount:",
+                typeof canonicalParticipantCount
+              );
+              console.log(
+                "canonicalParticipantCount === 0:",
+                canonicalParticipantCount === 0
+              );
+              console.log(
+                "canonicalParticipantCount === undefined:",
+                canonicalParticipantCount === undefined
               );
               console.groupEnd();
 
@@ -871,10 +830,13 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
                   typeof timelineParticipantsCount === "number" &&
                   summaryVoteCount > timelineParticipantsCount
                 ) {
-                  throw new Error(
-                    `[ASSERT] PulseSummary vote count exceeds participant count\n` +
-                      `PulseSummary votes: ${summaryVoteCount}\n` +
-                      `PulseTimeline: ${timelineParticipantsCount}`
+                  console.warn(
+                    "[TRACE] PulseSummary vote count exceeds participant count",
+                    {
+                      summaryVoteCount,
+                      canonicalParticipantCount,
+                      timelineParticipantsCount,
+                    }
                   );
                 }
               }
@@ -882,7 +844,7 @@ Frustrated:  ${summaryVoteTotals.frustrated}`}
             {isParticipantCountResolved ? (
               <PulseTimeline
                 eventLog={livePulse?.eventLog ?? []}
-                participantsCount={participantCount}
+                participantsCount={canonicalParticipantCount}
               />
             ) : (
               <div
@@ -1134,6 +1096,7 @@ function PulseTimeline(props) {
     scaleMax,
     points,
   } = props;
+  const participantCount = participantsCount;
 
   const participantsPending = participantsCount === undefined;
 
@@ -1141,10 +1104,12 @@ function PulseTimeline(props) {
     console.debug("[PulseTimeline] participants pending");
   }
 
-  assert(
-    participantsPending || typeof participantsCount === "number",
-    "PulseTimeline received invalid participantsCount"
-  );
+  if (process.env.NODE_ENV !== "production") {
+    console.assert(
+      participantsPending || typeof participantsCount === "number",
+      "participantsCount unresolved outside pending state"
+    );
+  }
 
   // Normalize participantsCount for early / pre-session renders
   const resolvedParticipantsCount =
@@ -1220,6 +1185,31 @@ function PulseTimeline(props) {
     .filter(Boolean)
     .sort((a, b) => a.ts - b.ts);
 
+  const [baselineStartTs] = useState(() => Date.now());
+  const [nowTs, setNowTs] = useState(() => Date.now());
+
+  useEffect(() => {
+    let active = true;
+    let rafId;
+    const updateNow = () => {
+      if (!active) {
+        return;
+      }
+      setNowTs(Date.now());
+      rafId = requestAnimationFrame(updateNow);
+    };
+    rafId = requestAnimationFrame(updateNow);
+    return () => {
+      active = false;
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  const timelineEntries = [
+    { ts: baselineStartTs, value: 0 },
+    ...normalizedEvents,
+  ];
+
   const hasParticipantData = resolvedParticipantsCount > 0;
   const participantScale = scale;
   // displayCount bottoms out at 1 so a visible ± range exists even with zero/missing participants, and the left labels are strictly diagnostics for verifying that participant-based scaling.
@@ -1229,13 +1219,14 @@ function PulseTimeline(props) {
   const safeScale = displayCount;
 
   const timelinePoints = [];
-  const startTs = normalizedEvents[0]?.ts ?? Date.now();
+  const startTs = timelineEntries[0]?.ts ?? Date.now();
   timelinePoints.push({ ts: startTs, netValue: 0 });
 
   let previousVote = 0;
   let netValueTotal = 0;
 
-  normalizedEvents.forEach((entry) => {
+  for (let i = 1; i < timelineEntries.length; i += 1) {
+    const entry = timelineEntries[i];
     const delta = entry.value - previousVote;
     netValueTotal += delta;
 
@@ -1245,7 +1236,7 @@ function PulseTimeline(props) {
     });
 
     previousVote = entry.value;
-  });
+  }
 
   const width =
     Math.max(360, Math.max(normalizedEvents.length - 1, 0) * 48 + 80);
@@ -1255,7 +1246,8 @@ function PulseTimeline(props) {
 
   const earliestTs = timelinePoints[0]?.ts ?? Date.now();
   const latestTs = timelinePoints[timelinePoints.length - 1]?.ts ?? earliestTs;
-  const span = Math.max(latestTs - earliestTs, 1);
+  const effectiveLatestTs = Math.max(latestTs, nowTs);
+  const span = Math.max(effectiveLatestTs - earliestTs, 1);
 
   const xForTs = (ts) => {
     const progress = (ts - earliestTs) / span;
@@ -1270,12 +1262,12 @@ function PulseTimeline(props) {
     const y = yForValue(point.netValue);
     return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
   });
-
   const latestNetValue =
     timelinePoints[timelinePoints.length - 1]?.netValue ?? 0;
-  commands.push(
-    `L ${width.toFixed(2)} ${yForValue(latestNetValue).toFixed(2)}`
-  );
+  const leadX = xForTs(nowTs);
+  const leadY = yForValue(latestNetValue);
+  const nowX = leadX.toFixed(2);
+  commands.push(`L ${nowX} ${yForValue(latestNetValue).toFixed(2)}`);
 
   const pathD = commands.join(" ");
 
@@ -1286,30 +1278,16 @@ function PulseTimeline(props) {
       second: "2-digit",
     });
 
-  const netLabel =
-    latestNetValue >= 0 ? `+${latestNetValue}` : `${latestNetValue}`;
-  const voteLabelMap = {
-    1: "Engaged",
-    0: "Neutral",
-    "-1": "Frustrated",
-  };
-  const latestVote = normalizedEvents[normalizedEvents.length - 1]?.value ?? 0;
-
-  const scaleLabel = hasParticipantData
-    ? `Scale based on participants: ±${resolvedParticipantsCount}`
-    : "Scale based on participants: ±1 (participant data pending)";
-
   const axisLineValues = [maxY, 0, minY];
 
   return (
     <div className="pulse-timeline">
       <div className="pulse-timeline-header">
         <div>
-          <div className="pulse-timeline-title">Pulse timeline</div>
-          <div className="pulse-timeline-scale">{scaleLabel}</div>
+          <div className="pulse-timeline-title">PULSE</div>
         </div>
         <div className="pulse-timeline-current">
-          Net movement: {netLabel} · Last vote: {voteLabelMap[latestVote] ?? "Neutral"}
+          Room: {participantCount}
         </div>
       </div>
       <div className="pulse-timeline-track">
@@ -1362,19 +1340,20 @@ function PulseTimeline(props) {
                 strokeWidth="1"
               />
               <path d={pathD} fill="none" stroke="#0066ff" strokeWidth="2" />
+              <circle cx={leadX} cy={leadY} r={3} fill="#0066ff" />
             </svg>
           </div>
         </div>
       </div>
       <div className="pulse-timeline-legend">
-        <span>Net movement history</span>
-        <span>±1 per vote</span>
-        <span>Driven by pulse:update</span>
+        <span />
+        <span />
+        <span />
       </div>
       {timelinePoints.length > 1 && (
         <div className="pulse-timeline-time-axis">
-          <span>{formatAxisTime(earliestTs)}</span>
-          <span>{formatAxisTime(latestTs)}</span>
+          <span />
+          <span />
         </div>
       )}
     </div>
@@ -1458,4 +1437,33 @@ function MomentRow({ moment, onClick, selected }) {
       )}
     </button>
   );
+}
+
+function computePulseSummaryCounts(livePulse, canonicalParticipants) {
+  const counts = { engaged: 0, neutral: 0, frustrated: 0 };
+  if (!livePulse || !livePulse.votes || typeof livePulse.votes !== "object") {
+    return counts;
+  }
+
+  const participantsMap =
+    canonicalParticipants && typeof canonicalParticipants === "object"
+      ? canonicalParticipants
+      : livePulse.participants;
+
+  Object.entries(livePulse.votes).forEach(([voterId, vote]) => {
+    const participant = participantsMap?.[voterId];
+    if (!participant || participant.actorRole !== "audience") {
+      return;
+    }
+
+    if (vote === "engaged") {
+      counts.engaged += 1;
+    } else if (vote === "neutral") {
+      counts.neutral += 1;
+    } else if (vote === "frustrated") {
+      counts.frustrated += 1;
+    }
+  });
+
+  return counts;
 }
