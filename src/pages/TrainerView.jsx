@@ -12,8 +12,6 @@ const assert = (condition, message) => {
 };
 
 const MOMENT_HISTORY_LIMIT = 18;
-const isResolvedParticipantCount = (value) =>
-  typeof value === "number" && Number.isFinite(value) && value >= 0;
 
 export default function TrainerView() {
   const { emit, onEvent, offEvent, connectionStatus } = useSocket();
@@ -49,9 +47,6 @@ export default function TrainerView() {
   const hasAudience =
     typeof canonicalParticipantCount === "number" &&
     canonicalParticipantCount > 0;
-  const isParticipantCountResolved = isResolvedParticipantCount(
-    canonicalParticipantCount
-  );
 
   useEffect(() => {
     if (livePulse && canonicalParticipantCount === undefined) {
@@ -814,12 +809,11 @@ export default function TrainerView() {
                 }
               }
             })()}
-            {isParticipantCountResolved ? (
-              <PulseTimeline
-                eventLog={livePulse?.eventLog ?? []}
-                participantsCount={canonicalParticipantCount}
-              />
-            ) : (
+            <PulseTimeline
+              eventLog={livePulse?.eventLog ?? []}
+              participantsCount={canonicalParticipantCount}
+            />
+            {!livePulse && (
               <div
                 className="pulse-timeline-placeholder"
                 style={{
@@ -831,7 +825,7 @@ export default function TrainerView() {
                   fontStyle: "italic",
                 }}
               >
-                Waiting for canonical participant data before drawing the timeline.
+                Waiting for live pulse data before drawing the timeline.
               </div>
             )}
             <PulseSummary summaryVoteTotals={summaryVoteTotals} />
