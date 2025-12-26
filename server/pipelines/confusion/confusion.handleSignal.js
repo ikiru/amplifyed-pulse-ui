@@ -31,13 +31,31 @@ export function handleConfusionSignal(payload) {
   } = payload ?? {};
   if (!sessionId || !rootMessageId) return null;
 
-  return upsertConfusionEnvelope({
+  const envelope = upsertConfusionEnvelope({
     sessionId,
     rootMessageId,
     scoreDelta,
     contributorDelta,
     ts,
   });
+
+  console.log(
+    "[CONFUSION][STEP 3][BEFORE]",
+    rootMessageId,
+    "score:",
+    envelope.confusionScore
+  );
+
+  envelope.confusionScore += 1;
+
+  console.log(
+    "[CONFUSION][STEP 3][AFTER]",
+    rootMessageId,
+    "score:",
+    envelope.confusionScore
+  );
+
+  return envelope;
 }
 
 // END CONFUSION SIGNAL
