@@ -880,24 +880,6 @@ export default function TrainerView() {
             >
               <h3 style={{ marginTop: 0 }}>Messages</h3>
 
-              {/* ----------------------------------------- */}
-              {/* CONFUSION ADVISORY (Tier-1, Minimal) */}
-              {/* ----------------------------------------- */}
-              {confusionAdvisory?.threads?.length > 0 && (
-                <div
-                  style={{
-                    marginBottom: 8,
-                    padding: "6px 10px",
-                    fontSize: "0.75rem",
-                    color: "#555",
-                    background: "#f7f8fb",
-                    borderRadius: 6,
-                  }}
-                >
-                  Some discussion threads may need clarification.
-                </div>
-              )}
-
               {messageRoots.length ? (
                 <div
                   className="message-stream trainer-message-stream"
