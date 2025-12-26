@@ -26,10 +26,6 @@
 
  */
 
-import { handleTrainerCommand } from "../pipelines/trainer/trainer.handleCommand.js";
-import { handleTrainerNudge } from "../pipelines/trainer/trainer.handleNudge.js";
-import { handleVoteIntent } from "../pipelines/message/message.vote.handle.js";
-
 const DEFAULT_SESSION_ID = "session:default";
 
 // ------------------------------------------------------------------
@@ -222,14 +218,16 @@ socket.on("audience:pulse", (payload = {}) => {
 
   socket.on("message:vote:intent", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
-    handleVoteIntent({
-      io,
-      socket,
-      payload: {
-        sessionId,
-        ...payload,
-      },
-    });
+    if (messagePipeline?.handleVoteIntent) {
+      messagePipeline.handleVoteIntent({
+        io,
+        socket,
+        payload: {
+          sessionId,
+          ...payload,
+        },
+      });
+    }
   });
 
   socket.on("message:trainerReply", (payload = {}) => {
@@ -317,8 +315,12 @@ socket.on("audience:pulse", (payload = {}) => {
   // -------------------------------------------
   // Phase 2.10 Trainer Routes
   // -------------------------------------------
-  handleTrainerCommand(io, socket);
-  handleTrainerNudge(io, socket);
+  if (trainerPipeline?.handleTrainerCommand) {
+    trainerPipeline.handleTrainerCommand(io, socket);
+  }
+  if (trainerPipeline?.handleTrainerNudge) {
+    trainerPipeline.handleTrainerNudge(io, socket);
+  }
 
   socket.on("disconnect", () => {
     // -----------------------------------------------

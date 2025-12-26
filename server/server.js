@@ -7,9 +7,7 @@ import { createPulsePipeline } from "./pipelines/pulse/pulsePipeline.js";
 import { createMessagePipeline } from "./pipelines/message/messagePipeline.js";
 import { createTrainerPipeline } from "./pipelines/trainer/trainerPipeline.js";
 import { createConfusionPipeline } from "./pipelines/confusion/confusionPipeline.js";
-import { handleSetFocus } from "./pipelines/focus/focus.handleSet.js";
-import { handleClearFocus } from "./pipelines/focus/focus.handleClear.js";
-import { getActiveFocus } from "./pipelines/focus/focus.state.js";
+import { registerFocusHandlers } from "./pipelines/focus/focusPipeline.js";
 import { createSessionPipeline } from "./pipelines/session/sessionPipeline.js";
 
 const app = express();
@@ -47,11 +45,7 @@ const messagePipeline = createMessagePipeline(
   confusionPipeline
 );
 const trainerPipeline = createTrainerPipeline(io, pulsePipeline.momentBuilder);
-const focusPipeline = {
-  handleSetFocus,
-  handleClearFocus,
-  getActiveFocus,
-};
+const focusPipeline = registerFocusHandlers({ io });
 const safetyPipeline = null;
 // const emotionPipeline = createEmotionPipeline(io);
 // ----------------------------------------------------

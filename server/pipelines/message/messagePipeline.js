@@ -22,6 +22,7 @@ import { getSessionVoteTotals } from "./message.vote.state.js";
 import { broadcastVoteUpdate } from "./message.vote.broadcast.js";
 import { v4 as uuidv4 } from "uuid";
 import { detectConfusionFromText } from "../../confusion/confusion.phrases.js";
+import { handleVoteIntent as processVoteIntent } from "./message.vote.handle.js";
 
 function resolveRootMessageId(sessionId, parentMessageId, fallbackId) {
   if (!parentMessageId) {
@@ -195,9 +196,14 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
     });
   }
 
+  function handleVoteIntent(args) {
+    return processVoteIntent(args);
+  }
+
   return {
     handleAudienceMessage,
     handleTrainerReply,
     syncSessionState,
+    handleVoteIntent,
   };
 }

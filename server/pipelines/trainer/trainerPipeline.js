@@ -14,6 +14,8 @@
 // ------------------------------------------------------------------
 
 import { extractTrainerSignal } from "./trainerSignalExtractor.js";
+import { handleTrainerCommand as registerTrainerCommand } from "./trainer.handleCommand.js";
+import { handleTrainerNudge as registerTrainerNudge } from "./trainer.handleNudge.js";
 
 export function createTrainerPipeline(io, momentBuilder = null) {
 
@@ -74,10 +76,22 @@ export function createTrainerPipeline(io, momentBuilder = null) {
     });
   }
 
+  function handleTrainerCommand(io, socket) {
+    if (!registerTrainerCommand) return;
+    return registerTrainerCommand(io, socket);
+  }
+
+  function handleTrainerNudge(io, socket) {
+    if (!registerTrainerNudge) return;
+    return registerTrainerNudge(io, socket);
+  }
+
   return {
     handleTrainerAction,
     handleAction,
     handleCommand,
     handleNudge,
+    handleTrainerCommand,
+    handleTrainerNudge,
   };
 }

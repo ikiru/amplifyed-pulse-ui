@@ -1,19 +1,25 @@
-import { handleSetFocus } from "./focus.handleSet.js";
-import { handleClearFocus } from "./focus.handleClear.js";
+import { handleSetFocus as runHandleSetFocus } from "./focus.handleSet.js";
+import { handleClearFocus as runHandleClearFocus } from "./focus.handleClear.js";
+import { getActiveFocus } from "./focus.state.js";
 
-export function registerFocusHandlers({ io, socket }) {
-  socket.on("focus:set", ({ text }) => {
-    handleSetFocus({
+export function registerFocusHandlers({ io } = {}) {
+  function handleSetFocus(payload = {}) {
+    return runHandleSetFocus({
       io,
-      sessionId: socket.sessionId,
-      text,
+      ...payload,
     });
-  });
+  }
 
-  socket.on("focus:clear", () => {
-    handleClearFocus({
+  function handleClearFocus(payload = {}) {
+    return runHandleClearFocus({
       io,
-      sessionId: socket.sessionId,
+      ...payload,
     });
-  });
+  }
+
+  return {
+    handleSetFocus,
+    handleClearFocus,
+    getActiveFocus,
+  };
 }
