@@ -106,6 +106,15 @@ export default function AudienceInput() {
     });
   };
 
+  const emitConfusionSignal = (rootMessageId) => {
+    emit("confusion:signal", {
+      rootMessageId,
+      scoreDelta: 1,
+      contributorDelta: 1,
+      ts: Date.now(),
+    });
+  };
+
   const roots = buildMessageTree(messages);
 
   return (
@@ -143,6 +152,7 @@ export default function AudienceInput() {
               voteTotals={voteTotals[root.messageId]}
               voteTotalsMap={voteTotals}
               emitVoteIntent={emitVoteIntent}
+              onConfusionSignal={emitConfusionSignal}
               showVoteTotals={false}
               voteSelectionMap={selectedVotes}
             />
