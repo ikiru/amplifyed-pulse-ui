@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import "./AudienceInput.css";
 
 const CONFUSION_FILL_PERCENT = {
@@ -28,7 +28,28 @@ export function buildMessageTree(messages) {
   return roots;
 }
 
-export function ThreadItem({
+export function ThreadItem(props) {
+  const depth = props.depth ?? 0;
+  if (depth === 0) {
+    return <AnchorThreadItem {...props} />;
+  }
+
+  return <ThreadItemContent {...props} />;
+}
+
+function AnchorThreadItem(props) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  return (
+    <ThreadItemContent
+      {...props}
+      isAnchor
+      isCollapsed={isCollapsed}
+      onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
+    />
+  );
+}
+
+function ThreadItemContent({
   node,
   depth = 0,
   replyToId,
@@ -45,13 +66,18 @@ export function ThreadItem({
   showVoteControls = true,
   showVoteTotals = true,
   showReplyControls = true,
+  isAnchor = false,
+  isCollapsed = false,
+  onToggleCollapse,
 }) {
   const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
   const confusionFill =
     confusionLevel != null ? CONFUSION_FILL_PERCENT[confusionLevel] : null;
   const shouldShowConfusionBar =
-    depth === 0 && confusionLevel != null && typeof confusionFill === "string";
+    isAnchor && confusionLevel != null && typeof confusionFill === "string";
   const isReplyOpen = replyToId === node.messageId;
+  const canToggleCollapse = isAnchor && typeof onToggleCollapse === "function";
+  const repliesVisible = !isAnchor || !isCollapsed;
 
   const handleReplyToggle = () => {
     if (!setReplyToId) return;
@@ -66,12 +92,16 @@ export function ThreadItem({
   };
 
   const replyDraftValue = replyDrafts?.[node.messageId] ?? "";
-
   const canVote = Boolean(emitVoteIntent);
 
   const handleVoteClick = (voteType) => {
     if (!emitVoteIntent) return;
     emitVoteIntent(node.messageId, voteType);
+  };
+
+  const handleCollapseToggle = () => {
+    if (!onToggleCollapse) return;
+    onToggleCollapse();
   };
 
   return (
@@ -94,6 +124,18 @@ export function ThreadItem({
           )}
 
           <div className="message-content">{node.text}</div>
+
+          {canToggleCollapse && (
+            <button
+              type="button"
+              className="thread-collapse-toggle"
+              onClick={handleCollapseToggle}
+              aria-expanded={!isCollapsed}
+              aria-label={isCollapsed ? "Show replies" : "Hide replies"}
+            >
+              {isCollapsed ? "▶" : "▼"}
+            </button>
+          )}
 
           {showVoteControls && (
             <button
@@ -159,7 +201,7 @@ export function ThreadItem({
         </div>
       )}
 
-      {node.replies?.length > 0 && (
+      {repliesVisible && node.replies?.length > 0 && (
         <div className="thread-replies">
           {node.replies.map((child) => (
             <ThreadItem

@@ -136,6 +136,21 @@
   font-weight: 600;
 }
 
+.thread-collapse-toggle {
+  border: none;
+  background: transparent;
+  color: #555;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px;
+}
+
+.thread-collapse-toggle:focus-visible {
+  outline: 2px solid #cbd0da;
+  outline-offset: 2px;
+}
+
 .vote-btn.selected {
   border-color: #0066ff;
   color: #fff;
