@@ -50,17 +50,50 @@ export function handleConfusionSignal(payload) {
 
   // STEP 6.1 — Self-report confusion scoring
   if (source === "self_report") {
-    const before = envelope.confusionScore;
+    const contributors = Array.isArray(envelope.contributors)
+      ? envelope.contributors
+      : (envelope.contributors = []);
 
-    envelope.confusionScore += 1;
+    const hasAlreadyContributed = Boolean(
+      participantId && contributors.includes(participantId)
+    );
 
-    console.groupCollapsed("[CONFUSION][STEP 6.1][SELF_REPORT]");
-    console.log("rootMessageId:", rootMessageId);
-    console.log("participantId:", participantId);
-    console.log("before:", before);
-    console.log("after:", envelope.confusionScore);
-    console.groupEnd();
+    if (!hasAlreadyContributed) {
+      const before = envelope.confusionScore;
+
+      if (participantId) {
+        contributors.push(participantId);
+      }
+
+      envelope.confusionScore += 1;
+
+      console.groupCollapsed("[CONFUSION][STEP 6.1][SELF_REPORT]");
+      console.log("rootMessageId:", rootMessageId);
+      console.log("participantId:", participantId);
+      console.log("before:", before);
+      console.log("after:", envelope.confusionScore);
+      console.groupEnd();
+
+      console.log("[CONFUSION][STEP 6.2][APPLIED]", {
+        rootMessageId,
+        participantId,
+        confusionScore: envelope.confusionScore,
+      });
+    } else {
+      console.log("[CONFUSION][STEP 6.2][IGNORED][DUPLICATE]", {
+        rootMessageId,
+        participantId,
+        confusionScore: envelope.confusionScore,
+      });
+    }
   }
+
+  console.log(
+    "[CONFUSION][STEP 3][AFTER]",
+    rootMessageId,
+    "score:",
+    envelope.confusionScore
+  );
 
   return envelope;
 }

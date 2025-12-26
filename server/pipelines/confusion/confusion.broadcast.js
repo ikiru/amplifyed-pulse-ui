@@ -6,6 +6,8 @@
  * Never orders threads.
  */
 
+import { getContributorCount } from "./confusion.state.js";
+
 // BEGIN CONFUSION SIGNAL
 
 export function broadcastConfusionUpdate({
@@ -18,7 +20,7 @@ export function broadcastConfusionUpdate({
   const threads = envelopes.map((entry) => ({
     rootMessageId: entry.rootMessageId,
     level: entry.level,
-    contributors: entry.contributors,
+    contributors: getContributorCount(entry),
     resolvedAt: entry.resolvedAt,
     resolvedBy: entry.resolvedBy,
     resolutionType: entry.resolutionType,

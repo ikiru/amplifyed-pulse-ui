@@ -12,6 +12,7 @@ import {
 } from "./confusion.handleSignal.js";
 import { broadcastConfusionUpdate } from "./confusion.broadcast.js";
 import {
+  getContributorCount,
   getSessionConfusion,
   resolveConfusionEnvelope,
 } from "./confusion.state.js";
@@ -23,10 +24,11 @@ export function createConfusionPipeline(io) {
 
   const determineLevel = (entry) => {
     let level = "low";
+    const contributorCount = getContributorCount(entry);
 
-    if (entry.contributors >= 3 || entry.score >= 5) {
+    if (contributorCount >= 3 || entry.score >= 5) {
       level = "high";
-    } else if (entry.contributors >= 2 || entry.score >= 2) {
+    } else if (contributorCount >= 2 || entry.score >= 2) {
       level = "medium";
     }
 
@@ -37,7 +39,7 @@ export function createConfusionPipeline(io) {
     sessionState.map((entry) => ({
       rootMessageId: entry.rootMessageId,
       level: determineLevel(entry),
-      contributors: entry.contributors,
+      contributors: getContributorCount(entry),
       resolvedAt: entry.resolvedAt,
       resolvedBy: entry.resolvedBy,
       resolutionType: entry.resolutionType,

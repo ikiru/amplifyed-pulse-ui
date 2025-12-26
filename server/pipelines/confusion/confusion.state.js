@@ -26,6 +26,25 @@ const ALLOWED_RESOLUTION_TYPES = new Set([
   "reframe",
 ]);
 
+function normalizeContributors(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (value instanceof Set) {
+    return Array.from(value);
+  }
+  return [];
+}
+
+export function getContributorCount(entry) {
+  if (!entry) return 0;
+  const { contributors } = entry;
+  if (Array.isArray(contributors)) return contributors.length;
+  if (contributors instanceof Set) return contributors.size;
+  if (typeof contributors === "number") return Math.max(0, contributors);
+  return 0;
+}
+
 function ensureSession(sessionId) {
   if (!confusionState.has(sessionId)) {
     confusionState.set(sessionId, new Map());
@@ -51,24 +70,18 @@ export function upsertConfusionEnvelope({
 }) {
   if (!sessionId || !rootMessageId) return null;
 
+  void contributorDelta;
+
   const sessionMap = ensureSession(sessionId);
 
-  const existing =
-    sessionMap.get(rootMessageId) ?? {
-      score: 0,
-      contributors: 0,
-      ts,
-      confusionScore: 0,
-    };
+  const existing = sessionMap.get(rootMessageId);
+  const contributorList = normalizeContributors(existing?.contributors);
 
   const next = {
-    score: existing.score + scoreDelta,
-    contributors: Math.max(
-      0,
-      existing.contributors + contributorDelta
-    ),
+    score: (existing?.score ?? 0) + scoreDelta,
+    contributors: contributorList,
     ts,
-    confusionScore: existing.confusionScore ?? 0,
+    confusionScore: existing?.confusionScore ?? 0,
   };
 
   sessionMap.set(rootMessageId, next);
@@ -78,9 +91,7 @@ export function upsertConfusionEnvelope({
     "score:",
     next.confusionScore,
     "contributors:",
-    typeof next.contributors === "number"
-      ? next.contributors
-      : next.contributors?.size ?? 0
+    getContributorCount(next)
   );
   return next;
 }
