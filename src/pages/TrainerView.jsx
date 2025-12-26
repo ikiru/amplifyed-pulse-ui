@@ -51,20 +51,15 @@ function ConfusionFootprint({ level }) {
   );
 }
 
-function ConfusionMeter({ confusionScore }) {
+function ConfusionMeter({ confusionScore, rootMessageId }) {
   const MAX_BARS = 8;
-  const filled = Math.max(
-    0,
-    Math.min(confusionScore ?? 0, MAX_BARS)
-  );
+  const normalizedScore = confusionScore ?? 0;
+  const filled = Math.max(0, Math.min(normalizedScore, MAX_BARS));
 
-  console.log(
-    "[CONFUSION][STEP 4][RENDER]",
-    "score:",
+  console.log("[CONFUSION][STEP 5][RENDER]", {
+    rootMessageId,
     confusionScore,
-    "filled:",
-    filled
-  );
+  });
 
   return (
     <div className="confusion-meter">
@@ -1026,38 +1021,45 @@ export default function TrainerView() {
                         confusionByRootId={confusionByRootId}
                         confusionLevel={confusionLevel}
                         showVoteControls={true}
+                        renderRootExtras={() => (
+                          <>
+                            <ConfusionMeter
+                              confusionScore={confusionScore}
+                              rootMessageId={root.messageId}
+                            />
+                            {hasConfusion && (
+                              <ConfusionFootprint level={confusionLevel} />
+                            )}
+                            {hasConfusion && (
+                              <div className="trainer-confusion-banner">
+                                {resolutionType ? (
+                                  <span className="trainer-confusion-resolved">
+                                    Addressed: {resolutionLabel ?? "Resolved"}
+                                  </span>
+                                ) : (
+                                  <div className="trainer-resolution-controls">
+                                    <span className="trainer-resolution-label">
+                                      Resolve:
+                                    </span>
+                                    {RESOLUTION_OPTIONS.map((option) => (
+                                      <button
+                                        key={option.type}
+                                        type="button"
+                                        className="trainer-resolution-button"
+                                        onClick={() =>
+                                          handleResolution(option.type)
+                                        }
+                                      >
+                                        {option.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
                       />
-                      {isRoot && confusionScore != null && (
-                        <ConfusionMeter confusionScore={confusionScore} />
-                      )}
-                      {isRoot && hasConfusion && (
-                        <ConfusionFootprint level={confusionLevel} />
-                      )}
-                      {hasConfusion && (
-                        <div className="trainer-confusion-banner">
-                          {resolutionType ? (
-                            <span className="trainer-confusion-resolved">
-                              Addressed: {resolutionLabel ?? "Resolved"}
-                            </span>
-                          ) : (
-                            <div className="trainer-resolution-controls">
-                              <span className="trainer-resolution-label">
-                                Resolve:
-                              </span>
-                              {RESOLUTION_OPTIONS.map((option) => (
-                                <button
-                                  key={option.type}
-                                  type="button"
-                                  className="trainer-resolution-button"
-                                  onClick={() => handleResolution(option.type)}
-                                >
-                                  {option.label}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   );
                 })}

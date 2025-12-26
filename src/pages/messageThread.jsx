@@ -65,6 +65,7 @@ function ThreadItemContent({
   isAnchor = false,
   isCollapsed = false,
   onToggleCollapse,
+  renderRootExtras,
 }) {
   const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
   const shouldShowConfusionFootprint =
@@ -179,6 +180,8 @@ function ThreadItemContent({
           </div>
         )}
       </div>
+
+      {renderRootExtras?.()}
 
       {showReplyControls && isReplyOpen && (
         <div className="thread-replies">
