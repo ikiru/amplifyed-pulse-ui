@@ -51,6 +51,36 @@ function ConfusionFootprint({ level }) {
   );
 }
 
+function ConfusionMeter({ confusionScore }) {
+  const MAX_BARS = 8;
+  const filled = Math.max(
+    0,
+    Math.min(confusionScore ?? 0, MAX_BARS)
+  );
+
+  console.log(
+    "[CONFUSION][STEP 4][RENDER]",
+    "score:",
+    confusionScore,
+    "filled:",
+    filled
+  );
+
+  return (
+    <div className="confusion-meter">
+      <span className="confusion-label">Confusion:</span>
+      <div className="confusion-bars">
+        {Array.from({ length: MAX_BARS }).map((_, i) => (
+          <span
+            key={i}
+            className={i < filled ? "bar filled" : "bar empty"}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function TrainerView() {
   const { emit, onEvent, offEvent, connectionStatus } = useSocket();
   const [focus, setFocus] = useState(null);
@@ -962,6 +992,7 @@ export default function TrainerView() {
                 {messageRoots.map((root) => {
                   const confusionSignal = confusionByRootId?.[root.messageId];
                   const confusionLevel = confusionSignal?.level ?? null;
+                  const confusionScore = confusionSignal?.confusionScore ?? null;
                   const hasConfusion = Boolean(confusionLevel);
                   const resolutionType = confusionSignal?.resolutionType;
                   const isRoot = !root.parentMessageId;
@@ -996,6 +1027,9 @@ export default function TrainerView() {
                         confusionLevel={confusionLevel}
                         showVoteControls={true}
                       />
+                      {isRoot && confusionScore != null && (
+                        <ConfusionMeter confusionScore={confusionScore} />
+                      )}
                       {isRoot && hasConfusion && (
                         <ConfusionFootprint level={confusionLevel} />
                       )}

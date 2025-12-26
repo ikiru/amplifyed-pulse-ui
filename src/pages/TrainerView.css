@@ -372,3 +372,27 @@
   font-weight: 500;
   color: #1f1f1f;
 }
+
+.confusion-meter {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.confusion-bars {
+  display: flex;
+  gap: 4px;
+}
+
+.confusion-bars .bar {
+  width: 10px;
+  height: 6px;
+  border-radius: 2px;
+  background: #3a3a3a;
+}
+
+.confusion-bars .bar.filled {
+  background: #ff6b6b;
+}
