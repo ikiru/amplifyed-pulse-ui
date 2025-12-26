@@ -5,6 +5,8 @@ import { buildMessageTree, ThreadItem } from "./messageThread.jsx";
 import "./AudienceInput.css";
 import "./TrainerView.css";
 
+const TRACE_ENABLED = false;
+
 const assert = (condition, message) => {
   if (!condition) {
     throw new Error(message);
@@ -51,6 +53,10 @@ export default function TrainerView() {
 
       map[rootMessageId] = thread.level ?? null;
     });
+
+    console.group("[DIAG] confusionByRootId map");
+    console.log(map);
+    console.groupEnd();
 
     return map;
   }, [confusionAdvisory]);
@@ -132,17 +138,21 @@ export default function TrainerView() {
         : undefined;
       const canonicalParticipantCount = derivedParticipantsCount;
 
-      console.groupCollapsed("[TRACE] pulse:update received");
-      console.log("raw participants:", participants);
-      console.log("explicit participantsCount:", explicitParticipantsCount);
-      console.log("derived count:", derivedParticipantsCount);
-      console.log("canonicalParticipantCount:", canonicalParticipantCount);
-      console.groupEnd();
+      if (TRACE_ENABLED) {
+        console.groupCollapsed("[TRACE] pulse:update received");
+        console.log("raw participants:", participants);
+        console.log("explicit participantsCount:", explicitParticipantsCount);
+        console.log("derived count:", derivedParticipantsCount);
+        console.log("canonicalParticipantCount:", canonicalParticipantCount);
+        console.groupEnd();
+      }
 
-      console.log(
-        "[TRACE] canonicalParticipantCount →",
-        canonicalParticipantCount
-      );
+      if (TRACE_ENABLED) {
+        console.log(
+          "[TRACE] canonicalParticipantCount →",
+          canonicalParticipantCount
+        );
+      }
 
       const nextPulse = {
         ...payload,
@@ -166,13 +176,15 @@ export default function TrainerView() {
         const canonicalParticipantCount =
           explicitCount ?? derivedCount ?? undefined;
 
-        console.groupCollapsed("[TRACE] pulse:update payload");
-        console.log("livePulse:", nextPulse);
-        console.log("participants:", nextPulse?.participants);
-        console.log("participantsCount (explicit):", explicitCount);
-        console.log("participantsCount (derived):", derivedCount);
-        console.log("canonicalParticipantCount:", canonicalParticipantCount);
-        console.groupEnd();
+        if (TRACE_ENABLED) {
+          console.groupCollapsed("[TRACE] pulse:update payload");
+          console.log("livePulse:", nextPulse);
+          console.log("participants:", nextPulse?.participants);
+          console.log("participantsCount (explicit):", explicitCount);
+          console.log("participantsCount (derived):", derivedCount);
+          console.log("canonicalParticipantCount:", canonicalParticipantCount);
+          console.groupEnd();
+        }
       }
     };
 
@@ -256,6 +268,11 @@ export default function TrainerView() {
     // No UI, no interpretation, no mutation of messages
     // --------------------------------------------------
     const handleConfusionUpdate = (payload) => {
+      console.group("[DIAG] confusion:update received");
+      console.log("raw payload:", payload);
+      console.log("threads:", payload?.threads);
+      console.groupEnd();
+
       if (!payload) {
         setConfusionAdvisory(null);
         return;
@@ -813,24 +830,26 @@ export default function TrainerView() {
             <h2>Pulse</h2>
             {/* CENTER COLUMN pulse timeline (authoritative) */}
             {(() => {
-              console.group("[TRACE] TrainerView → PulseTimeline render");
-              console.log(
-                "canonicalParticipantCount (render-scope):",
-                canonicalParticipantCount
-              );
-              console.log(
-                "typeof canonicalParticipantCount:",
-                typeof canonicalParticipantCount
-              );
-              console.log(
-                "canonicalParticipantCount === 0:",
-                canonicalParticipantCount === 0
-              );
-              console.log(
-                "canonicalParticipantCount === undefined:",
-                canonicalParticipantCount === undefined
-              );
-              console.groupEnd();
+              if (TRACE_ENABLED) {
+                console.group("[TRACE] TrainerView → PulseTimeline render");
+                console.log(
+                  "canonicalParticipantCount (render-scope):",
+                  canonicalParticipantCount
+                );
+                console.log(
+                  "typeof canonicalParticipantCount:",
+                  typeof canonicalParticipantCount
+                );
+                console.log(
+                  "canonicalParticipantCount === 0:",
+                  canonicalParticipantCount === 0
+                );
+                console.log(
+                  "canonicalParticipantCount === undefined:",
+                  canonicalParticipantCount === undefined
+                );
+                console.groupEnd();
+              }
 
               if (process.env.NODE_ENV !== "production") {
                 if (
@@ -838,14 +857,16 @@ export default function TrainerView() {
                   typeof timelineParticipantsCount === "number" &&
                   summaryVoteCount > timelineParticipantsCount
                 ) {
-                  console.warn(
-                    "[TRACE] PulseSummary vote count exceeds participant count",
-                    {
-                      summaryVoteCount,
-                      canonicalParticipantCount,
-                      timelineParticipantsCount,
-                    }
-                  );
+                  if (TRACE_ENABLED) {
+                    console.warn(
+                      "[TRACE] PulseSummary vote count exceeds participant count",
+                      {
+                        summaryVoteCount,
+                        canonicalParticipantCount,
+                        timelineParticipantsCount,
+                      }
+                    );
+                  }
                 }
               }
             })()}
@@ -1199,12 +1220,14 @@ function PulseTimeline(props) {
   };
 
   if (process.env.NODE_ENV !== "production") {
-    console.groupCollapsed("[TRACE] PulseTimeline props");
-    console.log("resolvedParticipantsCount:", resolvedParticipantsCount);
-    console.log("scaleMin:", scaleMin);
-    console.log("scaleMax:", scaleMax);
-    console.log("points:", points);
-    console.groupEnd();
+    if (TRACE_ENABLED) {
+      console.groupCollapsed("[TRACE] PulseTimeline props");
+      console.log("resolvedParticipantsCount:", resolvedParticipantsCount);
+      console.log("scaleMin:", scaleMin);
+      console.log("scaleMax:", scaleMax);
+      console.log("points:", points);
+      console.groupEnd();
+    }
 
     // Zero is an expected transitional value while the canonical participant count is still pending.
     const resolvedCountIsValid = resolvedParticipantsCount >= 0;
@@ -1215,10 +1238,12 @@ function PulseTimeline(props) {
       );
     }
 
-    console.groupCollapsed("[TRACE] PulseTimeline scaling props");
-    console.log("scaling props snapshot:", scalingProps);
-    console.log("resolvedParticipantsCount:", resolvedParticipantsCount);
-    console.groupEnd();
+    if (TRACE_ENABLED) {
+      console.groupCollapsed("[TRACE] PulseTimeline scaling props");
+      console.log("scaling props snapshot:", scalingProps);
+      console.log("resolvedParticipantsCount:", resolvedParticipantsCount);
+      console.groupEnd();
+    }
     console.assert(
       resolvedCountIsValid,
       "[ASSERT] PulseTimeline received invalid resolvedParticipantsCount",

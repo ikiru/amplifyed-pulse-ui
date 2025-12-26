@@ -30,7 +30,11 @@ export function buildMessageTree(messages) {
 
 export function ThreadItem(props) {
   const depth = props.depth ?? 0;
+  const { node, confusionLevel } = props;
   if (depth === 0) {
+    console.group(`[DIAG] ThreadItem anchor ${node?.messageId}`);
+    console.log("confusionLevel:", confusionLevel);
+    console.groupEnd();
     return <AnchorThreadItem {...props} />;
   }
 
@@ -70,6 +74,10 @@ function ThreadItemContent({
   isCollapsed = false,
   onToggleCollapse,
 }) {
+  console.group("[DIAG] messageThread props");
+  console.log("confusionByRootId:", confusionByRootId);
+  console.groupEnd();
+
   const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
   const confusionFill =
     confusionLevel != null ? CONFUSION_FILL_PERCENT[confusionLevel] : null;
