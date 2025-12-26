@@ -21,18 +21,7 @@ import { addMessage, getMessage } from "./message.state.js";
 import { getSessionVoteTotals } from "./message.vote.state.js";
 import { broadcastVoteUpdate } from "./message.vote.broadcast.js";
 import { v4 as uuidv4 } from "uuid";
-
-const CONFUSION_PATTERNS = [
-  "i don't understand",
-  "im confused",
-  "i am confused",
-  "what?",
-  "can you explain",
-  "can you explain again",
-  "i'm lost",
-  "lost me",
-  "that doesn't make sense",
-];
+import { detectConfusionFromText } from "../../confusion/confusion.phrases.js";
 
 function resolveRootMessageId(sessionId, parentMessageId, fallbackId) {
   if (!parentMessageId) {
@@ -104,16 +93,9 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
           ? effectiveContent
           : effectiveContent?.text ?? null;
 
-    const normalizedText =
-      typeof audienceText === "string" ? audienceText.toLowerCase() : "";
+    const detected = detectConfusionFromText(audienceText);
 
-    const hasConfusionLanguage =
-      typeof audienceText === "string" &&
-      CONFUSION_PATTERNS.some((pattern) =>
-        normalizedText.includes(pattern)
-      );
-
-    if (hasConfusionLanguage) {
+    if (detected) {
       const rootMessageId = resolveRootMessageId(
         sessionId,
         parentMessageId,
