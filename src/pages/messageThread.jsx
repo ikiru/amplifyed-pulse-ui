@@ -1,7 +1,5 @@
 import { useState } from "react";
 import "./AudienceInput.css";
-import ConfusionFootprint from "./ConfusionFootprint.jsx";
-
 export function buildMessageTree(messages) {
   const map = {};
   const roots = [];
@@ -55,7 +53,6 @@ function ThreadItemContent({
   voteTotals,
   voteTotalsMap,
   confusionByRootId,
-  confusionLevel = null,
   onConfusionSignal = () => {},
   emitVoteIntent,
   voteSelectionMap,
@@ -68,8 +65,6 @@ function ThreadItemContent({
   renderRootExtras,
 }) {
   const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
-  const shouldShowConfusionFootprint =
-    isAnchor && typeof confusionLevel === "string";
   const isReplyOpen = replyToId === node.messageId;
   const canToggleCollapse = isAnchor && typeof onToggleCollapse === "function";
   const repliesVisible = !isAnchor || !isCollapsed;
@@ -156,10 +151,6 @@ function ThreadItemContent({
             </button>
           )}
         </div>
-
-        {shouldShowConfusionFootprint && (
-          <ConfusionFootprint level={confusionLevel} />
-        )}
 
         {showVoteTotals && voteTotals && (
           <div className="thread-vote-totals">

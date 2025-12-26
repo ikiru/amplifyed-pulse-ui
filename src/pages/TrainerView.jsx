@@ -27,39 +27,19 @@ const RESOLUTION_LABELS = RESOLUTION_OPTIONS.reduce((acc, option) => {
   return acc;
 }, {});
 
-function ConfusionFootprint({ level }) {
-  const MAX_BARS = 8;
-  const filledBars =
-    level === "high"
-      ? 3
-      : level === "medium"
-      ? 2
-      : level === "low"
-      ? 1
-      : 0;
-
-  return (
-    <div className="confusion-footprint">
-      <span className="confusion-label">Confusion:</span>
-      {Array.from({ length: MAX_BARS }).map((_, i) => (
-        <span
-          key={i}
-          className={i < filledBars ? "confusion-bar filled" : "confusion-bar"}
-        />
-      ))}
-    </div>
-  );
-}
+const OFF_TOPIC_PATTERN = /off[-_\s]?topic/i;
 
 function ConfusionMeter({ confusionScore, rootMessageId }) {
   const MAX_BARS = 8;
   const normalizedScore = confusionScore ?? 0;
   const filled = Math.max(0, Math.min(normalizedScore, MAX_BARS));
 
-  console.log("[CONFUSION][STEP 5][RENDER]", {
-    rootMessageId,
-    confusionScore,
-  });
+  if (TRACE_ENABLED) {
+    console.log("[CONFUSION][STEP 5][RENDER]", {
+      rootMessageId,
+      confusionScore,
+    });
+  }
 
   return (
     <div className="confusion-meter">
@@ -74,6 +54,52 @@ function ConfusionMeter({ confusionScore, rootMessageId }) {
       </div>
     </div>
   );
+}
+
+function matchesOffTopicValue(value) {
+  if (value === true) {
+    return true;
+  }
+  if (typeof value === "string") {
+    return OFF_TOPIC_PATTERN.test(value);
+  }
+  if (Array.isArray(value)) {
+    return value.some(matchesOffTopicValue);
+  }
+  if (value && typeof value === "object") {
+    return Object.values(value).some(matchesOffTopicValue);
+  }
+  return false;
+}
+
+function hasOffTopicMarker(source) {
+  if (!source || typeof source !== "object") {
+    return false;
+  }
+  return (
+    matchesOffTopicValue(source.offTopic ?? source.isOffTopic) ||
+    matchesOffTopicValue(source.topicStatus ?? source.classification) ||
+    matchesOffTopicValue(source.labels ?? source.tags ?? source.flags)
+  );
+}
+
+function isThreadOffTopic(root, confusionSignal) {
+  if (hasOffTopicMarker(confusionSignal)) {
+    return true;
+  }
+  if (hasOffTopicMarker(root?.payload?.meta)) {
+    return true;
+  }
+  if (hasOffTopicMarker(root?.payload?.content?.meta)) {
+    return true;
+  }
+  if (hasOffTopicMarker(root?.payload)) {
+    return true;
+  }
+  if (hasOffTopicMarker(root?.payload?.content)) {
+    return true;
+  }
+  return false;
 }
 
 export default function TrainerView() {
@@ -987,10 +1013,21 @@ export default function TrainerView() {
                 {messageRoots.map((root) => {
                   const confusionSignal = confusionByRootId?.[root.messageId];
                   const confusionLevel = confusionSignal?.level ?? null;
-                  const confusionScore = confusionSignal?.confusionScore ?? null;
+                  const contributorCount = Math.max(
+                    0,
+                    Number(
+                      confusionSignal?.contributors ??
+                        confusionSignal?.confusionScore ??
+                        0
+                    )
+                  );
                   const hasConfusion = Boolean(confusionLevel);
                   const resolutionType = confusionSignal?.resolutionType;
                   const isRoot = !root.parentMessageId;
+                  const hasConfusionSignal = contributorCount > 0;
+                  const threadIsOffTopic = isThreadOffTopic(root, confusionSignal);
+                  const shouldShowConfusionMeter =
+                    hasConfusionSignal && !threadIsOffTopic;
                   const resolutionLabel =
                     resolutionType && RESOLUTION_LABELS[resolutionType]
                       ? RESOLUTION_LABELS[resolutionType]
@@ -1023,12 +1060,11 @@ export default function TrainerView() {
                         showVoteControls={true}
                         renderRootExtras={() => (
                           <>
-                            <ConfusionMeter
-                              confusionScore={confusionScore}
-                              rootMessageId={root.messageId}
-                            />
-                            {hasConfusion && (
-                              <ConfusionFootprint level={confusionLevel} />
+                            {shouldShowConfusionMeter && (
+                              <ConfusionMeter
+                                confusionScore={contributorCount}
+                                rootMessageId={root.messageId}
+                              />
                             )}
                             {hasConfusion && (
                               <div className="trainer-confusion-banner">
