@@ -32,6 +32,8 @@ export function ThreadItem({
   handleSubmitReply,
   voteTotals,
   voteTotalsMap,
+  confusionByRootId,
+  confusionLevel = null,
   emitVoteIntent,
   voteSelectionMap,
   showVoteControls = true,
@@ -39,6 +41,7 @@ export function ThreadItem({
   showReplyControls = true,
 }) {
   const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
+  void confusionLevel;
   const isReplyOpen = replyToId === node.messageId;
 
   const handleReplyToggle = () => {
@@ -152,6 +155,8 @@ export function ThreadItem({
               handleSubmitReply={handleSubmitReply}
               voteTotals={voteTotalsMap?.[child.messageId]}
               voteTotalsMap={voteTotalsMap}
+              confusionByRootId={confusionByRootId}
+              confusionLevel={confusionByRootId?.[child.messageId] ?? null}
               emitVoteIntent={emitVoteIntent}
               voteSelectionMap={voteSelectionMap}
               showVoteControls={showVoteControls}

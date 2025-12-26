@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
 import { adaptMessage } from "./messageHelpers.js";
 import { buildMessageTree, ThreadItem } from "./messageThread.jsx";
@@ -33,6 +33,27 @@ export default function TrainerView() {
   const [trainerInput, setTrainerInput] = useState("");
   const [trainerReplyToId, setTrainerReplyToId] = useState(null);
   const [trainerReplyDrafts, setTrainerReplyDrafts] = useState({});
+  const confusionByRootId = useMemo(() => {
+    const threads = confusionAdvisory?.threads;
+    if (!Array.isArray(threads) || threads.length === 0) {
+      return null;
+    }
+
+    const map = {};
+    threads.forEach((thread) => {
+      const rootMessageId =
+        thread && typeof thread.rootMessageId === "string"
+          ? thread.rootMessageId
+          : null;
+      if (!rootMessageId) {
+        return;
+      }
+
+      map[rootMessageId] = thread.level ?? null;
+    });
+
+    return map;
+  }, [confusionAdvisory]);
 
   // PulseTimeline now relies directly on the `pulse:update` payload so the visual stays tied to the canonical stream without cached selectors.
   // Source: canonical `livePulse` updates from the server (pulse:update) drive this value via `canonicalParticipantCount`, counting only `actorRole === "audience"` sockets.
@@ -905,6 +926,8 @@ export default function TrainerView() {
                       handleSubmitReply={handleTrainerReplySubmit}
                       voteTotals={voteTotals[root.messageId]}
                       voteTotalsMap={voteTotals}
+                      confusionByRootId={confusionByRootId}
+                      confusionLevel={confusionByRootId?.[root.messageId] ?? null}
                       showVoteControls={true}
                     />
                   ))}
