@@ -48,8 +48,10 @@ export function handleConfusionSignal(payload) {
     envelope.confusionScore
   );
 
-  // STEP 6.1 — Self-report confusion scoring
-  if (source === "self_report") {
+  const isConfusionSource =
+    source === "self_report" || source === "detection";
+
+  if (isConfusionSource) {
     const contributors = Array.isArray(envelope.contributors)
       ? envelope.contributors
       : (envelope.contributors = []);
@@ -67,12 +69,14 @@ export function handleConfusionSignal(payload) {
 
       envelope.confusionScore += 1;
 
-      console.groupCollapsed("[CONFUSION][STEP 6.1][SELF_REPORT]");
-      console.log("rootMessageId:", rootMessageId);
-      console.log("participantId:", participantId);
-      console.log("before:", before);
-      console.log("after:", envelope.confusionScore);
-      console.groupEnd();
+      if (source === "self_report") {
+        console.groupCollapsed("[CONFUSION][STEP 6.1][SELF_REPORT]");
+        console.log("rootMessageId:", rootMessageId);
+        console.log("participantId:", participantId);
+        console.log("before:", before);
+        console.log("after:", envelope.confusionScore);
+        console.groupEnd();
+      }
 
       console.log("[CONFUSION][STEP 6.2][APPLIED]", {
         rootMessageId,

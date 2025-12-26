@@ -17,12 +17,50 @@
 import { extractMessageSignal } from "./messageSignalExtractor.js";
 import { formatMessage } from "./message.format.js";
 import { broadcastAudienceMessage, broadcastMessageState } from "./message.broadcast.js";
-import { addMessage } from "./message.state.js";
+import { addMessage, getMessage } from "./message.state.js";
 import { getSessionVoteTotals } from "./message.vote.state.js";
 import { broadcastVoteUpdate } from "./message.vote.broadcast.js";
 import { v4 as uuidv4 } from "uuid";
 
-export function createMessagePipeline(io, momentBuilder = null) {
+const CONFUSION_PATTERNS = [
+  "i don't understand",
+  "im confused",
+  "i am confused",
+  "what?",
+  "can you explain",
+  "can you explain again",
+  "i'm lost",
+  "lost me",
+  "that doesn't make sense",
+];
+
+function resolveRootMessageId(sessionId, parentMessageId, fallbackId) {
+  if (!parentMessageId) {
+    return fallbackId;
+  }
+
+  let currentId = parentMessageId;
+  let nextParentId = parentMessageId;
+
+  while (nextParentId) {
+    const parentMessage = getMessage(sessionId, nextParentId);
+    if (!parentMessage) {
+      break;
+    }
+
+    const nextParent = parentMessage.envelope?.parentMessageId;
+    if (!nextParent) {
+      break;
+    }
+
+    currentId = nextParent;
+    nextParentId = nextParent;
+  }
+
+  return currentId ?? parentMessageId ?? fallbackId;
+}
+
+export function createMessagePipeline(io, momentBuilder = null, confusionPipeline = null) {
 
   function handleAudienceMessage({
     socketId,
@@ -59,7 +97,53 @@ export function createMessagePipeline(io, momentBuilder = null) {
     // Authoritative message state is broadcast below.
     broadcastMessageState({ io, sessionId });
 
-    const signalText = text ?? effectiveContent.text;
+    const audienceText =
+      typeof text === "string"
+        ? text
+        : typeof effectiveContent === "string"
+          ? effectiveContent
+          : effectiveContent?.text ?? null;
+
+    const normalizedText =
+      typeof audienceText === "string" ? audienceText.toLowerCase() : "";
+
+    const hasConfusionLanguage =
+      typeof audienceText === "string" &&
+      CONFUSION_PATTERNS.some((pattern) =>
+        normalizedText.includes(pattern)
+      );
+
+    if (hasConfusionLanguage) {
+      const rootMessageId = resolveRootMessageId(
+        sessionId,
+        parentMessageId,
+        messageId
+      );
+
+      console.groupCollapsed("[CONFUSION][STEP 7.1][DETECTED]");
+      console.log("messageId:", messageId);
+      console.log("rootMessageId:", rootMessageId);
+      console.log("text:", audienceText);
+      console.groupEnd();
+
+      if (confusionPipeline?.handleConfusionSignal) {
+        console.log("[CONFUSION][STEP 7.2][EMIT]", {
+          rootMessageId,
+          participantId: socketId,
+          source: "detection",
+        });
+
+        confusionPipeline.handleConfusionSignal({
+          sessionId,
+          rootMessageId,
+          participantId: socketId,
+          source: "detection",
+          ts: now,
+        });
+      }
+    }
+
+    const signalText = audienceText;
     const messageSignal = signalText ? extractMessageSignal(signalText) : null;
 
     if (momentBuilder && messageSignal) {

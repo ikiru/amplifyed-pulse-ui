@@ -40,9 +40,13 @@ const pulsePipeline = createPulsePipeline(io, {
   momentPipeline,
   sessionPipeline,
 });
-const messagePipeline = createMessagePipeline(io, pulsePipeline.momentBuilder);
-const trainerPipeline = createTrainerPipeline(io, pulsePipeline.momentBuilder);
 const confusionPipeline = createConfusionPipeline(io);
+const messagePipeline = createMessagePipeline(
+  io,
+  pulsePipeline.momentBuilder,
+  confusionPipeline
+);
+const trainerPipeline = createTrainerPipeline(io, pulsePipeline.momentBuilder);
 const focusPipeline = {
   handleSetFocus,
   handleClearFocus,

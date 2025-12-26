@@ -34,6 +34,13 @@ export function addMessage({ sessionId, message }) {
   return message;
 }
 
+export function getMessage(sessionId, messageId) {
+  if (!sessionId || !messageId) return null;
+  const session = messageState.get(sessionId);
+  if (!session) return null;
+  return session.messages.get(messageId) ?? null;
+}
+
 export function getSessionMessages(sessionId) {
   const session = messageState.get(sessionId);
   if (!session) return [];
