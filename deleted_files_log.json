@@ -27,6 +27,20 @@
     "src/stores/usePresenceStore.js",
     "src/socket/useFacilitator.js",
     "src/socket/useEngine.js",
-    "src/socket/useFocus.js"
+    "src/socket/useFocus.js",
+
+    "archive/emotional_engine/DEPRECATED.md",
+    "archive/emotional_engine/emotionalFeatureExtractors.js",
+    "archive/emotional_engine/emotionalScoring.js",
+    "archive/emotional_engine/EmotionalTrendline.jsx",
+    "archive/emotional_engine/pulseLogic.js",
+    "archive/emotional_engine/registerPulseHandlers.js",
+    "archive/emotional_engine/smoothing.js",
+    "archive/emotional_engine/useEmotionalEngine.js",
+
+    "archive/legacy_frontend_socket/index.js",
+    "archive/legacy_frontend_socket/SocketProvider.jsx",
+    "archive/legacy_frontend_socket/usePulseFeed.js",
+    "archive/legacy_frontend_socket/useSocket.js"
   ]
 }

@@ -4,6 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import TrainerView from "../pages/TrainerView.jsx";
 
 const registeredHandlers = new Map();
+let mockConnectionStatus = "connected";
+const setMockConnectionStatus = (value) => {
+  mockConnectionStatus = value;
+};
 
 const getFirstHandler = (event) => {
   const handlers = registeredHandlers.get(event);
@@ -26,13 +30,14 @@ vi.mock("../socket/SocketContext.jsx", () => ({
         registeredHandlers.delete(event);
       }
     },
-    connectionStatus: "connected",
+    connectionStatus: mockConnectionStatus,
   }),
 }));
 
 describe("TrainerView participant counters", () => {
   beforeEach(() => {
     registeredHandlers.clear();
+    setMockConnectionStatus("connected");
   });
 
   it("waits for participant count before rendering PulseTimeline and emits no early assertions", async () => {
@@ -42,8 +47,11 @@ describe("TrainerView participant counters", () => {
     const consoleErrorSpy = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
 
     try {
+      setMockConnectionStatus("connecting");
       render(<TrainerView />);
 
       await waitFor(() => {
@@ -52,12 +60,13 @@ describe("TrainerView participant counters", () => {
 
       expect(
         screen.getByText(
-          /Waiting for canonical participant data before drawing the timeline\./i
+          /Waiting for live pulse data before drawing the timeline\./i
         )
       ).toBeInTheDocument();
       expect(consoleAssertSpy).not.toHaveBeenCalled();
       expect(consoleErrorSpy).not.toHaveBeenCalled();
 
+      setMockConnectionStatus("connected");
       const pulseUpdateHandler = getFirstHandler("pulse:update");
       act(() => {
         pulseUpdateHandler({
@@ -73,12 +82,13 @@ describe("TrainerView participant counters", () => {
       });
       expect(
         screen.queryByText(
-          /Waiting for canonical participant data before drawing the timeline\./i
+          /Waiting for live pulse data before drawing the timeline\./i
         )
       ).not.toBeInTheDocument();
     } finally {
       consoleAssertSpy.mockRestore();
       consoleErrorSpy.mockRestore();
+      process.env.NODE_ENV = previousNodeEnv;
     }
   });
 
