@@ -1,6 +1,12 @@
 import React from "react";
 import "./AudienceInput.css";
 
+const CONFUSION_FILL_PERCENT = {
+  low: "25%",
+  medium: "50%",
+  high: "75%",
+};
+
 export function buildMessageTree(messages) {
   const map = {};
   const roots = [];
@@ -41,7 +47,10 @@ export function ThreadItem({
   showReplyControls = true,
 }) {
   const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
-  void confusionLevel;
+  const confusionFill =
+    confusionLevel != null ? CONFUSION_FILL_PERCENT[confusionLevel] : null;
+  const shouldShowConfusionBar =
+    depth === 0 && confusionLevel != null && typeof confusionFill === "string";
   const isReplyOpen = replyToId === node.messageId;
 
   const handleReplyToggle = () => {
@@ -101,6 +110,15 @@ export function ThreadItem({
             </button>
           )}
         </div>
+
+        {shouldShowConfusionBar && (
+          <div className="confusion-bar">
+            <div
+              className="confusion-bar-fill"
+              style={{ width: confusionFill }}
+            />
+          </div>
+        )}
 
         {showVoteTotals && voteTotals && (
           <div className="thread-vote-totals">

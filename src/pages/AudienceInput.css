@@ -178,3 +178,17 @@
 .thread-replies {
   margin-top: 6px;
 }
+
+.confusion-bar {
+  margin: 6px 0;
+  height: 6px;
+  border-radius: 999px;
+  background: #eceef3;
+  overflow: hidden;
+}
+
+.confusion-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #bfc3d0;
+}
