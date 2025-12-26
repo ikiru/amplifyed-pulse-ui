@@ -25,6 +25,8 @@ export function handleConfusionSignal(payload) {
   const {
     sessionId,
     rootMessageId,
+    participantId,
+    source,
     scoreDelta = 0,
     contributorDelta = 0,
     ts = Date.now(),
@@ -46,14 +48,19 @@ export function handleConfusionSignal(payload) {
     envelope.confusionScore
   );
 
-  envelope.confusionScore += 1;
+  // STEP 6.1 — Self-report confusion scoring
+  if (source === "self_report") {
+    const before = envelope.confusionScore;
 
-  console.log(
-    "[CONFUSION][STEP 3][AFTER]",
-    rootMessageId,
-    "score:",
-    envelope.confusionScore
-  );
+    envelope.confusionScore += 1;
+
+    console.groupCollapsed("[CONFUSION][STEP 6.1][SELF_REPORT]");
+    console.log("rootMessageId:", rootMessageId);
+    console.log("participantId:", participantId);
+    console.log("before:", before);
+    console.log("after:", envelope.confusionScore);
+    console.groupEnd();
+  }
 
   return envelope;
 }
