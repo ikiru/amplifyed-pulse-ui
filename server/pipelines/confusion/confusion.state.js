@@ -58,6 +58,7 @@ export function upsertConfusionEnvelope({
       score: 0,
       contributors: 0,
       ts,
+      confusionScore: 0,
     };
 
   const next = {
@@ -67,9 +68,20 @@ export function upsertConfusionEnvelope({
       existing.contributors + contributorDelta
     ),
     ts,
+    confusionScore: existing.confusionScore ?? 0,
   };
 
   sessionMap.set(rootMessageId, next);
+  console.log(
+    "[CONFUSION][STEP 2][STATE]",
+    rootMessageId,
+    "score:",
+    next.confusionScore,
+    "contributors:",
+    typeof next.contributors === "number"
+      ? next.contributors
+      : next.contributors?.size ?? 0
+  );
   return next;
 }
 
