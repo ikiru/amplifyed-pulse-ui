@@ -199,6 +199,31 @@
   color: #666;
 }
 
+.confusion-footprint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  opacity: 0.9;
+}
+
+.confusion-label {
+  font-size: 12px;
+  color: #666;
+  margin-right: 4px;
+}
+
+.confusion-bar {
+  width: 10px;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 2px;
+}
+
+.confusion-bar.filled {
+  background: #444;
+}
+
 .pulse-timeline-current {
   font-size: 0.85rem;
   font-weight: 600;

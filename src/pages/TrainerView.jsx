@@ -27,6 +27,30 @@ const RESOLUTION_LABELS = RESOLUTION_OPTIONS.reduce((acc, option) => {
   return acc;
 }, {});
 
+function ConfusionFootprint({ level }) {
+  const MAX_BARS = 8;
+  const filledBars =
+    level === "high"
+      ? 3
+      : level === "medium"
+      ? 2
+      : level === "low"
+      ? 1
+      : 0;
+
+  return (
+    <div className="confusion-footprint">
+      <span className="confusion-label">Confusion:</span>
+      {Array.from({ length: MAX_BARS }).map((_, i) => (
+        <span
+          key={i}
+          className={i < filledBars ? "confusion-bar filled" : "confusion-bar"}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function TrainerView() {
   const { emit, onEvent, offEvent, connectionStatus } = useSocket();
   const [focus, setFocus] = useState(null);
@@ -936,9 +960,11 @@ export default function TrainerView() {
                   }}
                 >
                 {messageRoots.map((root) => {
-                  const envelope = confusionByRootId?.[root.messageId];
-                  const hasConfusion = Boolean(envelope?.level);
-                  const resolutionType = envelope?.resolutionType;
+                  const confusionSignal = confusionByRootId?.[root.messageId];
+                  const confusionLevel = confusionSignal?.level ?? null;
+                  const hasConfusion = Boolean(confusionLevel);
+                  const resolutionType = confusionSignal?.resolutionType;
+                  const isRoot = !root.parentMessageId;
                   const resolutionLabel =
                     resolutionType && RESOLUTION_LABELS[resolutionType]
                       ? RESOLUTION_LABELS[resolutionType]
@@ -967,9 +993,12 @@ export default function TrainerView() {
                         voteTotals={voteTotals[root.messageId]}
                         voteTotalsMap={voteTotals}
                         confusionByRootId={confusionByRootId}
-                        confusionLevel={envelope?.level ?? null}
+                        confusionLevel={confusionLevel}
                         showVoteControls={true}
                       />
+                      {isRoot && hasConfusion && (
+                        <ConfusionFootprint level={confusionLevel} />
+                      )}
                       {hasConfusion && (
                         <div className="trainer-confusion-banner">
                           {resolutionType ? (

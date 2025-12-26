@@ -16,9 +16,10 @@ import {
   resolveConfusionEnvelope,
 } from "./confusion.state.js";
 
-export function createConfusionPipeline() {
+export function createConfusionPipeline(io) {
   let lastBroadcastTs = 0;
   const BROADCAST_DEBOUNCE_MS = 1500;
+  const pipelineIo = io;
 
   const determineLevel = (entry) => {
     let level = "low";
@@ -42,7 +43,10 @@ export function createConfusionPipeline() {
       resolutionType: entry.resolutionType,
     }));
 
-  const broadcastSession = (sessionId, force = false) => {
+  const broadcastSession = (socketIo, sessionId, force = false) => {
+    if (!socketIo || !sessionId) {
+      return;
+    }
     const now = Date.now();
 
     if (!force && now - lastBroadcastTs < BROADCAST_DEBOUNCE_MS) {
@@ -53,7 +57,7 @@ export function createConfusionPipeline() {
 
     const sessionState = getSessionConfusion(sessionId);
     broadcastConfusionUpdate({
-      io,
+      io: socketIo,
       sessionId,
       envelopes: buildEnvelopes(sessionState),
     });
@@ -61,7 +65,7 @@ export function createConfusionPipeline() {
 
   return {
     handleConfusionSignal({
-      io,
+      io = pipelineIo,
       sessionId,
       rootMessageId,
       scoreDelta = 0,
@@ -76,9 +80,10 @@ export function createConfusionPipeline() {
         ts,
       });
 
-      broadcastSession(sessionId);
+      broadcastSession(io, sessionId);
     },
     handleConfusionResolution({
+      io = pipelineIo,
       sessionId,
       rootMessageId,
       resolutionType,
@@ -97,7 +102,7 @@ export function createConfusionPipeline() {
         return;
       }
 
-      broadcastSession(sessionId, true);
+      broadcastSession(io, sessionId, true);
     },
   };
 }

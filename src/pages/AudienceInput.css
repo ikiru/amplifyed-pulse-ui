@@ -194,16 +194,34 @@
   margin-top: 6px;
 }
 
-.confusion-bar {
+.confusion-footprint {
   margin: 6px 0;
-  height: 6px;
-  border-radius: 999px;
-  background: #eceef3;
-  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4b5563;
 }
 
-.confusion-bar-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: #bfc3d0;
+.confusion-footprint-label {
+  letter-spacing: 0.04em;
+}
+
+.confusion-footprint-blocks {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.confusion-footprint-block {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: #dde1eb;
+  border: 1px solid #dde1eb;
+}
+
+.confusion-footprint-block.filled {
+  background: #2a2d31;
+  border-color: #2a2d31;
 }

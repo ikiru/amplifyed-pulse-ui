@@ -6,6 +6,7 @@ import { createMomentPipeline } from "./pipelines/moment/momentPipeline.js";
 import { createPulsePipeline } from "./pipelines/pulse/pulsePipeline.js";
 import { createMessagePipeline } from "./pipelines/message/messagePipeline.js";
 import { createTrainerPipeline } from "./pipelines/trainer/trainerPipeline.js";
+import { createConfusionPipeline } from "./pipelines/confusion/confusionPipeline.js";
 import { handleSetFocus } from "./pipelines/focus/focus.handleSet.js";
 import { handleClearFocus } from "./pipelines/focus/focus.handleClear.js";
 import { getActiveFocus } from "./pipelines/focus/focus.state.js";
@@ -41,6 +42,7 @@ const pulsePipeline = createPulsePipeline(io, {
 });
 const messagePipeline = createMessagePipeline(io, pulsePipeline.momentBuilder);
 const trainerPipeline = createTrainerPipeline(io, pulsePipeline.momentBuilder);
+const confusionPipeline = createConfusionPipeline(io);
 const focusPipeline = {
   handleSetFocus,
   handleClearFocus,
@@ -84,6 +86,7 @@ io.on("connection", (socket) => {
     safetyPipeline,
     sessionPipeline,
     momentPipeline, // Phase 2.4.2
+    confusionPipeline,
   });
 });
 

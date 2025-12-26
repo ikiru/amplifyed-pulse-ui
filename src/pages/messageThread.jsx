@@ -1,11 +1,6 @@
 import { useState } from "react";
 import "./AudienceInput.css";
-
-const CONFUSION_FILL_PERCENT = {
-  low: "25%",
-  medium: "50%",
-  high: "75%",
-};
+import ConfusionFootprint from "./ConfusionFootprint.jsx";
 
 export function buildMessageTree(messages) {
   const map = {};
@@ -72,10 +67,8 @@ function ThreadItemContent({
   onToggleCollapse,
 }) {
   const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
-  const confusionFill =
-    confusionLevel != null ? CONFUSION_FILL_PERCENT[confusionLevel] : null;
-  const shouldShowConfusionBar =
-    isAnchor && confusionLevel != null && typeof confusionFill === "string";
+  const shouldShowConfusionFootprint =
+    isAnchor && typeof confusionLevel === "string";
   const isReplyOpen = replyToId === node.messageId;
   const canToggleCollapse = isAnchor && typeof onToggleCollapse === "function";
   const repliesVisible = !isAnchor || !isCollapsed;
@@ -163,13 +156,8 @@ function ThreadItemContent({
           )}
         </div>
 
-        {shouldShowConfusionBar && (
-          <div className="confusion-bar">
-            <div
-              className="confusion-bar-fill"
-              style={{ width: confusionFill }}
-            />
-          </div>
+        {shouldShowConfusionFootprint && (
+          <ConfusionFootprint level={confusionLevel} />
         )}
 
         {showVoteTotals && voteTotals && (
