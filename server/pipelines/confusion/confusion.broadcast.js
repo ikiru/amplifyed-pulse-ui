@@ -18,6 +18,10 @@ export function broadcastConfusionUpdate({
   const threads = envelopes.map((entry) => ({
     rootMessageId: entry.rootMessageId,
     level: entry.level,
+    contributors: entry.contributors,
+    resolvedAt: entry.resolvedAt,
+    resolvedBy: entry.resolvedBy,
+    resolutionType: entry.resolutionType,
   }));
 
   io.to(sessionId).emit("confusion:update", {

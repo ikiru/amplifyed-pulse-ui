@@ -19,6 +19,12 @@
 // BEGIN CONFUSION SIGNAL
 
 const confusionState = new Map();
+const ALLOWED_RESOLUTION_TYPES = new Set([
+  "explanation",
+  "example",
+  "pause",
+  "reframe",
+]);
 
 function ensureSession(sessionId) {
   if (!confusionState.has(sessionId)) {
@@ -61,6 +67,31 @@ export function upsertConfusionEnvelope({
       existing.contributors + contributorDelta
     ),
     ts,
+  };
+
+  sessionMap.set(rootMessageId, next);
+  return next;
+}
+
+export function resolveConfusionEnvelope({
+  sessionId,
+  rootMessageId,
+  resolutionType,
+}) {
+  if (!sessionId || !rootMessageId || !resolutionType) return null;
+  if (!ALLOWED_RESOLUTION_TYPES.has(resolutionType)) return null;
+
+  const sessionMap = confusionState.get(sessionId);
+  if (!sessionMap) return null;
+
+  const existing = sessionMap.get(rootMessageId);
+  if (!existing) return null;
+
+  const next = {
+    ...existing,
+    resolvedAt: Date.now(),
+    resolvedBy: "trainer",
+    resolutionType,
   };
 
   sessionMap.set(rootMessageId, next);

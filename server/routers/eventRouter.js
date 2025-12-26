@@ -284,6 +284,25 @@ socket.on("audience:pulse", (payload = {}) => {
     });
   });
 
+  socket.on("trainer:resolve_confusion", (payload = {}) => {
+    if (!confusionPipeline?.handleConfusionResolution) {
+      return;
+    }
+
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    const { rootMessageId, resolutionType } = payload;
+    if (!rootMessageId || !resolutionType) {
+      return;
+    }
+
+    confusionPipeline.handleConfusionResolution({
+      io,
+      sessionId,
+      rootMessageId,
+      resolutionType,
+    });
+  });
+
   /**
    * --------------------------------------------------
     * Future event types (emotion, focus, camera, etc.)

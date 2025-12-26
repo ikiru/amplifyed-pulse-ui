@@ -15,6 +15,18 @@ const assert = (condition, message) => {
 
 const MOMENT_HISTORY_LIMIT = 18;
 
+const RESOLUTION_OPTIONS = [
+  { type: "explanation", label: "Explained" },
+  { type: "example", label: "Gave example" },
+  { type: "pause", label: "Paused" },
+  { type: "reframe", label: "Reframed" },
+];
+
+const RESOLUTION_LABELS = RESOLUTION_OPTIONS.reduce((acc, option) => {
+  acc[option.type] = option.label;
+  return acc;
+}, {});
+
 export default function TrainerView() {
   const { emit, onEvent, offEvent, connectionStatus } = useSocket();
   const [focus, setFocus] = useState(null);
@@ -51,12 +63,8 @@ export default function TrainerView() {
         return;
       }
 
-      map[rootMessageId] = thread.level ?? null;
+      map[rootMessageId] = thread;
     });
-
-    console.group("[DIAG] confusionByRootId map");
-    console.log(map);
-    console.groupEnd();
 
     return map;
   }, [confusionAdvisory]);
@@ -268,19 +276,11 @@ export default function TrainerView() {
     // No UI, no interpretation, no mutation of messages
     // --------------------------------------------------
     const handleConfusionUpdate = (payload) => {
-      console.group("[DIAG] confusion:update received");
-      console.log("raw payload:", payload);
-      console.log("threads:", payload?.threads);
-      console.groupEnd();
-
       if (!payload) {
         setConfusionAdvisory(null);
         return;
       }
 
-      // Store advisory payload as-is.
-      // Expected shape:
-      // { sessionId, threads: [{ rootMessageId, level }] }
       setConfusionAdvisory(payload);
     };
 
@@ -935,23 +935,69 @@ export default function TrainerView() {
                     fontSize: "0.85rem",
                   }}
                 >
-                  {messageRoots.map((root) => (
-                    <ThreadItem
+                {messageRoots.map((root) => {
+                  const envelope = confusionByRootId?.[root.messageId];
+                  const hasConfusion = Boolean(envelope?.level);
+                  const resolutionType = envelope?.resolutionType;
+                  const resolutionLabel =
+                    resolutionType && RESOLUTION_LABELS[resolutionType]
+                      ? RESOLUTION_LABELS[resolutionType]
+                      : resolutionType;
+
+                  const handleResolution = (type) => {
+                    emit("trainer:resolve_confusion", {
+                      rootMessageId: root.messageId,
+                      resolutionType: type,
+                    });
+                  };
+
+                  return (
+                    <div
                       key={root.messageId}
-                      node={root}
-                      depth={0}
-                      replyToId={trainerReplyToId}
-                      setReplyToId={setTrainerReplyToId}
-                      replyDrafts={trainerReplyDrafts}
-                      setReplyDrafts={setTrainerReplyDrafts}
-                      handleSubmitReply={handleTrainerReplySubmit}
-                      voteTotals={voteTotals[root.messageId]}
-                      voteTotalsMap={voteTotals}
-                      confusionByRootId={confusionByRootId}
-                      confusionLevel={confusionByRootId?.[root.messageId] ?? null}
-                      showVoteControls={true}
-                    />
-                  ))}
+                      className="trainer-thread-wrapper"
+                    >
+                      <ThreadItem
+                        node={root}
+                        depth={0}
+                        replyToId={trainerReplyToId}
+                        setReplyToId={setTrainerReplyToId}
+                        replyDrafts={trainerReplyDrafts}
+                        setReplyDrafts={setTrainerReplyDrafts}
+                        handleSubmitReply={handleTrainerReplySubmit}
+                        voteTotals={voteTotals[root.messageId]}
+                        voteTotalsMap={voteTotals}
+                        confusionByRootId={confusionByRootId}
+                        confusionLevel={envelope?.level ?? null}
+                        showVoteControls={true}
+                      />
+                      {hasConfusion && (
+                        <div className="trainer-confusion-banner">
+                          {resolutionType ? (
+                            <span className="trainer-confusion-resolved">
+                              Addressed: {resolutionLabel ?? "Resolved"}
+                            </span>
+                          ) : (
+                            <div className="trainer-resolution-controls">
+                              <span className="trainer-resolution-label">
+                                Resolve:
+                              </span>
+                              {RESOLUTION_OPTIONS.map((option) => (
+                                <button
+                                  key={option.type}
+                                  type="button"
+                                  className="trainer-resolution-button"
+                                  onClick={() => handleResolution(option.type)}
+                                >
+                                  {option.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 </div>
               ) : (
                 <p style={{ margin: 0, color: "#555" }}>No messages yet</p>

@@ -7,13 +7,57 @@
 
 // BEGIN CONFUSION SIGNAL
 
-import { handleConfusionSignal } from "./confusion.handleSignal.js";
+import {
+  handleConfusionSignal as persistConfusionSignal,
+} from "./confusion.handleSignal.js";
 import { broadcastConfusionUpdate } from "./confusion.broadcast.js";
-import { getSessionConfusion } from "./confusion.state.js";
+import {
+  getSessionConfusion,
+  resolveConfusionEnvelope,
+} from "./confusion.state.js";
 
 export function createConfusionPipeline() {
   let lastBroadcastTs = 0;
   const BROADCAST_DEBOUNCE_MS = 1500;
+
+  const determineLevel = (entry) => {
+    let level = "low";
+
+    if (entry.contributors >= 3 || entry.score >= 5) {
+      level = "high";
+    } else if (entry.contributors >= 2 || entry.score >= 2) {
+      level = "medium";
+    }
+
+    return level;
+  };
+
+  const buildEnvelopes = (sessionState) =>
+    sessionState.map((entry) => ({
+      rootMessageId: entry.rootMessageId,
+      level: determineLevel(entry),
+      contributors: entry.contributors,
+      resolvedAt: entry.resolvedAt,
+      resolvedBy: entry.resolvedBy,
+      resolutionType: entry.resolutionType,
+    }));
+
+  const broadcastSession = (sessionId, force = false) => {
+    const now = Date.now();
+
+    if (!force && now - lastBroadcastTs < BROADCAST_DEBOUNCE_MS) {
+      return;
+    }
+
+    lastBroadcastTs = now;
+
+    const sessionState = getSessionConfusion(sessionId);
+    broadcastConfusionUpdate({
+      io,
+      sessionId,
+      envelopes: buildEnvelopes(sessionState),
+    });
+  };
 
   return {
     handleConfusionSignal({
@@ -24,7 +68,7 @@ export function createConfusionPipeline() {
       contributorDelta = 0,
       ts = Date.now(),
     }) {
-      handleConfusionSignal({
+      persistConfusionSignal({
         sessionId,
         rootMessageId,
         scoreDelta,
@@ -32,34 +76,28 @@ export function createConfusionPipeline() {
         ts,
       });
 
-      const now = Date.now();
-      if (now - lastBroadcastTs < BROADCAST_DEBOUNCE_MS) {
+      broadcastSession(sessionId);
+    },
+    handleConfusionResolution({
+      sessionId,
+      rootMessageId,
+      resolutionType,
+    }) {
+      // Stage 2 records the trainer’s response to confusion; it never decides whether confusion mattered.
+      if (!sessionId || !rootMessageId || !resolutionType) {
         return;
       }
 
-      lastBroadcastTs = now;
-
-      const sessionState = getSessionConfusion(sessionId);
-      const envelopes = sessionState.map((entry) => {
-        let level = "low";
-
-        if (entry.contributors >= 3 || entry.score >= 5) {
-          level = "high";
-        } else if (entry.contributors >= 2 || entry.score >= 2) {
-          level = "medium";
-        }
-
-        return {
-          rootMessageId: entry.rootMessageId,
-          level,
-        };
-      });
-
-      broadcastConfusionUpdate({
-        io,
+      const updated = resolveConfusionEnvelope({
         sessionId,
-        envelopes,
+        rootMessageId,
+        resolutionType,
       });
+      if (!updated) {
+        return;
+      }
+
+      broadcastSession(sessionId, true);
     },
   };
 }
