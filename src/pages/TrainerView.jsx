@@ -155,9 +155,6 @@ export default function TrainerView() {
           0
         )
       : undefined;
-  const hasAudience =
-    typeof canonicalParticipantCount === "number" &&
-    canonicalParticipantCount > 0;
 
   useEffect(() => {
     if (livePulse && canonicalParticipantCount === undefined) {
@@ -577,9 +574,10 @@ export default function TrainerView() {
     livePulse?.participants && typeof livePulse.participants === "object"
       ? livePulse.participants
       : null;
-  const summaryCounts = hasAudience
-    ? computePulseSummaryCounts(livePulse, canonicalParticipants)
-    : { engaged: 0, neutral: 0, frustrated: 0 };
+  const summaryCounts = computePulseSummaryCounts(
+    livePulse,
+    canonicalParticipants
+  );
   const summaryVoteTotals = summaryCounts;
   const summaryVoteCount =
     summaryCounts.engaged +
@@ -1744,10 +1742,13 @@ function computePulseSummaryCounts(livePulse, canonicalParticipants) {
     canonicalParticipants && typeof canonicalParticipants === "object"
       ? canonicalParticipants
       : livePulse.participants;
+  const hasParticipantData =
+    participantsMap && typeof participantsMap === "object";
 
   Object.entries(livePulse.votes).forEach(([voterId, vote]) => {
-    const participant = participantsMap?.[voterId];
-    if (!participant || participant.actorRole !== "audience") {
+    const participant = hasParticipantData ? participantsMap[voterId] : null;
+    const participantRole = participant?.actorRole ?? participant?.role;
+    if (hasParticipantData && (!participant || participantRole !== "audience")) {
       return;
     }
 
