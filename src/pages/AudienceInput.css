@@ -117,6 +117,24 @@
   background: #ffffff;
 }
 
+.thread-message.trainer-message {
+  border-color: #5a9cff;
+  background: #f1f6ff;
+}
+
+.thread-message-trainer-badge {
+  margin-bottom: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #0e3a70;
+  background: #deeaff;
+  border-radius: 999px;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+}
+
 .message-row {
   display: flex;
   align-items: center;

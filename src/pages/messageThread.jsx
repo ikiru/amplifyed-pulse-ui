@@ -71,6 +71,11 @@ function ThreadItemContent({
   const isReplyOpen = replyToId === node.messageId;
   const canToggleCollapse = isAnchor && typeof onToggleCollapse === "function";
   const repliesVisible = !isAnchor || !isCollapsed;
+  const isTrainerMessage = node?.actorRole === "trainer";
+  const threadMessageClassNames = ["thread-message"];
+  if (isTrainerMessage) {
+    threadMessageClassNames.push("trainer-message");
+  }
 
   const handleReplyToggle = () => {
     if (!setReplyToId) return;
@@ -99,7 +104,10 @@ function ThreadItemContent({
 
   return (
     <div className="thread-item" data-depth={String(Math.min(depth, 3))}>
-      <div className="thread-message">
+      <div className={threadMessageClassNames.join(" ")}>
+        {isTrainerMessage && (
+          <div className="thread-message-trainer-badge">Trainer</div>
+        )}
         <div className="message-row">
           {showVoteControls && viewerRole === "audience" && (
             <button
