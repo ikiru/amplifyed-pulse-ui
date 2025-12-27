@@ -984,23 +984,15 @@ export default function TrainerView() {
                         confusionLevel={confusionLevel}
                         actorRole="trainer"
                         showVoteControls={true}
-                        renderRootExtras={() => (
-                          <>
-                            {shouldShowConfusionMeter && (
-                              <ConfusionMeter
-                                confusionScore={contributorCount}
-                                rootMessageId={root.messageId}
-                              />
-                            )}
-                            {shouldShowConfusionResolution && resolutionType && (
-                              <div className="trainer-confusion-banner">
-                                <span className="trainer-confusion-resolved">
-                                  Addressed: {resolutionLabel ?? "Resolved"}
-                                </span>
-                              </div>
-                            )}
-                          </>
-                        )}
+                        renderRootExtras={() =>
+                          shouldShowConfusionResolution && resolutionType ? (
+                            <div className="trainer-confusion-banner">
+                              <span className="trainer-confusion-resolved">
+                                Addressed: {resolutionLabel ?? "Resolved"}
+                              </span>
+                            </div>
+                          ) : null
+                        }
                       />
                     </div>
                   );

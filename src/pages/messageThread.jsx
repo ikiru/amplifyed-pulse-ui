@@ -21,6 +21,26 @@ export function buildMessageTree(messages) {
   return roots;
 }
 
+function ThreadCardConfusionMeter({ confusionScore }) {
+  const MAX_BARS = 8;
+  const normalizedScore = confusionScore ?? 0;
+  const filled = Math.max(0, Math.min(normalizedScore, MAX_BARS));
+
+  return (
+    <div className="confusion-meter">
+      <span className="confusion-label">Confusion:</span>
+      <div className="confusion-bars">
+        {Array.from({ length: MAX_BARS }).map((_, i) => (
+          <span
+            key={i}
+            className={i < filled ? "bar filled" : "bar empty"}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ThreadItem(props) {
   const depth = props.depth ?? 0;
   if (depth === 0) {
@@ -76,6 +96,25 @@ function ThreadItemContent({
   if (isTrainerMessage) {
     threadMessageClassNames.push("trainer-message");
   }
+  const confusionSignal = confusionByRootId?.[node.messageId];
+  const contributorValue = confusionSignal?.contributors;
+  const contributorCountFromSignal =
+    Array.isArray(contributorValue)
+      ? contributorValue.length
+      : typeof contributorValue === "number"
+      ? contributorValue
+      : contributorValue && typeof contributorValue === "object"
+      ? Object.keys(contributorValue).length
+      : undefined;
+  const threadConfusionScore = Math.max(
+    0,
+    contributorCountFromSignal ??
+      (typeof confusionSignal?.confusionScore === "number"
+        ? confusionSignal.confusionScore
+        : 0)
+  );
+  const shouldShowThreadConfusionMeter =
+    depth === 0 && threadConfusionScore > 0;
 
   const handleReplyToggle = () => {
     if (!setReplyToId) return;
@@ -180,6 +219,11 @@ function ThreadItemContent({
               Reply
             </button>
           </div>
+        )}
+        {shouldShowThreadConfusionMeter && (
+          <ThreadCardConfusionMeter
+            confusionScore={threadConfusionScore}
+          />
         )}
       </div>
 
