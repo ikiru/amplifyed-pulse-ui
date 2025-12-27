@@ -46,42 +46,64 @@
   position: relative;
 }
 
-.trainer-message-stream .thread-message .thread-confusion-row {
+.thread-confusion-row {
   display: flex;
+  flex-direction: row;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-  width: 100%;
+  gap: 12px;
+
+  margin-top: 2px;     /* was too large */
+  font-size: 0.75rem;
+  color: #666;
+  padding-left: 2px;
+  padding-right: 2px;
+  padding-top: 0;     /* remove footer feel */
+  line-height: 1.2;   /* tighten vertical rhythm */
+
+  flex-wrap: nowrap;
 }
 
-.trainer-message-stream .thread-message .thread-confusion-left {
+.thread-message > .thread-confusion-row {
+  border-top: none;   /* ensure no visual separation */
+}
+
+.thread-confusion-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  white-space: nowrap;
 }
 
-.trainer-message-stream .thread-message .thread-confusion-left .confusion-label {
+.thread-confusion-left .confusion-label {
   font-weight: 500;
   opacity: 0.8;
 }
 
-.trainer-message-stream .thread-message .thread-confusion-right {
+.thread-confusion-right {
   display: flex;
   align-items: center;
+  white-space: nowrap;
 }
 
-.trainer-message-stream .thread-message .thread-resolution-select {
+.thread-confusion-right select {
+  margin: 0;
+}
+
+.thread-resolution-select {
   font-size: 0.8rem;
   line-height: 1;
   margin-top: -1px;
 }
 
 .thread-resolution-label {
-  font-weight: 600;
   color: #0b5fff;
   line-height: 1;
+}
+
+.thread-resolution-label,
+.thread-resolution-select {
+  font-weight: 500;
 }
 
 .pulse-step-line {
