@@ -15,17 +15,12 @@ const assert = (condition, message) => {
 
 const MOMENT_HISTORY_LIMIT = 18;
 
-const RESOLUTION_OPTIONS = [
-  { type: "explanation", label: "Explained" },
-  { type: "example", label: "Gave example" },
-  { type: "pause", label: "Paused" },
-  { type: "reframe", label: "Reframed" },
-];
-
-const RESOLUTION_LABELS = RESOLUTION_OPTIONS.reduce((acc, option) => {
-  acc[option.type] = option.label;
-  return acc;
-}, {});
+const RESOLUTION_LABELS = {
+  explanation: "Explained",
+  example: "Gave example",
+  pause: "Paused",
+  reframe: "Reframed",
+};
 
 const OFF_TOPIC_PATTERN = /off[-_\s]?topic/i;
 
@@ -544,19 +539,6 @@ export default function TrainerView() {
     });
   }, [moments]);
 
-  // Unified moment panel model (foundation for emotional trendline)
-  const currentMoment = momentData
-    ? {
-        id: momentData.id ?? momentData.ts ?? momentData.timestamp,
-        ts: momentData.ts,
-        pulse: momentData.pulse,
-        emotion: momentData.emotion ?? null,
-        safety: momentData.safety,
-        message: momentData.message,
-        trainerSignal: trainerSignal ?? null,
-      }
-    : null;
-
   const activeMomentSignals = [
     ...(Array.isArray(momentData?.signals) ? momentData.signals : []),
     trainerSignal ? trainerSignal.actionType : null,
@@ -830,63 +812,6 @@ export default function TrainerView() {
               )}
             </div>
 
-            <div
-              style={{
-                padding: "12px",
-                border: "1px solid #ddd",
-                borderRadius: 8,
-                marginBottom: 20,
-                background: "#f9f9f9",
-              }}
-            >
-              <h3 style={{ marginTop: 0 }}>Latest Update</h3>
-              {momentData ? (
-                <>
-                  <p style={{ margin: "4px 0" }}>
-                    Latest Update ID: {momentData.label ?? momentData.id ?? "unknown"}
-                  </p>
-                  <pre
-                    style={{
-                      background: "#fff",
-                      padding: "10px",
-                      borderRadius: 6,
-                      border: "1px solid #eee",
-                      maxHeight: 220,
-                      overflowY: "auto",
-                      margin: 0,
-                      fontSize: "0.85rem",
-                    }}
-                  >
-                    {JSON.stringify(currentMoment, null, 2)}
-                  </pre>
-                </>
-              ) : null}
-            </div>
-
-            <div
-              style={{
-                padding: "12px",
-                borderRadius: 8,
-                border: "1px solid #ddd",
-                background: "#f4f4f4",
-              }}
-            >
-              <h3 style={{ marginTop: 0, marginBottom: 8 }}>Signals</h3>
-              {trainerSignal ? (
-                <pre
-                  style={{
-                    margin: 0,
-                    fontSize: "0.8rem",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {JSON.stringify(trainerSignal, null, 2)}
-                </pre>
-              ) : (
-                <p style={{ margin: 0, color: "#555" }}>No signal data</p>
-              )}
-            </div>
           </div>
         </div>
 
@@ -1040,13 +965,6 @@ export default function TrainerView() {
                       ? RESOLUTION_LABELS[resolutionType]
                       : resolutionType;
 
-                  const handleResolution = (type) => {
-                    emit("trainer:resolve_confusion", {
-                      rootMessageId: root.messageId,
-                      resolutionType: type,
-                    });
-                  };
-
                   return (
                     <div
                       key={root.messageId}
@@ -1074,31 +992,11 @@ export default function TrainerView() {
                                 rootMessageId={root.messageId}
                               />
                             )}
-                            {shouldShowConfusionResolution && (
+                            {shouldShowConfusionResolution && resolutionType && (
                               <div className="trainer-confusion-banner">
-                                {resolutionType ? (
-                                  <span className="trainer-confusion-resolved">
-                                    Addressed: {resolutionLabel ?? "Resolved"}
-                                  </span>
-                                ) : (
-                                  <div className="trainer-resolution-controls">
-                                    <span className="trainer-resolution-label">
-                                      Resolve:
-                                    </span>
-                                    {RESOLUTION_OPTIONS.map((option) => (
-                                      <button
-                                        key={option.type}
-                                        type="button"
-                                        className="trainer-resolution-button"
-                                        onClick={() =>
-                                          handleResolution(option.type)
-                                        }
-                                      >
-                                        {option.label}
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
+                                <span className="trainer-confusion-resolved">
+                                  Addressed: {resolutionLabel ?? "Resolved"}
+                                </span>
                               </div>
                             )}
                           </>
@@ -1157,6 +1055,7 @@ export default function TrainerView() {
               </p>
             )}
           </section>
+
         </div>
         {/* ================= RIGHT COLUMN ================= */}
         <div data-column="right">
@@ -1253,21 +1152,6 @@ export default function TrainerView() {
             </p>
           </section>
 
-          {/* Prior Moments (read-only) */}
-          <section
-            style={{
-              padding: "12px",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              marginBottom: 12,
-              background: "#fff",
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>Earlier Updates</h3>
-            <p style={{ fontSize: "0.85rem", color: "#666", margin: 0 }}>
-              No earlier updates available.
-            </p>
-          </section>
         </div>
       </div>
     </div>
