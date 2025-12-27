@@ -62,8 +62,11 @@ function ThreadItemContent({
   isAnchor = false,
   isCollapsed = false,
   onToggleCollapse,
+  actorRole,
+  role,
   renderRootExtras,
 }) {
+  const viewerRole = actorRole ?? role ?? "audience";
   const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
   const isReplyOpen = replyToId === node.messageId;
   const canToggleCollapse = isAnchor && typeof onToggleCollapse === "function";
@@ -82,7 +85,7 @@ function ThreadItemContent({
   };
 
   const replyDraftValue = replyDrafts?.[node.messageId] ?? "";
-  const canVote = Boolean(emitVoteIntent);
+  const canVote = Boolean(emitVoteIntent) && viewerRole === "audience";
 
   const handleVoteClick = (voteType) => {
     if (!emitVoteIntent) return;
@@ -98,7 +101,7 @@ function ThreadItemContent({
     <div className="thread-item" data-depth={String(Math.min(depth, 3))}>
       <div className="thread-message">
         <div className="message-row">
-          {showVoteControls && (
+          {showVoteControls && viewerRole === "audience" && (
             <button
               type="button"
               className={`vote-btn down ${
@@ -127,7 +130,7 @@ function ThreadItemContent({
             </button>
           )}
 
-          {showVoteControls && (
+          {showVoteControls && viewerRole === "audience" && (
             <button
               type="button"
               className={`vote-btn up ${
@@ -211,6 +214,7 @@ function ThreadItemContent({
               confusionLevel={confusionByRootId?.[child.messageId] ?? null}
               emitVoteIntent={emitVoteIntent}
               voteSelectionMap={voteSelectionMap}
+              actorRole={actorRole}
               showVoteControls={showVoteControls}
               showReplyControls={showReplyControls}
               showVoteTotals={showVoteTotals}

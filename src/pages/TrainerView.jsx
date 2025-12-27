@@ -1064,6 +1064,7 @@ export default function TrainerView() {
                         voteTotalsMap={voteTotals}
                         confusionByRootId={confusionByRootId}
                         confusionLevel={confusionLevel}
+                        actorRole="trainer"
                         showVoteControls={true}
                         renderRootExtras={() => (
                           <>
