@@ -15,41 +15,8 @@ const assert = (condition, message) => {
 
 const MOMENT_HISTORY_LIMIT = 18;
 
-const RESOLUTION_LABELS = {
-  explanation: "Explained",
-  example: "Gave example",
-  pause: "Paused",
-  reframe: "Reframed",
-};
-
 const OFF_TOPIC_PATTERN = /off[-_\s]?topic/i;
 
-function ConfusionMeter({ confusionScore, rootMessageId }) {
-  const MAX_BARS = 8;
-  const normalizedScore = confusionScore ?? 0;
-  const filled = Math.max(0, Math.min(normalizedScore, MAX_BARS));
-
-  if (TRACE_ENABLED) {
-    console.log("[CONFUSION][STEP 5][RENDER]", {
-      rootMessageId,
-      confusionScore,
-    });
-  }
-
-  return (
-    <div className="confusion-meter">
-      <span className="confusion-label">Confusion:</span>
-      <div className="confusion-bars">
-        {Array.from({ length: MAX_BARS }).map((_, i) => (
-          <span
-            key={i}
-            className={i < filled ? "bar filled" : "bar empty"}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function matchesOffTopicValue(value) {
   if (value === true) {
@@ -887,7 +854,6 @@ export default function TrainerView() {
                 >
                 {messageRoots.map((root) => {
                   const confusionSignal = confusionByRootId?.[root.messageId];
-                  const confusionLevel = confusionSignal?.level ?? null;
                   const contributorValue = confusionSignal?.contributors;
                   const contributorCountFromSignal =
                     Array.isArray(contributorValue)
@@ -904,18 +870,16 @@ export default function TrainerView() {
                         ? confusionSignal.confusionScore
                         : 0)
                   );
-                  const hasConfusion = Boolean(confusionLevel);
                   const resolutionType = confusionSignal?.resolutionType;
                   const isRoot = !root.parentMessageId;
                   const hasConfusionSignal = contributorCount > 0;
                   const threadIsOffTopic = isThreadOffTopic(root, confusionSignal);
-                  const shouldShowConfusionMeter = hasConfusionSignal;
-                  const shouldShowConfusionResolution =
-                    hasConfusion && !threadIsOffTopic;
-                  const resolutionLabel =
-                    resolutionType && RESOLUTION_LABELS[resolutionType]
-                      ? RESOLUTION_LABELS[resolutionType]
-                      : resolutionType;
+                  const showConfusionRow =
+                    isRoot && hasConfusionSignal && !threadIsOffTopic;
+                  const confusionScore =
+                    typeof confusionSignal?.confusionScore === "number"
+                      ? confusionSignal.confusionScore
+                      : contributorCount;
 
                   return (
                     <div
@@ -933,18 +897,11 @@ export default function TrainerView() {
                         voteTotals={voteTotals[root.messageId]}
                         voteTotalsMap={voteTotals}
                         confusionByRootId={confusionByRootId}
-                        confusionLevel={confusionLevel}
                         actorRole="trainer"
                         showVoteControls={true}
-                        renderRootExtras={() =>
-                          shouldShowConfusionResolution && resolutionType ? (
-                            <div className="trainer-confusion-banner">
-                              <span className="trainer-confusion-resolved">
-                                Addressed: {resolutionLabel ?? "Resolved"}
-                              </span>
-                            </div>
-                          ) : null
-                        }
+                        showConfusionRow={showConfusionRow}
+                        confusionScore={confusionScore}
+                        resolutionType={resolutionType}
                       />
                     </div>
                   );

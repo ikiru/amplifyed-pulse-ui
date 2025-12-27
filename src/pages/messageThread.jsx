@@ -21,14 +21,19 @@ export function buildMessageTree(messages) {
   return roots;
 }
 
-function ThreadCardConfusionMeter({ confusionScore }) {
+const RESOLUTION_DROPDOWN_LABELS = {
+  clarified: "Clarified",
+  example: "Example",
+  reframed: "Reframed",
+};
+
+function ConfusionMeter({ confusionScore }) {
   const MAX_BARS = 8;
   const normalizedScore = confusionScore ?? 0;
   const filled = Math.max(0, Math.min(normalizedScore, MAX_BARS));
 
   return (
     <div className="confusion-meter">
-      <span className="confusion-label">Confusion:</span>
       <div className="confusion-bars">
         {Array.from({ length: MAX_BARS }).map((_, i) => (
           <span
@@ -84,7 +89,9 @@ function ThreadItemContent({
   onToggleCollapse,
   actorRole,
   role,
-  renderRootExtras,
+  showConfusionRow = false,
+  confusionScore,
+  resolutionType,
 }) {
   const viewerRole = actorRole ?? role ?? "audience";
   const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
@@ -96,26 +103,6 @@ function ThreadItemContent({
   if (isTrainerMessage) {
     threadMessageClassNames.push("trainer-message");
   }
-  const confusionSignal = confusionByRootId?.[node.messageId];
-  const contributorValue = confusionSignal?.contributors;
-  const contributorCountFromSignal =
-    Array.isArray(contributorValue)
-      ? contributorValue.length
-      : typeof contributorValue === "number"
-      ? contributorValue
-      : contributorValue && typeof contributorValue === "object"
-      ? Object.keys(contributorValue).length
-      : undefined;
-  const threadConfusionScore = Math.max(
-    0,
-    contributorCountFromSignal ??
-      (typeof confusionSignal?.confusionScore === "number"
-        ? confusionSignal.confusionScore
-        : 0)
-  );
-  const shouldShowThreadConfusionMeter =
-    depth === 0 && threadConfusionScore > 0;
-
   const handleReplyToggle = () => {
     if (!setReplyToId) return;
     setReplyToId(isReplyOpen ? null : node.messageId);
@@ -202,6 +189,32 @@ function ThreadItemContent({
           )}
         </div>
 
+        {showConfusionRow && (
+          <div className="thread-confusion-row">
+            <div className="thread-confusion-left">
+              <span className="confusion-label">Confusion:</span>
+              <ConfusionMeter confusionScore={confusionScore} />
+            </div>
+
+            <div className="thread-confusion-right">
+              {resolutionType ? (
+                <span className="thread-resolution-label">
+                  Resolution: {RESOLUTION_DROPDOWN_LABELS?.[resolutionType] ?? resolutionType}
+                </span>
+              ) : (
+                <select className="thread-resolution-select" defaultValue="">
+                  <option value="" disabled hidden>
+                    Resolution ▾
+                  </option>
+                  <option value="clarified">Clarified</option>
+                  <option value="example">Example</option>
+                  <option value="reframed">Reframed</option>
+                </select>
+              )}
+            </div>
+          </div>
+        )}
+
         {showVoteTotals && voteTotals && (
           <div className="thread-vote-totals">
             <span>▲ {voteTotals.up ?? 0}</span>
@@ -220,14 +233,7 @@ function ThreadItemContent({
             </button>
           </div>
         )}
-        {shouldShowThreadConfusionMeter && (
-          <ThreadCardConfusionMeter
-            confusionScore={threadConfusionScore}
-          />
-        )}
       </div>
-
-      {renderRootExtras?.()}
 
       {showReplyControls && isReplyOpen && (
         <div className="thread-replies">

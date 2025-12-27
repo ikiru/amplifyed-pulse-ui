@@ -46,52 +46,42 @@
   position: relative;
 }
 
-.trainer-confusion-banner {
+.trainer-message-stream .thread-message .thread-confusion-row {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  font-size: 0.78rem;
-  color: #333;
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  width: 100%;
 }
 
-.trainer-resolution-controls {
+.trainer-message-stream .thread-message .thread-confusion-left {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: center;
+  gap: 8px;
 }
 
-.trainer-resolution-label {
-  font-size: 0.72rem;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: #555;
+.trainer-message-stream .thread-message .thread-confusion-left .confusion-label {
+  font-weight: 500;
+  opacity: 0.8;
 }
 
-.trainer-resolution-button {
-  border: 1px solid #ccc;
-  background: #fff;
-  color: #222;
-  font-size: 0.75rem;
-  padding: 4px 10px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: border-color 120ms ease, color 120ms ease;
+.trainer-message-stream .thread-message .thread-confusion-right {
+  display: flex;
+  align-items: center;
 }
 
-.trainer-resolution-button:hover,
-.trainer-resolution-button:focus-visible {
-  border-color: #0b5fff;
-  color: #0b5fff;
+.trainer-message-stream .thread-message .thread-resolution-select {
+  font-size: 0.8rem;
+  line-height: 1;
+  margin-top: -1px;
 }
 
-.trainer-confusion-resolved {
+.thread-resolution-label {
   font-weight: 600;
   color: #0b5fff;
-  letter-spacing: 0.02em;
+  line-height: 1;
 }
 
 .pulse-step-line {
@@ -374,7 +364,6 @@
 }
 
 .confusion-meter {
-  margin-top: 6px;
   display: flex;
   align-items: center;
   gap: 8px;
