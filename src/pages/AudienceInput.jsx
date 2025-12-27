@@ -11,7 +11,7 @@ const pulseOptions = [
 ];
 
 export default function AudienceInput() {
-  const { emit, onEvent, offEvent } = useSocket();
+  const { emit, onEvent, offEvent, socket } = useSocket();
   const [selectedPulse, setSelectedPulse] = useState("neutral");
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -111,6 +111,8 @@ export default function AudienceInput() {
       rootMessageId,
       scoreDelta: 1,
       contributorDelta: 1,
+      source: "self_report",
+      participantId: socket?.id,
       ts: Date.now(),
     });
   };

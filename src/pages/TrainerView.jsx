@@ -1013,21 +1013,30 @@ export default function TrainerView() {
                 {messageRoots.map((root) => {
                   const confusionSignal = confusionByRootId?.[root.messageId];
                   const confusionLevel = confusionSignal?.level ?? null;
+                  const contributorValue = confusionSignal?.contributors;
+                  const contributorCountFromSignal =
+                    Array.isArray(contributorValue)
+                      ? contributorValue.length
+                      : typeof contributorValue === "number"
+                      ? contributorValue
+                      : contributorValue && typeof contributorValue === "object"
+                      ? Object.keys(contributorValue).length
+                      : undefined;
                   const contributorCount = Math.max(
                     0,
-                    Number(
-                      confusionSignal?.contributors ??
-                        confusionSignal?.confusionScore ??
-                        0
-                    )
+                    contributorCountFromSignal ??
+                      (typeof confusionSignal?.confusionScore === "number"
+                        ? confusionSignal.confusionScore
+                        : 0)
                   );
                   const hasConfusion = Boolean(confusionLevel);
                   const resolutionType = confusionSignal?.resolutionType;
                   const isRoot = !root.parentMessageId;
                   const hasConfusionSignal = contributorCount > 0;
                   const threadIsOffTopic = isThreadOffTopic(root, confusionSignal);
-                  const shouldShowConfusionMeter =
-                    hasConfusionSignal && !threadIsOffTopic;
+                  const shouldShowConfusionMeter = hasConfusionSignal;
+                  const shouldShowConfusionResolution =
+                    hasConfusion && !threadIsOffTopic;
                   const resolutionLabel =
                     resolutionType && RESOLUTION_LABELS[resolutionType]
                       ? RESOLUTION_LABELS[resolutionType]
@@ -1066,7 +1075,7 @@ export default function TrainerView() {
                                 rootMessageId={root.messageId}
                               />
                             )}
-                            {hasConfusion && (
+                            {shouldShowConfusionResolution && (
                               <div className="trainer-confusion-banner">
                                 {resolutionType ? (
                                   <span className="trainer-confusion-resolved">

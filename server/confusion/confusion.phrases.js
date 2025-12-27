@@ -2,6 +2,8 @@
 // Behavior-neutral extraction (Step 7.3)
 
 export const CONFUSION_PHRASES = [
+  "confused",
+  "i am confused",
   "i don't understand",
   "i dont understand",
   "i'm confused",

@@ -70,6 +70,8 @@ export function createConfusionPipeline(io) {
       io = pipelineIo,
       sessionId,
       rootMessageId,
+      participantId,
+      source,
       scoreDelta = 0,
       contributorDelta = 0,
       ts = Date.now(),
@@ -77,6 +79,8 @@ export function createConfusionPipeline(io) {
       persistConfusionSignal({
         sessionId,
         rootMessageId,
+        participantId,
+        source,
         scoreDelta,
         contributorDelta,
         ts,
