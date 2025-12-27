@@ -104,8 +104,6 @@ export default function TrainerView() {
   const [livePulse, setLivePulse] = useState(null);
   const [messages, setMessages] = useState([]);
   const [voteTotals, setVoteTotals] = useState({});
-  const [momentData, setMomentData] = useState(null);
-  const [trainerSignal, setTrainerSignal] = useState(null);
   const [confusionAdvisory, setConfusionAdvisory] = useState(null);
   const [showInsights, setShowInsights] = useState(false);
   const [hiddenInsights, setHiddenInsights] = useState(null);
@@ -280,7 +278,6 @@ export default function TrainerView() {
 
     const handleMomentUpdate = (payload) => {
       if (!payload) {
-        setMomentData(null);
         setHiddenInsights(null);
         return;
       }
@@ -315,27 +312,6 @@ export default function TrainerView() {
         return next.slice(0, MOMENT_HISTORY_LIMIT);
       });
 
-      setMomentData(normalized);
-    };
-
-    const handleTrainerSignal = (payload) => {
-      if (!payload) {
-        setTrainerSignal(null);
-        return;
-      }
-
-      const raw =
-        typeof payload.trainerSignal === "object"
-          ? payload.trainerSignal
-          : payload;
-
-      const signal = {
-        actionType: raw.actionType ?? raw.type ?? "unknown",
-        ts: raw.ts ?? Date.now(),
-        meta: raw.meta ?? null,
-      };
-
-      setTrainerSignal(signal);
     };
 
     // --------------------------------------------------
@@ -353,13 +329,11 @@ export default function TrainerView() {
 
     onEvent("message.state.update", handleMessageStateUpdate);
     onEvent("moment:update", handleMomentUpdate);
-    onEvent("trainer:signal", handleTrainerSignal);
     onEvent("confusion:update", handleConfusionUpdate);
 
     return () => {
       offEvent("message.state.update", handleMessageStateUpdate);
       offEvent("moment:update", handleMomentUpdate);
-      offEvent("trainer:signal", handleTrainerSignal);
       offEvent("confusion:update", handleConfusionUpdate);
     };
   }, [onEvent, offEvent]);
@@ -438,16 +412,6 @@ export default function TrainerView() {
       offEvent("focus:cleared", handleFocusCleared);
     };
   }, [onEvent, offEvent]);
-
-  // -------------------------------
-  // Trainer action emitter
-  // -------------------------------
-  const sendTrainerAction = (actionType) => {
-    emit("trainer:action", {
-      actionType,
-      ts: Date.now(),
-    });
-  };
 
   const handleSetFocus = (event) => {
     event.preventDefault();
@@ -538,18 +502,6 @@ export default function TrainerView() {
       return next.length === prev.length ? prev : next;
     });
   }, [moments]);
-
-  const activeMomentSignals = [
-    ...(Array.isArray(momentData?.signals) ? momentData.signals : []),
-    trainerSignal ? trainerSignal.actionType : null,
-  ].filter(Boolean);
-
-  const activeMoment = momentData
-    ? {
-        label: momentData.label ?? momentData.id ?? "Latest Update",
-        signals: activeMomentSignals,
-      }
-    : null;
 
   const messageRoots = buildMessageTree(messages);
   const canonicalParticipants =
@@ -1013,41 +965,6 @@ export default function TrainerView() {
               </form>
             </div>
 
-          <section
-            style={{
-              padding: "12px",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              marginBottom: 20,
-              background: "#fafafa",
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>What’s Happening Now</h3>
-
-            {activeMoment ? (
-              <div style={{ fontSize: "0.85rem", lineHeight: 1.4 }}>
-                <div>
-                  <strong>Latest Update:</strong> {activeMoment.label}
-                </div>
-
-                {activeMoment.signals?.length > 0 && (
-                  <div style={{ marginTop: 6 }}>
-                    <strong>Signals:</strong>
-                    <ul style={{ margin: "4px 0 0 16px" }}>
-                      {activeMoment.signals.map((signal, index) => (
-                        <li key={index}>{signal}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p style={{ margin: 0, color: "#666", fontSize: "0.85rem" }}>
-                No latest update detected.
-              </p>
-            )}
-          </section>
-
         </div>
         {/* ================= RIGHT COLUMN ================= */}
         <div data-column="right">
@@ -1076,41 +993,6 @@ export default function TrainerView() {
               Clear Focus
             </button>
           </section>
-
-          <div
-            style={{
-              padding: "12px",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              marginBottom: 12,
-              background: "#fafafa",
-            }}
-          >
-            <h3 style={{ marginTop: 0, marginBottom: 8 }}>Controls</h3>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {[
-                ["slowdown", "Slowdown"],
-                ["speedup", "Speedup"],
-                ["break", "Break"],
-                ["checkin", "Checkin"],
-              ].map(([type, label]) => (
-                <button
-                  key={type}
-                  onClick={() => sendTrainerAction(type)}
-                  style={{
-                    padding: "8px 14px",
-                    background: "#222",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 4,
-                    cursor: "pointer",
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Session Metadata */}
           <section
