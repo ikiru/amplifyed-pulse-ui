@@ -146,3 +146,137 @@ Those decisions occur **after** audit, with evidence.
 - Scope: System-wide
 - Nature: Restorative, not evolutionary
 - Enforcement: None
+
+# Pipeline Contract Addendum — Self-Report Signal Coexistence  
+**Applies to: Confusion & Audience Drift**  
+**Status: Binding**
+
+---
+
+## 1. Purpose
+
+This addendum defines how **multiple self-reported audience states** may coexist within the same pipeline **without semantic coupling or behavioral bleed**.
+
+It exists to preserve:
+- psychological safety
+- system independence
+- interpretive clarity
+
+---
+
+## 2. Core Principle
+
+> **Self-report signals may share transport, but never meaning.**
+
+The pipeline is a **carrier**, not an interpreter.
+
+---
+
+## 3. Allowed Architecture
+
+The system may use a **single self-report pipeline** to transport multiple self-reported states, provided all invariants below are enforced.
+
+Sharing is allowed only at the **transport layer**.
+
+---
+
+## 4. Signal Explicitness (Required)
+
+Every self-report event MUST include an explicit declared type.
+
+Canonical types include (but are not limited to):
+
+- `confusion`
+- `off_focus`
+
+No default type is permitted.  
+No inference is permitted.
+
+If a type is missing or unrecognized, the event MUST be ignored.
+
+---
+
+## 5. No Semantic Translation (Non-Negotiable)
+
+The following are explicitly forbidden:
+
+- Treating confusion as evidence of off-focus
+- Treating off-focus as evidence of confusion
+- Deriving one signal from the other
+- Using one signal as fallback, proxy, or approximation for the other
+
+Signals are **orthogonal** by contract.
+
+---
+
+## 6. Fan-Out Delivery Model
+
+Upon receipt, self-report events MUST fan out to interested subsystems.
+
+Conceptually:
+
+self-report event
+|
++--> confusion subsystem (type == confusion)
+|
++--> audience drift subsystem (type == off_focus)
+
+yaml
+Copy code
+
+No shared conditionals.  
+No shared counters.  
+No shared state mutation.
+
+Each subsystem evaluates **only** the signals it explicitly recognizes.
+
+---
+
+## 7. Authority Scope
+
+Self-report signals are authoritative **only within the subsystem that consumes them**.
+
+- Confusion trusts confusion self-reports
+- Audience Drift trusts off-focus self-reports
+
+No subsystem may:
+- inspect another subsystem’s conclusions
+- reference another subsystem’s derived state
+
+---
+
+## 8. Downstream Isolation
+
+Even when multiple self-reports occur on the **same message**:
+
+- Confusion affects only confusion-related outputs
+- Audience Drift affects only drift aggregation
+
+No UI, metric, or behavior may combine, correlate, or cross-reference these signals.
+
+Any feature that requires combined interpretation constitutes a **new system** and requires a new contract.
+
+---
+
+## 9. Psychological Safety Guarantee
+
+The system guarantees that:
+
+- Self-reports express **only what the audience explicitly declares**
+- No hidden interpretation or escalation occurs
+- No participant is labeled, tracked, or inferred beyond the declared signal
+
+---
+
+## 10. Violation Clause
+
+If any implementation:
+- infers meaning across self-report types
+- merges downstream effects
+- allows one signal to influence another
+
+Then the pipeline is considered **out of contract**, and dependent features must be disabled.
+
+---
+
+**End of Pipeline Contract Addendum**

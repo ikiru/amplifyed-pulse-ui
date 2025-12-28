@@ -117,6 +117,17 @@ export default function AudienceInput() {
     });
   };
 
+  const emitOffFocusSignal = (messageId) => {
+    if (!messageId) return;
+
+    emit("self-report:signal", {
+      type: "off_focus",
+      messageId,
+      sessionId: socket?.sessionId ?? "session:default",
+      ts: Date.now(),
+    });
+  };
+
   const roots = buildMessageTree(messages);
 
   return (
@@ -155,6 +166,7 @@ export default function AudienceInput() {
               voteTotalsMap={voteTotals}
               emitVoteIntent={emitVoteIntent}
               onConfusionSignal={emitConfusionSignal}
+              onOffFocusSignal={emitOffFocusSignal}
               showVoteTotals={false}
               voteSelectionMap={selectedVotes}
             />

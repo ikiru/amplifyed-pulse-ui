@@ -79,6 +79,7 @@ function ThreadItemContent({
   voteTotalsMap,
   confusionByRootId,
   onConfusionSignal = () => {},
+  onOffFocusSignal = () => {},
   emitVoteIntent,
   voteSelectionMap,
   showVoteControls = true,
@@ -179,13 +180,22 @@ function ThreadItemContent({
             </button>
           )}
           {isAnchor && (
-            <button
-              className="confusion-anchor"
-              onClick={() => onConfusionSignal(node.messageId)}
-              aria-label="This topic is confusing"
-            >
-              Confused
-            </button>
+            <>
+              <button
+                className="confusion-anchor"
+                onClick={() => onConfusionSignal(node.messageId)}
+                aria-label="This topic is confusing"
+              >
+                Confused
+              </button>
+              <button
+                className="confusion-anchor"
+                onClick={() => onOffFocusSignal(node.messageId)}
+                aria-label="This topic is off focus"
+              >
+                Off Focus
+              </button>
+            </>
           )}
         </div>
 

@@ -1,145 +1,321 @@
-
-- Right side represents alignment with the current focus
-- Left side represents divergence from the focus
-- Center represents mixed or distributed attention
-
-The dot represents the **current aggregate center of audience attention**, derived from declared and structural behavior.
+# Audience Drift Contract v1.0  
+**Room-Level Audience Attention Drift Scoring**
 
 ---
 
-### 8.3 Interpretation Boundary
+## 1. Purpose
 
-The system guarantees only that:
-- the dot reflects **relative position** on the axis
-- changes reflect **aggregate behavioral patterns over time**
+The Audience Drift system exists to estimate **room-level audience attention distribution** relative to a **declared focus**, in order to provide situational awareness to a human trainer.
 
-The system makes **no claims** about:
-- strength
-- urgency
-- quality
-- correctness
-- desirability
-- whether action is required
+The system:
+- observes behavior
+- aggregates signals
+- produces a single drift score
 
-Interpretation remains a human judgment.
+The system does **not** instruct, correct, evaluate, or intervene.
 
 ---
 
-## 9. AI Semantic Assist (Optional, Last Resort)
+## 2. Scope & Constraints (Non-Negotiable)
 
-AI may be invoked **only when structural signals are insufficient**.
-
-### 9.1 Eligibility Gates (all must pass)
-1. Message is substantive  
-2. Message lacks declaration  
-3. Thread context is ambiguous  
-4. Sustained attention movement is occurring  
-5. Multiple participants involved  
-6. Focus is not newly set  
-
-**AI eligibility gates are evaluated sequentially, and failure at any gate prevents AI invocation.**
+- Audience Drift is **room-level only**
+- Audience members are **anonymous**
+- No tracking of individuals
+- No message-level results are exposed
+- Only a **single aggregate audience drift score** exists
+- The system is **allowed to be imperfect**
+- Audience Drift can be **generative, neutral, or integrative**
 
 ---
 
-### 9.2 AI Scope
-- Binary output only:
-  - `onFocus`
-  - `offFocus`
+## 3. Definition of Drift
+
+**Audience Drift** is defined as:
+
+> The degree to which collective attention diverges from the currently declared focus.
+
+Drift:
+- is **relative**, not absolute
+- reflects **distance**, not value
+- does not imply success or failure
+
+Both **total convergence** and **total divergence** are undesirable extremes.  
+A middle range represents adaptive balance.
+
+---
+
+## 4. What Is Judged (Strictly Limited)
+
+The system makes **one internal binary judgment only**:
+
+> Is a contribution **on-focus** or **off-focus**, relative to the *current focus statement*?
+
+There is:
+- no quality judgment
+- no correctness judgment
+- no attribution
+- no permanence
+
+Judgments are **transient** and used only to update the aggregate drift score.
+
+---
+
+## 5. Focus as Reference Frame
+
+- The **focus statement** is the sole semantic anchor.
+- Trainer intent, tone, or verbal explanation is not inferred.
+- A focus change updates the reference frame **immediately**.
+- A focus change does **not** erase prior momentum.
+
+---
+
+## 6. Focus Proximity Weighting
+
+Off-focus influence is weighted by proximity to focus history for Audience Drift:
+
+1. **Current focus**
+   - Fully on-focus
+   - Strong stabilizing influence
+
+2. **Previous focus**
+   - Off-focus relative to current focus
+   - Conceptually adjacent
+   - Represents inertial or integrative drift
+   - **Weak drift influence**
+
+3. **Distant (older) focus**
+   - Off-focus and non-adjacent
+   - Represents true divergence
+   - **Stronger drift influence**
+
+This weighting affects **influence strength only**, not classification.
+
+---
+
+## 7. Filters / Signals (Conceptual Order)
+
+Filters are evaluated conceptually from **cheapest to most expensive**.  
+No single filter (except self-report) is authoritative.
+
+### 7.1 Deterministic / Structural Filters
+
+1. **Self-reported off-focus**
+   - Explicit participant signal
+   - Always authoritative
+
+2. **Short / minimal responses ignored**
+   - e.g. yes, no, ?, 👍
+   - Excluded from drift influence
+
+3. **Focus keyword presence**
+   - Literal keyword match only
+   - Indicates on-focus signal
+
+4. **Thread inheritance**
+   - On-focus thread head → replies inherit on-focus
+   - If a message self-reports off-focus, that message and all replies below it are off-focus
+
+5. **Explicit off-focus language**
+   - Literal phrases (e.g. “off topic”, “side note”)
+
+6. **Focus-anchor interaction**
+   - Structural engagement with focus-linked threads
+
+7. **Focus-thread abandonment (B-only)**
+   - Triggered only when:
+     - a focus-linked thread becomes inactive **and**
+     - other threads receive sustained activity
+   - Silence alone does not count
+
+8. **Sustained lateral branching**
+   - Parallel growth of multiple sibling threads
+   - Indicates dispersion of attention
+   - Neutral and non-judgmental
+
+9. **Temporal decay**
+   - Older signals lose influence over time
+   - Drift reflects recent attention, not session history
+
+---
+
+## 8. AI Binary Judgment (Last Resort Only)
+
+AI may be used **only** to resolve Audience Drift ambiguity when:
+- Cheaper filters cannot resolve sustained ambiguity
+- Structural signals conflict
+- Room-level state remains unclear
+
+AI characteristics:
+- Binary output only: on-focus / off-focus
 - No explanations
-- No confidence scores
-- No per-message visibility
+- No persistence
+- Weak influence
+- Session-scoped
+- Fully optional (system functions without AI)
 
-**AI may contribute a minor directional signal to attention aggregation without determining outcomes.**
-
-The system remains fully functional with AI disabled.
-
----
-
-## 10. Accepted Failure Modes
-
-The system intentionally allows:
-- adjacent but useful discussions
-- emergent pivots
-- mis-tagged messages
-- trainer-led redirection
-
-These conditions are:
-- visible
-- human-correctable
-- expected in live facilitation
-
-The system does not attempt to eliminate them.
+AI is **never authoritative**.
 
 ---
 
-## 11. System Guarantees (Locked)
+## 9. Signal Interaction Rules
 
-- No silent semantic judgment
-- No retroactive intent rewriting
-- No AI authority over humans
-- No dependency on Pulse
-- Attention reflects behavior, not meaning
-- Trainer authority is explicit and visible
+- Self-report overrides all other signals
+- No single structural signal is decisive
+- Audience Drift responds to **patterns**, not blips
+- Aggregation always outweighs individual events
 
 ---
 
-## 12. System Definition
+## 10. Time Behavior
 
-This system is **not**:
-- moderation
-- analytics
-- assessment
-- automation
-
-This system **is**:
-
-> **A situational awareness instrument that visualizes where collective audience attention is centered relative to a declared focus, without interpreting meaning or prescribing action.**
+- Audience Drift responds to **sustained behavior**
+- Silence does not imply alignment or drift
+- Low-activity rooms may yield indeterminate drift
+- Old signals fade; new behavior dominates
 
 ---
 
-# Amendment A — Possible Future Enhancements (Non-Binding)
+## 11. Score Behavior Contract
 
-The following concepts are documented for context only and are **explicitly excluded from the current system contract**.
-
----
-
-## A.1 Drift Visualization Refinements
-Future iterations *may* explore:
-- alternative visual encodings of attention position
-- additional cues to help trainers interpret change
-- optional representations of stability or recent movement
-
-Any such work would require:
-- direct trainer testing
-- cognitive validation
-- confirmation that added signals do not imply judgment
+- Audience Drift score is continuous
+- Extremes are approached, not slammed
+- The score:
+  - does not alert
+  - does not prescribe
+  - does not evaluate
+- Interpretation belongs entirely to the trainer
 
 ---
 
-## A.2 Movement Interpretation Aids
-Future exploration *may* examine:
-- whether explicit indicators of recent change are helpful
-- how motion smoothing affects trust and readability
-- how to preserve responsiveness without encouraging overreaction
+## 12. Explicit Non-Goals
 
-No assumptions are currently made about:
-- trainer interpretation
-- optimal motion behavior
-- visual metaphors for attention dynamics
-
----
-
-## A.3 Explicit Non-Goals (Reaffirmed)
-
-Even in future exploration, the system will not:
-- diagnose audience behavior
-- label drift as good or bad
-- generate recommendations or alerts
-- replace trainer judgment
+The Drift system will **not**:
+- identify participants
+- evaluate message quality
+- recommend trainer actions
+- enforce alignment
+- explain its reasoning
+- be used for assessment or compliance
 
 ---
 
-### Amendment Lock Statement
+## 13. Failure Is Acceptable
 
-**This amendment records exploratory ideas only.  
-The authoritative system is fully defined by Sections 1–12 above.**
+- False positives are acceptable
+- Drift may lag reality
+- Some sessions may never resolve clearly
+- Some drift may be intentionally ignored by trainers
+
+Drift is an **estimate**, not a measurement.
+
+---
+
+## 14. Minimal Success Criteria (v1)
+
+The system is considered working if:
+- The score moves plausibly
+- AI calls are rare for Audience Drift resolution
+- Performance is stable
+- No message-level artifacts exist
+- Trainers feel informed, not directed
+
+---
+
+## 15. Drift Meter — Conceptual Wireframe
+
+The Audience Drift Meter is a **single horizontal continuum** representing room-level audience attention distribution.
+
+It visualizes **degree of audience drift**, not correctness or quality.
+
+---
+
+### 15.1 Orientation
+
+- **Left**: Low audience drift (high convergence)
+- **Center**: Adaptive / generative zone
+- **Right**: High audience drift (strong divergence)
+
+This directionality is fixed.
+
+---
+
+### 15.2 Structure (ASCII wireframe)
+
+LOW DRIFT HIGH DRIFT
+┌────────────────────────────────────────────────────┐
+│ │
+│ |────────|──────── SAFE ZONE ────────|────────|│
+│ │
+│ ▲ │
+│ │ │
+│ Drift Indicator │
+│ │
+└────────────────────────────────────────────────────┘
+
+
+---
+
+### 15.3 Safe Zone
+
+- The **safe zone** occupies the middle portion of the meter
+- It represents:
+  - healthy exploration
+  - productive divergence
+  - integrative discussion
+- Being inside the safe zone implies **neither alarm nor resolution**
+
+The safe zone is **not labeled as “good”**.
+
+---
+
+### 15.4 Drift Indicator
+
+- A single marker indicates current room drift position
+- The marker:
+  - moves smoothly
+  - responds to sustained patterns
+  - does not jump abruptly
+- The indicator reflects the **aggregate drift score only**
+
+No secondary markers, trends, or annotations are required in v1.
+
+---
+
+### 15.5 Behavioral Invariants
+
+The meter:
+- does not flash
+- does not change color meaningfully
+- does not alert
+- does not prescribe action
+- does not explain causality
+
+It is **descriptive only**.
+
+---
+
+### 15.6 Interpretation Contract
+
+- Far left does **not** mean “success”
+- Far right does **not** mean “failure”
+- Center does **not** mean “ideal”
+
+The meter communicates **where the audience is**, not **what should happen next**.
+
+Trainer interpretation is always final.
+
+---
+
+### 15.7 Explicit Non-Features (v1)
+
+The drift meter will **not** include:
+- thresholds
+- warnings
+- recommendations
+- labels such as “good” or “bad”
+- message-level indicators
+- participant-level indicators
+
+---
+
+**End of Audience Drift Contract v1.0**
