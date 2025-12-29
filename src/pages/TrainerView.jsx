@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
+import AudienceDriftMeter, {
+  createNeutralAudienceDriftProjection,
+} from "../components/AudienceDriftMeter.jsx";
 import { adaptMessage } from "./messageHelpers.js";
 import { buildMessageTree, ThreadItem } from "./messageThread.jsx";
 import "./AudienceInput.css";
@@ -76,6 +79,9 @@ export default function TrainerView() {
   const [hiddenInsights, setHiddenInsights] = useState(null);
   const [visibleInsights, setVisibleInsights] = useState(null);
   const [moments, setMoments] = useState([]);
+  const [driftProjection, setDriftProjection] = useState(() =>
+    createNeutralAudienceDriftProjection()
+  );
   const [compareSelection, setCompareSelection] = useState([]);
   const [compareSnapshot, setCompareSnapshot] = useState(null);
   const [showCompare, setShowCompare] = useState(false);
@@ -230,6 +236,20 @@ export default function TrainerView() {
 
     onEvent("pulse:update", handlePulse);
     return () => offEvent("pulse:update", handlePulse);
+  }, [onEvent, offEvent]);
+
+  useEffect(() => {
+    const handleDriftUpdate = (payload) => {
+      const projection = payload?.projection;
+      setDriftProjection(
+        projection && typeof projection === "object"
+          ? projection
+          : createNeutralAudienceDriftProjection()
+      );
+    };
+
+    onEvent("audience.drift.update", handleDriftUpdate);
+    return () => offEvent("audience.drift.update", handleDriftUpdate);
   }, [onEvent, offEvent]);
 
   useEffect(() => {
@@ -587,6 +607,8 @@ export default function TrainerView() {
                 )}
               </div>
             )}
+
+            <AudienceDriftMeter projection={driftProjection} />
 
             <div
               style={{

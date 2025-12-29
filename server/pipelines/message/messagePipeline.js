@@ -16,13 +16,18 @@
 
 import { extractMessageSignal } from "./messageSignalExtractor.js";
 import { formatMessage } from "./message.format.js";
-import { broadcastAudienceMessage, broadcastMessageState } from "./message.broadcast.js";
+import { broadcastMessageState } from "./message.broadcast.js";
 import { addMessage, getMessage } from "./message.state.js";
 import { getSessionVoteTotals } from "./message.vote.state.js";
 import { broadcastVoteUpdate } from "./message.vote.broadcast.js";
 import { v4 as uuidv4 } from "uuid";
 import { detectConfusionFromText } from "../../confusion/confusion.phrases.js";
 import { handleVoteIntent as processVoteIntent } from "./message.vote.handle.js";
+import { updateDriftForMessage } from "../audienceDrift/aggregation.js";
+import {
+  FEATURE_AUDIENCE_DRIFT_METER,
+  getMeterProjection,
+} from "../audienceDrift/meter.js";
 
 function resolveRootMessageId(sessionId, parentMessageId, fallbackId) {
   if (!parentMessageId) {
@@ -51,6 +56,22 @@ function resolveRootMessageId(sessionId, parentMessageId, fallbackId) {
 }
 
 export function createMessagePipeline(io, momentBuilder = null, confusionPipeline = null) {
+
+  function emitDriftProjection(sessionId) {
+    if (!FEATURE_AUDIENCE_DRIFT_METER || !sessionId || !io) {
+      return;
+    }
+
+    const projection = getMeterProjection(sessionId);
+    if (!projection) {
+      return;
+    }
+
+    io.to(sessionId).emit("audience.drift.update", {
+      sessionId,
+      projection,
+    });
+  }
 
   function handleAudienceMessage({
     socketId,
@@ -86,6 +107,15 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
     // Incremental audience broadcast disabled.
     // Authoritative message state is broadcast below.
     broadcastMessageState({ io, sessionId });
+
+    updateDriftForMessage({
+      sessionId,
+      messageId,
+      timestamp: now,
+      focusEpoch: message.envelope?.focusEpoch,
+    });
+
+    emitDriftProjection(sessionId);
 
     const audienceText =
       typeof text === "string"
@@ -166,6 +196,15 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
     if (!storedMessage) return;
 
     broadcastMessageState({ io, sessionId });
+
+    updateDriftForMessage({
+      sessionId,
+      messageId,
+      timestamp: now,
+      focusEpoch: message.envelope?.focusEpoch,
+    });
+
+    emitDriftProjection(sessionId);
 
     const signalText =
       typeof text === "string"

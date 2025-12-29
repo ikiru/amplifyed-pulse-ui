@@ -26,6 +26,8 @@
 
  */
 
+import { applyOffFocusSelfReportGate } from "../pipelines/audienceDrift/classification.state.js";
+
 const DEFAULT_SESSION_ID = "session:default";
 
 // ------------------------------------------------------------------
@@ -238,6 +240,15 @@ socket.on("audience:pulse", (payload = {}) => {
         ...payload,
       });
     }
+  });
+
+  socket.on("self-report:signal", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    applyOffFocusSelfReportGate({
+      sessionId,
+      messageId: payload?.messageId,
+      type: payload?.type,
+    });
   });
 
   // -------------------------------------------
