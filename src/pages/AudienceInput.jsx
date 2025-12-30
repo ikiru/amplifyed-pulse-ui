@@ -58,6 +58,11 @@ export default function AudienceInput() {
   // Incremental audience broadcasts are disabled;
   // rendering relies exclusively on `message.state.update`.
   const handlePulse = (pulse) => {
+    console.log("[AUDIENCE_INPUT][FOCUS_CLICK]", {
+      messageDraft: input,
+      selectedFocus: pulse,
+      timestamp: Date.now(),
+    });
     setSelectedPulse(pulse);
     emit("audience:pulse", { pulse });
   };
@@ -67,10 +72,15 @@ export default function AudienceInput() {
     const trimmed = input.trim();
     if (!trimmed) return;
 
-    emit("message:audience", {
-      content: { type: "text", text: trimmed },
+    const payload = {
+      text: trimmed,
+      focus: null,
       parentMessageId: null,
+    };
+    console.log("[AUDIENCE_INPUT][EMIT_MESSAGE]", {
+      payload,
     });
+    emit("message:audience", payload);
 
     setInput("");
   };
@@ -79,10 +89,15 @@ export default function AudienceInput() {
     const trimmed = (replyDrafts[parentMessageId] || "").trim();
     if (!trimmed) return;
 
-    emit("message:audience", {
-      content: { type: "text", text: trimmed },
+    const payload = {
+      text: trimmed,
+      focus: null,
       parentMessageId,
+    };
+    console.log("[AUDIENCE_INPUT][EMIT_MESSAGE]", {
+      payload,
     });
+    emit("message:audience", payload);
 
     setReplyDrafts((prev) => {
       const next = { ...prev };

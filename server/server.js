@@ -13,6 +13,11 @@ import { createSessionPipeline } from "./pipelines/session/sessionPipeline.js";
 const app = express();
 const httpServer = createServer(app);
 
+const driftGateEnabled = process.env.ENABLE_AUDIENCE_DRIFT === "true";
+console.log(
+  `[AUDIENCE_DRIFT] ENABLE_AUDIENCE_DRIFT=${driftGateEnabled ? "true" : "false"}`
+);
+
 app.get("/", (_req, res) => {
   res.send("AmplifyEd pulse backend is running.");
 });
@@ -89,8 +94,9 @@ io.on("connection", (socket) => {
 });
 
 const PORT = Number(process.env.PORT) || 3000;
+const HOST = "127.0.0.1"; // Binding to localhost avoids the EPERM that occurs on 0.0.0.0 in this environment.
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, HOST, () => {
   console.log("\n-------------------------------------------");
   console.log(" AmplifyEd Backend is RUNNING ");
   console.log(` http://localhost:${PORT}`);

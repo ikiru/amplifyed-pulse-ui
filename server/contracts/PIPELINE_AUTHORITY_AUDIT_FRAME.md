@@ -279,4 +279,4 @@ Then the pipeline is considered **out of contract**, and dependent features must
 
 ---
 
-**End of Pipeline Contract Addendum**
+**End of Pipeline Contract Addendum**z

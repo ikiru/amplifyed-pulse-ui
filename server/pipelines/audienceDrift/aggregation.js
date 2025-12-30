@@ -1,10 +1,11 @@
 import {
   AudienceDriftClassification,
+  getClassificationSource,
   getMessageClassification,
 } from "./classification.state.js";
 
 const FEATURE_AUDIENCE_DRIFT_AGGREGATION =
-  process.env.FEATURE_AUDIENCE_DRIFT_AGGREGATION === "1";
+  process.env.ENABLE_AUDIENCE_DRIFT === "true"; // Dev flag; set ENABLE_AUDIENCE_DRIFT=true to allow aggregation.
 
 const WINDOW_DURATION_MS = 2 * 60 * 1000; // 2 minutes
 const MIN_WINDOW_COUNT = 5;
@@ -21,6 +22,11 @@ const EPOCH_WEIGHTS = {
 };
 
 const sessionDriftState = new Map();
+let audienceDriftEmitter = null;
+
+export function setAudienceDriftEmitter(emitter) {
+  audienceDriftEmitter = typeof emitter === "function" ? emitter : null;
+}
 
 function ensureSessionState(sessionId) {
   if (!sessionDriftState.has(sessionId)) {
@@ -92,6 +98,38 @@ function determineEpochWeight(epoch) {
   return EPOCH_WEIGHTS[epoch] ?? EPOCH_WEIGHTS.unknown;
 }
 
+function logAggregateInput({
+  sessionId,
+  messageId,
+  label,
+  source,
+  priorScore,
+  weights,
+}) {
+  console.log("[AUDIENCE_DRIFT][AGGREGATE_INPUT]", {
+    sessionId,
+    messageId,
+    label,
+    source,
+    priorScore,
+    weights,
+  });
+}
+
+function logAggregateOutput({ sessionId, messageId, newScore, priorScore, reason }) {
+  const delta =
+    typeof newScore === "number" && typeof priorScore === "number"
+      ? newScore - priorScore
+      : null;
+  console.log("[AUDIENCE_DRIFT][AGGREGATE_OUTPUT]", {
+    sessionId,
+    messageId,
+    newScore,
+    delta,
+    reason,
+  });
+}
+
 export function getDriftScore(sessionId) {
   const state = sessionDriftState.get(sessionId);
   if (!state) {
@@ -106,18 +144,68 @@ export function updateDriftForMessage({
   timestamp,
   focusEpoch,
 } = {}) {
-  if (!FEATURE_AUDIENCE_DRIFT_AGGREGATION) {
-    return null;
-  }
-  if (!sessionId || !messageId) {
-    return null;
-  }
-
   const classification =
     getMessageClassification(sessionId, messageId) ??
     AudienceDriftClassification.UNKNOWN;
+  const classificationSource = getClassificationSource(sessionId, messageId);
+  const source =
+    classificationSource ??
+    (classification === AudienceDriftClassification.OFF_FOCUS
+      ? "self_report"
+      : classification === AudienceDriftClassification.IGNORED
+        ? "ignored"
+        : null);
+  const priorScore = getDriftScore(sessionId);
+  const epochWeight = determineEpochWeight(focusEpoch);
+  const weights = {
+    focusEpoch: focusEpoch ?? null,
+    epochWeight,
+  };
+
+  logAggregateInput({
+    sessionId,
+    messageId,
+    label: classification,
+    source,
+    priorScore,
+    weights,
+  });
+
+  if (!FEATURE_AUDIENCE_DRIFT_AGGREGATION) {
+    console.log(
+      `[AUDIENCE_DRIFT] feature_disabled (pid=${process.pid}) ENABLE_AUDIENCE_DRIFT=${process.env.ENABLE_AUDIENCE_DRIFT}`
+    );
+    logAggregateOutput({
+      sessionId,
+      messageId,
+      newScore: priorScore,
+      priorScore,
+      reason: "feature_disabled",
+    });
+    return null;
+  }
+
+  if (!sessionId || !messageId) {
+    logAggregateOutput({
+      sessionId,
+      messageId,
+      newScore: priorScore,
+      priorScore,
+      reason: "missing_identifiers",
+    });
+    return null;
+  }
+
   if (classification === AudienceDriftClassification.IGNORED) {
-    return getDriftScore(sessionId);
+    const outputScore = getDriftScore(sessionId);
+    logAggregateOutput({
+      sessionId,
+      messageId,
+      newScore: outputScore,
+      priorScore,
+      reason: "ignored_classification",
+    });
+    return outputScore;
   }
 
   const state = ensureSessionState(sessionId);
@@ -125,21 +213,62 @@ export function updateDriftForMessage({
     messageId,
     timestamp: typeof timestamp === "number" ? timestamp : Date.now(),
     classification,
-    epochWeight: determineEpochWeight(focusEpoch),
+    epochWeight,
   };
 
   state.entries.push(entry);
   pruneWindow(state);
 
-  const { F, D, N } = aggregateEntries(state.entries);
+  const { F, D, U, N } = aggregateEntries(state.entries);
+  // Expose the post-filter/window classification totals for ON/OFF/UNKNOWN (ignored always 0).
+  console.log(
+    `[AUDIENCE_DRIFT][COUNTS] on=${F} off=${D} unknown=${U} ignored=0`
+  );
   if (N < MIN_WINDOW_COUNT) {
+    logAggregateOutput({
+      sessionId,
+      messageId,
+      newScore: state.score,
+      priorScore,
+      reason: "insufficient_entries",
+    });
     return state.score;
   }
 
   const raw = D - F;
   state.raw = raw;
   const shaped = shapeRaw(raw);
-  state.score = smooth(state.score, shaped);
+  // Show the raw delta and its shaped equivalent before smoothing alters it.
+  console.log(`[AUDIENCE_DRIFT][MATH] raw=${raw} shaped=${shaped}`);
+  const previousScore = state.score;
+  const nextScore = smooth(previousScore, shaped);
+  state.score = nextScore;
+  const delta =
+    typeof nextScore === "number" && typeof priorScore === "number"
+      ? nextScore - priorScore
+      : null;
+  console.log(
+    `[AUDIENCE_DRIFT][SMOOTH] previous=${previousScore} next=${nextScore}`
+  );
+
+  logAggregateOutput({
+    sessionId,
+    messageId,
+    newScore: nextScore,
+    priorScore,
+    reason: "smoothed",
+  });
+
+  if (typeof delta === "number" && delta !== 0) {
+    // Passive emission boundary; listeners may not exist and that's valid.
+    audienceDriftEmitter?.({
+      sessionId,
+      messageId,
+      score: nextScore,
+      delta,
+      source,
+    });
+  }
 
   return state.score;
 }

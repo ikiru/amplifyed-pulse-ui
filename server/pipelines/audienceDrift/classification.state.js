@@ -18,6 +18,54 @@ const AudienceDriftClassification = Object.freeze({
 const DEFAULT_CLASSIFICATION = AudienceDriftClassification.UNKNOWN;
 
 const sessionClassifications = new Map(); // sessionId -> Map(messageId -> classification)
+const sessionClassificationSources = new Map(); // sessionId -> Map(messageId -> source)
+let audienceLabelEmitter = null;
+
+export function setAudienceLabelEmitter(emitter) {
+  audienceLabelEmitter = typeof emitter === "function" ? emitter : null;
+}
+
+const LABEL_EVENT_MAP = {
+  [AudienceDriftClassification.ON_FOCUS]: "on_topic",
+  [AudienceDriftClassification.OFF_FOCUS]: "off_focus",
+};
+
+function emitAudienceLabel({ sessionId, messageId, classification, source }) {
+  const label = LABEL_EVENT_MAP[classification];
+  if (!label || !sessionId || !messageId) {
+    return;
+  }
+  audienceLabelEmitter?.({
+    sessionId,
+    messageId,
+    label,
+    source: source ?? "inferred",
+    timestamp: Date.now(),
+  });
+}
+
+function ensureSessionSourceMap(sessionId) {
+  if (!sessionId) return null;
+  if (!sessionClassificationSources.has(sessionId)) {
+    sessionClassificationSources.set(sessionId, new Map());
+  }
+  return sessionClassificationSources.get(sessionId);
+}
+
+function setClassificationSource(sessionId, messageId, source) {
+  if (!sessionId || !messageId || typeof source !== "string") return;
+  const sourceMap = ensureSessionSourceMap(sessionId);
+  if (!sourceMap) return;
+  sourceMap.set(messageId, source);
+}
+
+export function getClassificationSource(sessionId, messageId) {
+  const sourceMap = sessionClassificationSources.get(sessionId);
+  if (!sourceMap || !messageId) {
+    return null;
+  }
+  return sourceMap.get(messageId) ?? null;
+}
 
 function ensureSessionMap(sessionId) {
   if (!sessionId) return null;
@@ -32,6 +80,7 @@ function initializeMessageClassification(sessionId, messageId) {
   if (!sessionMap || !messageId) return null;
   if (!sessionMap.has(messageId)) {
     sessionMap.set(messageId, DEFAULT_CLASSIFICATION);
+    setClassificationSource(sessionId, messageId, "unset");
   }
   return sessionMap.get(messageId);
 }
@@ -66,6 +115,7 @@ function applyIgnoreGate({ sessionId, messageId, text }) {
 
   if (shouldIgnoreMessage(text)) {
     sessionMap.set(messageId, AudienceDriftClassification.IGNORED);
+    setClassificationSource(sessionId, messageId, "ignored");
     return AudienceDriftClassification.IGNORED;
   }
 
@@ -85,6 +135,13 @@ function applyOffFocusSelfReportGate({ sessionId, messageId, type }) {
   if (!sessionMap) return null;
 
   sessionMap.set(messageId, AudienceDriftClassification.OFF_FOCUS);
+  setClassificationSource(sessionId, messageId, "self_report");
+  emitAudienceLabel({
+    sessionId,
+    messageId,
+    classification: AudienceDriftClassification.OFF_FOCUS,
+    source: "self_report",
+  });
   return AudienceDriftClassification.OFF_FOCUS;
 }
 
@@ -100,6 +157,7 @@ function setMessageClassification(sessionId, messageId, classification = DEFAULT
   const sessionMap = ensureSessionMap(sessionId);
   if (!sessionMap || !messageId) return null;
   sessionMap.set(messageId, classification);
+  setClassificationSource(sessionId, messageId, "unset");
   return classification;
 }
 
@@ -114,6 +172,7 @@ function getSessionClassifications(sessionId) {
 function clearSessionClassifications(sessionId) {
   if (!sessionId) return;
   sessionClassifications.delete(sessionId);
+  sessionClassificationSources.delete(sessionId);
 }
 
 function buildChildrenMap(sessionId) {
@@ -170,6 +229,7 @@ function applyThreadInheritanceGate({ sessionId, messageId }) {
   const ensureChildEntry = (childId) => {
     if (!sessionMap.has(childId)) {
       sessionMap.set(childId, DEFAULT_CLASSIFICATION);
+      setClassificationSource(sessionId, childId, "unset");
     }
   };
 
@@ -178,6 +238,7 @@ function applyThreadInheritanceGate({ sessionId, messageId }) {
       ensureChildEntry(childId);
       if (sessionMap.get(childId) !== AudienceDriftClassification.IGNORED) {
         sessionMap.set(childId, AudienceDriftClassification.OFF_FOCUS);
+        setClassificationSource(sessionId, childId, "inferred");
       }
     });
     return AudienceDriftClassification.OFF_FOCUS;
@@ -192,6 +253,7 @@ function applyThreadInheritanceGate({ sessionId, messageId }) {
         childClass !== AudienceDriftClassification.OFF_FOCUS
       ) {
         sessionMap.set(childId, AudienceDriftClassification.ON_FOCUS);
+        setClassificationSource(sessionId, childId, "inferred");
       }
     });
     return AudienceDriftClassification.ON_FOCUS;
@@ -227,6 +289,13 @@ function applyLiteralFocusGate({ sessionId, messageId, text }) {
   const lowerText = text.toLowerCase();
   if (keywords.some((keyword) => lowerText.includes(keyword))) {
     sessionMap.set(messageId, AudienceDriftClassification.ON_FOCUS);
+    setClassificationSource(sessionId, messageId, "inferred");
+    emitAudienceLabel({
+      sessionId,
+      messageId,
+      classification: AudienceDriftClassification.ON_FOCUS,
+      source: "inferred",
+    });
     return AudienceDriftClassification.ON_FOCUS;
   }
 
@@ -264,6 +333,13 @@ function applyAIBinaryGate({ sessionId, messageId, text }) {
     aiResult === AudienceDriftClassification.OFF_FOCUS
   ) {
     sessionMap.set(messageId, aiResult);
+    setClassificationSource(sessionId, messageId, "inferred");
+    emitAudienceLabel({
+      sessionId,
+      messageId,
+      classification: aiResult,
+      source: "inferred",
+    });
     return aiResult;
   }
 

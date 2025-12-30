@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
 import AudienceDriftMeter, {
   createNeutralAudienceDriftProjection,
@@ -67,12 +67,23 @@ function isThreadOffTopic(root, confusionSignal) {
   return false;
 }
 
+const AUDIENCE_LABEL_DISPLAY = {
+  off_focus: "Off Focus",
+  on_topic: "On Topic",
+};
+
+function getAudienceLabelDisplay(label) {
+  if (!label) return null;
+  return AUDIENCE_LABEL_DISPLAY[label] ?? label;
+}
+
 export default function TrainerView() {
   const { emit, onEvent, offEvent, connectionStatus } = useSocket();
   const [focus, setFocus] = useState(null);
   const [focusInput, setFocusInput] = useState("");
   const [livePulse, setLivePulse] = useState(null);
   const [messages, setMessages] = useState([]);
+  const audienceLabelsRef = useRef({});
   const [voteTotals, setVoteTotals] = useState({});
   const [confusionAdvisory, setConfusionAdvisory] = useState(null);
   const [showInsights, setShowInsights] = useState(false);
@@ -253,6 +264,41 @@ export default function TrainerView() {
   }, [onEvent, offEvent]);
 
   useEffect(() => {
+    const handleLabelUpdate = (payload) => {
+      if (!payload || !payload.messageId) {
+        return;
+      }
+
+      const nextLabels = {
+        ...audienceLabelsRef.current,
+        [payload.messageId]: {
+          label: payload.label,
+          labelDisplay: getAudienceLabelDisplay(payload.label),
+          source: payload.source,
+          timestamp: payload.timestamp,
+        },
+      };
+      audienceLabelsRef.current = nextLabels;
+
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.messageId === payload.messageId
+            ? {
+                ...message,
+                label: payload.label,
+                labelDisplay: getAudienceLabelDisplay(payload.label),
+                labelSource: payload.source,
+              }
+            : message
+        )
+      );
+    };
+
+    onEvent("audience:label:update", handleLabelUpdate);
+    return () => offEvent("audience:label:update", handleLabelUpdate);
+  }, [onEvent, offEvent]);
+
+  useEffect(() => {
     const handleMessageStateUpdate = ({ messages: canonicalMessages }) => {
       if (!Array.isArray(canonicalMessages)) return;
 
@@ -260,7 +306,21 @@ export default function TrainerView() {
         .map(adaptMessage)
         .filter(Boolean);
 
-      setMessages(adapted);
+      const enriched = adapted.map((message) => {
+        const labelInfo = audienceLabelsRef.current[message.messageId];
+        if (!labelInfo) {
+          return message;
+        }
+        return {
+          ...message,
+          label: labelInfo.label,
+          labelDisplay:
+            labelInfo.labelDisplay ?? getAudienceLabelDisplay(labelInfo.label),
+          labelSource: labelInfo.source,
+        };
+      });
+
+      setMessages(enriched);
     };
 
     const handleMomentUpdate = (payload) => {

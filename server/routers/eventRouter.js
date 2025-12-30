@@ -209,6 +209,11 @@ socket.on("audience:pulse", (payload = {}) => {
   // Does NOT activate message pipeline behavior.
   // ----------------------------------------------------
   socket.on("message:audience", (payload) => {
+    const eventName = "message:audience";
+    console.log("[MESSAGE_ROUTER][RECEIVED]", {
+      eventName,
+      payload,
+    });
     if (messagePipeline?.handleAudienceMessage) {
       messagePipeline.handleAudienceMessage({
         socketId: socket.id,

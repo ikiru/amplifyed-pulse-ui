@@ -14,6 +14,27 @@
   text-align: center;
 }
 
+.thread-message-label {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  font-size: 0.7rem;
+  text-transform: capitalize;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+}
+
+.thread-message-label--off_focus {
+  color: #b35400;
+  border-color: rgba(179, 84, 0, 0.5);
+}
+
+.thread-message-label--on_topic {
+  color: #0b5fff;
+  border-color: rgba(11, 95, 255, 0.5);
+}
+
 .trainer-message-stream .thread-message .thread-vote-totals {
   position: absolute;
   top: 50%;

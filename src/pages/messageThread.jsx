@@ -151,7 +151,16 @@ function ThreadItemContent({
             </button>
           )}
 
-          <div className="message-content">{node.text}</div>
+          <div className="message-content">
+            {node.text}
+            {node.labelDisplay && (
+              <span
+                className={`thread-message-label thread-message-label--${node.label}`}
+              >
+                {node.labelDisplay}
+              </span>
+            )}
+          </div>
 
           {canToggleCollapse && (
             <button

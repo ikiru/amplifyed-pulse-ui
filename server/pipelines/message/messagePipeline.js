@@ -23,7 +23,11 @@ import { broadcastVoteUpdate } from "./message.vote.broadcast.js";
 import { v4 as uuidv4 } from "uuid";
 import { detectConfusionFromText } from "../../confusion/confusion.phrases.js";
 import { handleVoteIntent as processVoteIntent } from "./message.vote.handle.js";
-import { updateDriftForMessage } from "../audienceDrift/aggregation.js";
+import { setAudienceLabelEmitter } from "../audienceDrift/classification.state.js";
+import {
+  setAudienceDriftEmitter,
+  updateDriftForMessage,
+} from "../audienceDrift/aggregation.js";
 import {
   FEATURE_AUDIENCE_DRIFT_METER,
   getMeterProjection,
@@ -56,6 +60,21 @@ function resolveRootMessageId(sessionId, parentMessageId, fallbackId) {
 }
 
 export function createMessagePipeline(io, momentBuilder = null, confusionPipeline = null) {
+  setAudienceDriftEmitter((payload) => {
+    if (!payload || !io || !payload.sessionId) {
+      return;
+    }
+    // Passive emission boundary; listeners are optional.
+    io.to(payload.sessionId).emit("audience:drift:update", payload);
+  });
+
+  setAudienceLabelEmitter((payload) => {
+    if (!payload || !io || !payload.sessionId) {
+      return;
+    }
+    // Passive emission boundary; listeners are optional.
+    io.to(payload.sessionId).emit("audience:label:update", payload);
+  });
 
   function emitDriftProjection(sessionId) {
     if (!FEATURE_AUDIENCE_DRIFT_METER || !sessionId || !io) {

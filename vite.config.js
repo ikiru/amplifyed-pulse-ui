@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
 
   server: {
+    host: "127.0.0.1", // Enforce localhost to avoid EPERM errors when binding to 0.0.0.0.
     hmr: {
       protocol: "ws",
       host: "localhost",
