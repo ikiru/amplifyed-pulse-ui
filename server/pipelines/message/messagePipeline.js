@@ -64,6 +64,10 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
     if (!payload || !io || !payload.sessionId) {
       return;
     }
+    console.log(
+      "[WIRE_TEST][SERVER_EMIT][AUDIENCE_DRIFT]",
+      payload
+    );
     // Passive emission boundary; listeners are optional.
     io.to(payload.sessionId).emit("audience:drift:update", payload);
   });

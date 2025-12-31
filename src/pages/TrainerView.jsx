@@ -78,7 +78,7 @@ function getAudienceLabelDisplay(label) {
 }
 
 export default function TrainerView() {
-  const { emit, onEvent, offEvent, connectionStatus } = useSocket();
+  const { socket, emit, onEvent, offEvent, connectionStatus } = useSocket();
   const [focus, setFocus] = useState(null);
   const [focusInput, setFocusInput] = useState("");
   const [livePulse, setLivePulse] = useState(null);
@@ -127,11 +127,62 @@ export default function TrainerView() {
   const canonicalParticipantCount =
     livePulse?.participants && typeof livePulse.participants === "object"
       ? Object.values(livePulse.participants).reduce(
-          (count, participant) =>
-            participant?.actorRole === "audience" ? count + 1 : count,
-          0
-        )
+        (count, participant) =>
+          participant?.actorRole === "audience" ? count + 1 : count,
+        0
+      )
       : undefined;
+
+  useEffect(() => {
+    if (!socket) {
+      console.warn("[WIRE_TEST][CLIENT] socket is NULL at mount");
+      return;
+    }
+
+    console.log("[WIRE_TEST][CLIENT] socket connected", {
+      id: socket.id,
+      connected: socket.connected,
+    });
+
+    return () => {
+      console.log("[WIRE_TEST][CLIENT] socket unmounted", {
+        id: socket.id,
+      });
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const wireTestHandler = (payload) => {
+      console.log("[WIRE_TEST][CLIENT_RECEIVE][AUDIENCE_DRIFT]", payload);
+    };
+
+    console.log("[WIRE_TEST][CLIENT] registering audience:drift:update listener");
+
+    socket.on("audience:drift:update", wireTestHandler);
+
+    return () => {
+      console.log("[WIRE_TEST][CLIENT] removing audience:drift:update listener");
+      socket.off("audience:drift:update", wireTestHandler);
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    if (!socket || typeof socket.onAny !== "function") return;
+
+    const anyHandler = (event, payload) => {
+      if (event.includes("drift")) {
+        console.log("[WIRE_TEST][CLIENT_ANY_EVENT]", event, payload);
+      }
+    };
+
+    socket.onAny(anyHandler);
+
+    return () => {
+      socket.offAny(anyHandler);
+    };
+  }, [socket]);
 
   useEffect(() => {
     if (livePulse && canonicalParticipantCount === undefined) {
@@ -251,15 +302,22 @@ export default function TrainerView() {
 
   useEffect(() => {
     const handleDriftUpdate = (payload) => {
-      const projection = payload?.projection;
-      setDriftProjection(
-        projection && typeof projection === "object"
-          ? projection
-          : createNeutralAudienceDriftProjection()
+      console.log(
+        "[WIRE_TEST][CLIENT_RECEIVE][AUDIENCE_DRIFT]",
+        payload
       );
+      if (typeof payload?.score === "number") {
+        console.log("[WIRE_TEST][SET_DRIFT_PROJECTION]", {
+          incomingScore: payload.score,
+          previous: driftProjection,
+          next: payload.score,
+        });
+        setDriftProjection({ score: payload.score });
+        console.log("[WIRE_TEST][METER_STATE_APPLIED]", payload.score);
+      }
     };
 
-    onEvent("audience.drift.update", handleDriftUpdate);
+    onEvent("audience:drift:update", handleDriftUpdate);
     return () => offEvent("audience.drift.update", handleDriftUpdate);
   }, [onEvent, offEvent]);
 
@@ -668,6 +726,7 @@ export default function TrainerView() {
               </div>
             )}
 
+            {console.log("[WIRE_TEST][METER_RENDER]", { driftProjection })}
             <AudienceDriftMeter projection={driftProjection} />
 
             <div
