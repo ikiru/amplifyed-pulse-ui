@@ -4,15 +4,26 @@ import {
   getMessageClassification,
 } from "./classification.state.js";
 
-const FEATURE_AUDIENCE_DRIFT_AGGREGATION =
-  process.env.ENABLE_AUDIENCE_DRIFT === "true"; // Dev flag; set ENABLE_AUDIENCE_DRIFT=true to allow aggregation.
+const DISABLE_AUDIENCE_DRIFT =
+  process.env.DISABLE_AUDIENCE_DRIFT === "true";
+
+if (DISABLE_AUDIENCE_DRIFT) {
+  console.log("[AUDIENCE_DRIFT] disabled via DISABLE_AUDIENCE_DRIFT");
+} else {
+  console.log("[AUDIENCE_DRIFT] active");
+}
 
 const WINDOW_DURATION_MS = 2 * 60 * 1000; // 2 minutes
-const MIN_WINDOW_COUNT = 5;
 const SMOOTHING_ALPHA = 0.2;
 const MAX_ENTRIES = 200;
 const CLAMP_MIN = -1;
 const CLAMP_MAX = 1;
+
+const DRIFT_WEIGHTS = {
+  on: 0.6, // recovery pressure
+  off: -1.0, // stronger divergence
+  unknown: -0.25, // uncertainty nudges drift
+};
 
 const EPOCH_WEIGHTS = {
   current: 1,
@@ -171,9 +182,9 @@ export function updateDriftForMessage({
     weights,
   });
 
-  if (!FEATURE_AUDIENCE_DRIFT_AGGREGATION) {
+  if (DISABLE_AUDIENCE_DRIFT) {
     console.log(
-      `[AUDIENCE_DRIFT] feature_disabled (pid=${process.pid}) ENABLE_AUDIENCE_DRIFT=${process.env.ENABLE_AUDIENCE_DRIFT}`
+      `[AUDIENCE_DRIFT] feature_disabled (pid=${process.pid}) DISABLE_AUDIENCE_DRIFT=${process.env.DISABLE_AUDIENCE_DRIFT}`
     );
     logAggregateOutput({
       sessionId,
@@ -224,24 +235,25 @@ export function updateDriftForMessage({
   console.log(
     `[AUDIENCE_DRIFT][COUNTS] on=${F} off=${D} unknown=${U} ignored=0`
   );
-  if (N < MIN_WINDOW_COUNT) {
-    logAggregateOutput({
-      sessionId,
-      messageId,
-      newScore: state.score,
-      priorScore,
-      reason: "insufficient_entries",
-    });
-    return state.score;
-  }
 
-  const raw = D - F;
+  const raw =
+    F * DRIFT_WEIGHTS.on +
+    D * DRIFT_WEIGHTS.off +
+    U * DRIFT_WEIGHTS.unknown;
   state.raw = raw;
-  const shaped = shapeRaw(raw);
+  const previousScore = state.score;
+  let recoveryAdjustedRaw = raw;
+  if (previousScore < 0 && raw > 0) {
+    recoveryAdjustedRaw = raw * 0.8;
+  }
+  if (previousScore > 0 && raw < 0) {
+    recoveryAdjustedRaw = raw * 0.8;
+  }
+  const shaped = shapeRaw(recoveryAdjustedRaw);
   // Show the raw delta and its shaped equivalent before smoothing alters it.
   console.log(`[AUDIENCE_DRIFT][MATH] raw=${raw} shaped=${shaped}`);
-  const previousScore = state.score;
-  const nextScore = smooth(previousScore, shaped);
+  const nextScore =
+    previousScore === 0 ? clamp(shaped) : smooth(previousScore, shaped);
   state.score = nextScore;
   const delta =
     typeof nextScore === "number" && typeof priorScore === "number"
@@ -259,7 +271,7 @@ export function updateDriftForMessage({
     reason: "smoothed",
   });
 
-  if (typeof delta === "number" && delta !== 0) {
+  if (typeof delta === "number" && Math.abs(delta) >= 0.1) {
     // Passive emission boundary; listeners may not exist and that's valid.
     audienceDriftEmitter?.({
       sessionId,
@@ -272,5 +284,3 @@ export function updateDriftForMessage({
 
   return state.score;
 }
-
-export { FEATURE_AUDIENCE_DRIFT_AGGREGATION };
