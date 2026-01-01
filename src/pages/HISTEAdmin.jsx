@@ -297,6 +297,34 @@ export default function HISTEAdmin() {
     setHisteState(STATE_SCENARIO_ARMED);
   };
 
+  const handleClearSessionClick = () => {
+    if (
+      histeState === STATE_SIMULATION_RUNNING ||
+      histeState === STATE_SIMULATION_PAUSED
+    ) {
+      handleStop();
+    }
+    setIsRunning(false);
+    setSelectedScenarioId(null);
+    setShowJson(false);
+    setHisteState(STATE_PAGE_LOADED);
+    setFlowDensity(0);
+    setOverlapCount(0);
+    setSilenceDuration(0);
+    setDriftScore(null);
+    messageWindowRef.current = [];
+    adjustmentsRef.current = {
+      roomSize: 35,
+      conversationTempo: 0.5,
+      flowStability: 0.5,
+      surfacingSpeed: 0.5,
+    };
+    setRoomSize(35);
+    setConversationTempo(0.5);
+    setFlowStability(0.5);
+    setSurfacingSpeed(0.5);
+  };
+
   const scenarioNameLabel = selectedScenario
     ? selectedScenario.name
     : "— None Selected —";
@@ -428,6 +456,13 @@ export default function HISTEAdmin() {
             >
               Stop
             </button>
+            <button
+              type="button"
+              onClick={handleClearSessionClick}
+              className="clear-session-button"
+            >
+              Clear Session
+            </button>
           </div>
           <div className="runtime-adjustments">
             <div className="runtime-heading">
@@ -440,8 +475,8 @@ export default function HISTEAdmin() {
                 id="room-size"
                 className="runtime-slider"
                 type="range"
-                min="35"
-                max="45"
+                min="6"
+                max="50"
                 value={roomSize}
                 onChange={(event) =>
                   updateAdjustment("roomSize", setRoomSize, event.target.value)

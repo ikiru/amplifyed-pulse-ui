@@ -82,6 +82,12 @@
   color: #0369a1;
 }
 
+.clear-session-button {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #b91c1c;
+}
+
 .runtime-adjustments {
   margin-top: 1.25rem;
   padding-top: 0.75rem;
