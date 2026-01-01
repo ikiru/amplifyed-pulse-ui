@@ -70,6 +70,18 @@
   cursor: not-allowed;
 }
 
+.scenario-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: #1f2937;
+}
+
+.arm-button {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0369a1;
+}
+
 .placeholder {
   background: #f4f6fb;
   border-radius: 0.5rem;

@@ -62,6 +62,12 @@ const HISTE_SCENARIOS = [
   },
 ];
 
+const STATE_SERVER_RUNNING = "SERVER_RUNNING";
+const STATE_PAGE_LOADED = "PAGE_LOADED";
+const STATE_SCENARIO_SELECTED = "SCENARIO_SELECTED";
+const STATE_SCENARIO_ARMED = "SCENARIO_ARMED";
+const STATE_SIMULATION_RUNNING = "SIMULATION_RUNNING";
+
 export default function HISTEAdmin() {
   const [isRunning, setIsRunning] = useState(false);
   const [scenarioPath, setScenarioPath] = useState("");
@@ -69,6 +75,7 @@ export default function HISTEAdmin() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedScenarioId, setSelectedScenarioId] = useState(null);
   const [showJson, setShowJson] = useState(false);
+  const [histeState, setHisteState] = useState(STATE_PAGE_LOADED);
 
   const handleStart = async () => {
     if (isRunning) return;
@@ -78,8 +85,10 @@ export default function HISTEAdmin() {
         scenarioPath: scenarioPath.trim() || undefined,
       });
       setIsRunning(true);
+      return true;
     } catch (error) {
       console.error("[HISTE_ADMIN] failed to start", error);
+      return false;
     }
   };
 
@@ -100,6 +109,15 @@ export default function HISTEAdmin() {
     event.target.value = "";
   };
 
+  const handleScenarioSelect = (scenarioId) => {
+    if (histeState === STATE_SIMULATION_RUNNING) {
+      return;
+    }
+    setSelectedScenarioId(scenarioId);
+    setShowJson(false);
+    setHisteState(STATE_SCENARIO_SELECTED);
+  };
+
   const filteredScenarios = HISTE_SCENARIOS.filter((scenario) =>
     scenario.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
   );
@@ -111,6 +129,45 @@ export default function HISTEAdmin() {
   const toggleJson = () => {
     setShowJson((prev) => !prev);
   };
+
+  const statusLabel = (() => {
+    switch (histeState) {
+      case STATE_SIMULATION_RUNNING:
+        return "Running";
+      case STATE_SCENARIO_ARMED:
+        return "Armed";
+      case STATE_SCENARIO_SELECTED:
+        return "Selected";
+      case STATE_PAGE_LOADED:
+      case STATE_SERVER_RUNNING:
+      default:
+        return "Idle";
+    }
+  })();
+
+  const handleArmClick = () => {
+    if (!selectedScenario || histeState !== STATE_SCENARIO_SELECTED) return;
+    setHisteState(STATE_SCENARIO_ARMED);
+  };
+
+  const handleStartClick = async () => {
+    if (histeState !== STATE_SCENARIO_ARMED) return;
+    setHisteState(STATE_SIMULATION_RUNNING);
+    const started = await handleStart();
+    if (!started) {
+      setHisteState(STATE_SCENARIO_ARMED);
+    }
+  };
+
+  const handleStopClick = () => {
+    if (histeState !== STATE_SIMULATION_RUNNING) return;
+    handleStop();
+    setHisteState(STATE_SCENARIO_ARMED);
+  };
+
+  const scenarioNameLabel = selectedScenario
+    ? selectedScenario.name
+    : "— None Selected —";
 
   return (
     <div className="histe-page">
@@ -135,10 +192,7 @@ export default function HISTEAdmin() {
                 className={`scenario-item ${
                   selectedScenarioId === scenario.id ? "is-selected" : ""
                 }`}
-                onClick={() => {
-                  setSelectedScenarioId(scenario.id);
-                  setShowJson(false);
-                }}
+                onClick={() => handleScenarioSelect(scenario.id)}
               >
                 {scenario.name}
               </button>
@@ -176,7 +230,8 @@ export default function HISTEAdmin() {
         </section>
         <section className="histe-column histe-column--center">
           <h2>Live Simulation &amp; Controls</h2>
-          <p className="status-label">Status: {isRunning ? "RUNNING" : "STOPPED"}</p>
+          <p className="status-label">Status: {statusLabel}</p>
+          <p className="scenario-label">Scenario: {scenarioNameLabel}</p>
           <div className="histe-controls">
             <input
               type="text"
@@ -194,10 +249,28 @@ export default function HISTEAdmin() {
               onChange={handleFileChange}
               style={{ display: "none" }}
             />
-            <button type="button" onClick={handleStart}>
+            <button
+              type="button"
+              onClick={handleArmClick}
+              disabled={
+                !selectedScenario || histeState !== STATE_SCENARIO_SELECTED
+              }
+              className="arm-button"
+            >
+              Arm
+            </button>
+            <button
+              type="button"
+              onClick={handleStartClick}
+              disabled={histeState !== STATE_SCENARIO_ARMED}
+            >
               Start
             </button>
-            <button type="button" onClick={handleStop} disabled={!isRunning}>
+            <button
+              type="button"
+              onClick={handleStopClick}
+              disabled={histeState !== STATE_SIMULATION_RUNNING}
+            >
               Stop
             </button>
           </div>
