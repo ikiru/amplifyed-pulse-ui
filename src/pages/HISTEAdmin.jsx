@@ -1,14 +1,18 @@
 // File path: src/pages/HISTEAdmin.jsx
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   start,
   stop,
   pause,
   resume,
 } from "../../testing/environments/histe/engine/histeRunner.js";
+import { adaptMessage } from "./messageHelpers.js";
+import { useSocket } from "../socket/SocketContext.jsx";
 import "./HISTEAdmin.css";
 
 const SERVER_URL = "http://localhost:3000";
+const OBSERVATION_WINDOW_MS = 10000;
+const OVERLAP_THRESHOLD_MS = 800;
 
 const HISTE_SCENARIOS = [
   {
@@ -92,6 +96,12 @@ export default function HISTEAdmin() {
     flowStability: 0.5,
     surfacingSpeed: 0.5,
   });
+  const { onEvent, offEvent } = useSocket();
+  const [flowDensity, setFlowDensity] = useState(0);
+  const [overlapCount, setOverlapCount] = useState(0);
+  const [silenceDuration, setSilenceDuration] = useState(0);
+  const [driftScore, setDriftScore] = useState(null);
+  const messageWindowRef = useRef([]);
 
   const getCurrentAdjustments = () => ({ ...adjustmentsRef.current });
 
@@ -149,6 +159,81 @@ export default function HISTEAdmin() {
     setShowJson(false);
     setHisteState(STATE_SCENARIO_SELECTED);
   };
+
+  useEffect(() => {
+    if (!onEvent || !offEvent) return;
+
+    const handleMessageStateUpdate = ({ messages: canonicalMessages }) => {
+      if (!Array.isArray(canonicalMessages)) return;
+
+      const now = Date.now();
+      const timestamps = canonicalMessages
+        .map(adaptMessage)
+        .filter(Boolean)
+        .map((message) => new Date(message.createdAt).getTime())
+        .filter((ts) => Number.isFinite(ts));
+
+      const trimmed = timestamps
+        .filter((ts) => now - ts <= OBSERVATION_WINDOW_MS)
+        .sort((a, b) => a - b);
+
+      messageWindowRef.current = trimmed;
+
+      setFlowDensity(trimmed.length);
+
+      let overlaps = 0;
+      for (let i = 1; i < trimmed.length; i += 1) {
+        if (trimmed[i] - trimmed[i - 1] <= OVERLAP_THRESHOLD_MS) {
+          overlaps += 1;
+        }
+      }
+      setOverlapCount(overlaps);
+
+      const lastTimestamp = trimmed[trimmed.length - 1];
+      if (lastTimestamp) {
+        setSilenceDuration(
+          Math.max(0, Math.floor((now - lastTimestamp) / 1000))
+        );
+      } else {
+        setSilenceDuration(0);
+      }
+    };
+
+    onEvent("message.state.update", handleMessageStateUpdate);
+    return () => {
+      offEvent("message.state.update", handleMessageStateUpdate);
+    };
+  }, [onEvent, offEvent]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const lastTimestamp =
+        messageWindowRef.current[messageWindowRef.current.length - 1];
+      if (!lastTimestamp) {
+        setSilenceDuration(0);
+        return;
+      }
+      setSilenceDuration(
+        Math.max(0, Math.floor((Date.now() - lastTimestamp) / 1000))
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!onEvent || !offEvent) return;
+
+    const handleDriftUpdate = (payload) => {
+      if (!payload || typeof payload.score !== "number") return;
+      setDriftScore(payload.score);
+    };
+
+    onEvent("audience:drift:update", handleDriftUpdate);
+    return () => {
+      offEvent("audience:drift:update", handleDriftUpdate);
+    };
+  }, [onEvent, offEvent]);
 
   const filteredScenarios = HISTE_SCENARIOS.filter((scenario) =>
     scenario.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
@@ -215,6 +300,16 @@ export default function HISTEAdmin() {
   const scenarioNameLabel = selectedScenario
     ? selectedScenario.name
     : "— None Selected —";
+
+  const flowPercent = Math.min(100, (flowDensity / 20) * 100);
+  const overlapPercent = Math.min(100, overlapCount * 14);
+  const driftPercent =
+    typeof driftScore === "number"
+      ? Math.max(0, Math.min(100, ((driftScore + 1) / 2) * 100))
+      : 50;
+  const driftLabel =
+    typeof driftScore === "number" ? driftScore.toFixed(2) : "—";
+  const silenceLabel = `${silenceDuration}s`;
 
   return (
     <div className="histe-page">
@@ -425,10 +520,52 @@ export default function HISTEAdmin() {
         </section>
         <section className="histe-column histe-column--right">
           <h2>Observation Surfaces</h2>
-          <div className="placeholder">Message Flow Density (placeholder)</div>
-          <div className="placeholder">Overlap Events (placeholder)</div>
-          <div className="placeholder">Silence Duration (placeholder)</div>
-          <div className="placeholder">Drift Indicators (placeholder)</div>
+          <div className="observation-card">
+            <span className="observation-label">Message Flow Density</span>
+            <span className="observation-value">
+              {flowDensity} msgs / {OBSERVATION_WINDOW_MS / 1000}s
+            </span>
+            <div className="observation-bar">
+              <span
+                className="observation-bar-fill"
+                style={{ width: `${flowPercent}%` }}
+              />
+            </div>
+          </div>
+          <div className="observation-card">
+            <span className="observation-label">Overlap Events</span>
+            <span className="observation-value">{overlapCount}</span>
+            <div className="observation-bar">
+              <span
+                className="observation-bar-fill"
+                style={{ width: `${overlapPercent}%` }}
+              />
+            </div>
+          </div>
+          <div className="observation-card">
+            <span className="observation-label">Silence Duration</span>
+            <span className="observation-value">{silenceLabel}</span>
+            <div className="observation-bar">
+              <span
+                className="observation-bar-fill"
+                style={{
+                  width: `${Math.min(100, silenceDuration * 10)}%`,
+                }}
+              />
+            </div>
+          </div>
+          <div className="observation-card">
+            <span className="observation-label">Drift Indicators</span>
+            <span className="observation-value">
+              {driftLabel}
+            </span>
+            <div className="observation-bar">
+              <span
+                className="observation-bar-fill"
+                style={{ width: `${driftPercent}%` }}
+              />
+            </div>
+          </div>
           <p className="readonly-label">(Read-only)</p>
         </section>
       </div>

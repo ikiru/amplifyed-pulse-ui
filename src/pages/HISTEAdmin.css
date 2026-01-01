@@ -121,6 +121,43 @@
   color: #1f2937;
 }
 
+.observation-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background: #fafbff;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.observation-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.observation-value {
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.observation-bar {
+  width: 100%;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.observation-bar-fill {
+  height: 100%;
+  display: block;
+  background: linear-gradient(90deg, #6366f1, #3b82f6);
+  border-radius: inherit;
+}
+
 .scenario-label {
   margin: 0 0 0.5rem;
   font-size: 0.95rem;
