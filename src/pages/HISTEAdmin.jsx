@@ -1,6 +1,11 @@
 // File path: src/pages/HISTEAdmin.jsx
 import { useRef, useState } from "react";
-import { start, stop } from "../../testing/environments/histe/engine/histeRunner.js";
+import {
+  start,
+  stop,
+  pause,
+  resume,
+} from "../../testing/environments/histe/engine/histeRunner.js";
 import "./HISTEAdmin.css";
 
 const SERVER_URL = "http://localhost:3000";
@@ -67,6 +72,7 @@ const STATE_PAGE_LOADED = "PAGE_LOADED";
 const STATE_SCENARIO_SELECTED = "SCENARIO_SELECTED";
 const STATE_SCENARIO_ARMED = "SCENARIO_ARMED";
 const STATE_SIMULATION_RUNNING = "SIMULATION_RUNNING";
+const STATE_SIMULATION_PAUSED = "SIMULATION_PAUSED";
 
 export default function HISTEAdmin() {
   const [isRunning, setIsRunning] = useState(false);
@@ -76,18 +82,41 @@ export default function HISTEAdmin() {
   const [selectedScenarioId, setSelectedScenarioId] = useState(null);
   const [showJson, setShowJson] = useState(false);
   const [histeState, setHisteState] = useState(STATE_PAGE_LOADED);
+  const [roomSize, setRoomSize] = useState(35);
+  const [conversationTempo, setConversationTempo] = useState(0.5);
+  const [flowStability, setFlowStability] = useState(0.5);
+  const [surfacingSpeed, setSurfacingSpeed] = useState(0.5);
+  const adjustmentsRef = useRef({
+    roomSize: 35,
+    conversationTempo: 0.5,
+    flowStability: 0.5,
+    surfacingSpeed: 0.5,
+  });
 
-  const handleStart = async () => {
+  const getCurrentAdjustments = () => ({ ...adjustmentsRef.current });
+
+  const updateAdjustment = (field, setter, value) => {
+    const numericValue = Number(value);
+    adjustmentsRef.current = {
+      ...adjustmentsRef.current,
+      [field]: numericValue,
+    };
+    setter(numericValue);
+  };
+
+  const handleStart = async (getAdjustments) => {
     if (isRunning) return;
     try {
       await start({
         serverUrl: SERVER_URL,
         scenarioPath: scenarioPath.trim() || undefined,
+        getAdjustments,
       });
       setIsRunning(true);
       return true;
     } catch (error) {
       console.error("[HISTE_ADMIN] failed to start", error);
+      setIsRunning(false);
       return false;
     }
   };
@@ -110,7 +139,10 @@ export default function HISTEAdmin() {
   };
 
   const handleScenarioSelect = (scenarioId) => {
-    if (histeState === STATE_SIMULATION_RUNNING) {
+    if (
+      histeState === STATE_SIMULATION_RUNNING ||
+      histeState === STATE_SIMULATION_PAUSED
+    ) {
       return;
     }
     setSelectedScenarioId(scenarioId);
@@ -138,6 +170,8 @@ export default function HISTEAdmin() {
         return "Armed";
       case STATE_SCENARIO_SELECTED:
         return "Selected";
+      case STATE_SIMULATION_PAUSED:
+        return "Paused";
       case STATE_PAGE_LOADED:
       case STATE_SERVER_RUNNING:
       default:
@@ -152,11 +186,30 @@ export default function HISTEAdmin() {
 
   const handleStartClick = async () => {
     if (histeState !== STATE_SCENARIO_ARMED) return;
-    setHisteState(STATE_SIMULATION_RUNNING);
-    const started = await handleStart();
-    if (!started) {
-      setHisteState(STATE_SCENARIO_ARMED);
+    const started = await handleStart(getCurrentAdjustments);
+    if (started) {
+      setHisteState(STATE_SIMULATION_RUNNING);
     }
+  };
+
+  const handlePauseToggle = () => {
+    if (histeState === STATE_SIMULATION_RUNNING) {
+      pause();
+      setHisteState(STATE_SIMULATION_PAUSED);
+    } else if (histeState === STATE_SIMULATION_PAUSED) {
+      resume();
+      setHisteState(STATE_SIMULATION_RUNNING);
+    }
+  };
+
+  const handleStopClick = () => {
+    if (
+      histeState !== STATE_SIMULATION_RUNNING &&
+      histeState !== STATE_SIMULATION_PAUSED
+    )
+      return;
+    handleStop();
+    setHisteState(STATE_SCENARIO_ARMED);
   };
 
   const handleStopClick = () => {
@@ -268,13 +321,112 @@ export default function HISTEAdmin() {
             </button>
             <button
               type="button"
+              onClick={handlePauseToggle}
+              disabled={
+                histeState !== STATE_SIMULATION_RUNNING &&
+                histeState !== STATE_SIMULATION_PAUSED
+              }
+            >
+              {histeState === STATE_SIMULATION_PAUSED ? "Resume" : "Pause"}
+            </button>
+            <button
+              type="button"
               onClick={handleStopClick}
-              disabled={histeState !== STATE_SIMULATION_RUNNING}
+              disabled={
+                histeState !== STATE_SIMULATION_RUNNING &&
+                histeState !== STATE_SIMULATION_PAUSED
+              }
             >
               Stop
             </button>
           </div>
-          <div className="placeholder">Runtime Adjustments (placeholder)</div>
+          <div className="runtime-adjustments">
+            <div className="runtime-heading">
+              <p>Runtime Adjustments</p>
+              <span>(Applies to future behavior only)</span>
+            </div>
+            <div className="adjustment-row">
+              <label htmlFor="room-size">Room Size</label>
+              <input
+                id="room-size"
+                className="runtime-slider"
+                type="range"
+                min="35"
+                max="45"
+                value={roomSize}
+                onChange={(event) =>
+                  updateAdjustment("roomSize", setRoomSize, event.target.value)
+                }
+              />
+              <span className="runtime-value">{roomSize}</span>
+            </div>
+            <div className="adjustment-row">
+              <label htmlFor="conversation-tempo">Conversation Tempo</label>
+              <input
+                id="conversation-tempo"
+                className="runtime-slider"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={conversationTempo}
+                onChange={(event) =>
+                  updateAdjustment(
+                    "conversationTempo",
+                    setConversationTempo,
+                    event.target.value
+                  )
+                }
+              />
+              <span className="runtime-value">
+                {conversationTempo.toFixed(2)}
+              </span>
+            </div>
+            <div className="adjustment-row">
+              <label htmlFor="flow-stability">Flow Stability</label>
+              <input
+                id="flow-stability"
+                className="runtime-slider"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={flowStability}
+                onChange={(event) =>
+                  updateAdjustment(
+                    "flowStability",
+                    setFlowStability,
+                    event.target.value
+                  )
+                }
+              />
+              <span className="runtime-value">
+                {flowStability.toFixed(2)}
+              </span>
+            </div>
+            <div className="adjustment-row">
+              <label htmlFor="surfacing-speed">Surfacing Speed</label>
+              <input
+                id="surfacing-speed"
+                className="runtime-slider"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={surfacingSpeed}
+                onChange={(event) =>
+                  updateAdjustment(
+                    "surfacingSpeed",
+                    setSurfacingSpeed,
+                    event.target.value
+                  )
+                }
+              />
+              <span className="runtime-value">
+                {surfacingSpeed.toFixed(2)}
+              </span>
+            </div>
+          </div>
           <div className="placeholder">Simulation Timeline (placeholder)</div>
         </section>
         <section className="histe-column histe-column--right">

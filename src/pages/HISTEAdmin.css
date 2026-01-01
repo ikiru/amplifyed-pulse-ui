@@ -82,6 +82,57 @@
   color: #0369a1;
 }
 
+.runtime-adjustments {
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.runtime-heading {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.adjustment-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.adjustment-row label {
+  width: 140px;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.runtime-slider {
+  flex: 1;
+}
+
+.runtime-value {
+  width: 48px;
+  text-align: right;
+  font-size: 0.9rem;
+  color: #1f2937;
+}
+
+.scenario-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: #1f2937;
+}
+
+.arm-button {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0369a1;
+}
+
 .placeholder {
   background: #f4f6fb;
   border-radius: 0.5rem;

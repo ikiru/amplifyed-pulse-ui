@@ -11,14 +11,14 @@ const clearClock = () => {
   clockInstance = null;
 };
 
-const startMultiHuman = (serverUrl) => {
+const startMultiHuman = (serverUrl, getAdjustments) => {
   if (typeof restartMultiHuman === "function") {
-    restartMultiHuman(serverUrl);
+    restartMultiHuman(serverUrl, getAdjustments);
   }
   return clock;
 };
 
-export async function start({ scenario, serverUrl } = {}) {
+export async function start({ scenario, serverUrl, getAdjustments } = {}) {
   if (isRunning) return;
   isRunning = true;
 
@@ -26,8 +26,8 @@ export async function start({ scenario, serverUrl } = {}) {
 
   try {
     clockInstance = scenario
-      ? await runScenario(scenario, serverUrl)
-      : await startMultiHuman(serverUrl);
+      ? await runScenario({ scenario, serverUrl, getAdjustments })
+      : await startMultiHuman(serverUrl, getAdjustments);
 
     if (!clockInstance) {
       isRunning = false;
@@ -42,4 +42,18 @@ export function stop() {
   if (!isRunning) return;
   clearClock();
   isRunning = false;
+}
+
+export function pause() {
+  if (!isRunning || !clockInstance) return;
+  if (typeof clockInstance.pause === "function") {
+    clockInstance.pause();
+  }
+}
+
+export function resume() {
+  if (!isRunning || !clockInstance) return;
+  if (typeof clockInstance.resume === "function") {
+    clockInstance.resume();
+  }
 }

@@ -16,20 +16,28 @@ const messageTemplates = [
 ];
 const delays = [0, 220, 440, 660, 880];
 
-const scheduleParticipants = (serverUrl) => {
+const scheduleParticipants = (serverUrl, getAdjustments) => {
   clock.clear();
   delays.forEach((delay, index) => {
     clock.schedule(() => {
+      const adjustments = typeof getAdjustments === "function" ? getAdjustments() : {};
+      const tempoLabel =
+        adjustments.conversationTempo >= 0.5 ? "Heated" : "Slow";
+      const roomAdjustment =
+        typeof adjustments.roomSize === "number"
+          ? Math.max(0, adjustments.roomSize - 35)
+          : 0;
       runSimulatedAudienceMember({
-        messageText: messageTemplates[index % messageTemplates.length],
+        messageText: `${messageTemplates[index % messageTemplates.length]} (${tempoLabel})`,
         serverUrl,
+        lingerMs: 250 + roomAdjustment * 10,
       });
     }, delay);
   });
 };
 
-export function restartMultiHuman(serverUrl) {
-  scheduleParticipants(serverUrl);
+export function restartMultiHuman(serverUrl, getAdjustments) {
+  scheduleParticipants(serverUrl, getAdjustments);
 }
 
 export default clock;

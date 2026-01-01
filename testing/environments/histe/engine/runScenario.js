@@ -17,7 +17,7 @@ const createSocket = (serverUrl, sessionId) =>
     this.emit("session:join", { sessionId });
   });
 
-export function runScenario(scenario = {}, serverUrl) {
+export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
   const clock = new SimulationClock();
   const resolvedServerUrl = serverUrl ?? DEFAULT_SERVER_URL;
   const sessionId =
@@ -84,6 +84,13 @@ export function runScenario(scenario = {}, serverUrl) {
     }
   }
 
+  const getLatestAdjustments = () => {
+    if (typeof getAdjustments === "function") {
+      return getAdjustments();
+    }
+    return {};
+  };
+
   const scheduleMessages = () => {
     messages.forEach((message) => {
       const delay = Math.max(0, typeof message.delayMs === "number" ? message.delayMs : 0);
@@ -95,23 +102,36 @@ export function runScenario(scenario = {}, serverUrl) {
           throw new Error(`HISTE socket missing for participant ${participantId}.`);
         }
 
+        const adjustments = getLatestAdjustments();
+        const surfacingSpeed =
+          typeof adjustments.surfacingSpeed === "number" ? adjustments.surfacingSpeed : 0.5;
+        const focus = surfacingSpeed >= 0.6 ? "heated" : null;
         const text = String(message.text ?? "");
-        console.log(`[HISTE] Emitting message from ${participantId}: "${text}"`);
+        console.log(
+          `[HISTE] Emitting message from ${participantId}: "${text}" (surfacing=${surfacingSpeed})`
+        );
         socket.emit("message:audience", {
           text,
-          focus: null,
+          focus,
           parentMessageId: null,
         });
       }, delay);
     });
   };
 
-  connectParticipantPromises(participants, connectParticipant).then(scheduleMessages);
+  const connectPromise = connectParticipantPromises(participants, connectParticipant);
+  connectPromise.then(scheduleMessages);
 
   return {
     clear() {
       clock.clear();
       disconnectAll();
+    },
+    pause() {
+      clock.pause();
+    },
+    resume() {
+      clock.resume();
     },
   };
 }
