@@ -1,0 +1,31 @@
+{
+  "name": "basic normal room",
+  "participants": [
+    { "id": "p1" },
+    { "id": "p2" },
+    { "id": "p3" }
+  ],
+  "messages": [
+    { "from": "p1", "delayMs": 400, "text": "Morning, I’m ready to dig in." },
+    { "from": "p2", "delayMs": 900, "text": "Thanks for setting the stage." },
+    { "from": "p3", "delayMs": 1500, "text": "I appreciate the pacing so far." },
+    { "from": "p1", "delayMs": 2000, "text": "Let’s keep the energy steady." },
+    { "from": "p2", "delayMs": 2600, "text": "That example tied in nicely." },
+    { "from": "p3", "delayMs": 3200, "text": "Can you repeat the part about the timeline?" },
+    { "from": "p1", "delayMs": 3800, "text": "We keep the same checkpoints." },
+    { "from": "p2", "delayMs": 4400, "text": "I’ll note that for the summary." },
+    { "from": "p3", "delayMs": 5000, "text": "I’m jotting key takeaways." },
+    { "from": "p1", "delayMs": 5600, "text": "Would another perspective help?" },
+    { "from": "p2", "delayMs": 6200, "text": "I like where this is going." },
+    { "from": "p3", "delayMs": 6800, "text": "Let’s name a quick action." },
+    { "from": "p1", "delayMs": 7400, "text": "I can follow up with the broader team." },
+    { "from": "p2", "delayMs": 8000, "text": "That keeps momentum." },
+    { "from": "p3", "delayMs": 8600, "text": "Thanks for the clarity." },
+    { "from": "p1", "delayMs": 9200, "text": "Ready for the next section." },
+    { "from": "p2", "delayMs": 9800, "text": "Let’s aim for steady progress." },
+    { "from": "p3", "delayMs": 10400, "text": "I’ll capture the follow-up." },
+    { "from": "p1", "delayMs": 11000, "text": "I’m enjoying the collaboration." },
+    { "from": "p2", "delayMs": 11600, "text": "Agreed." },
+    { "from": "p3", "delayMs": 12200, "text": "Great, thank you." }
+  ]
+}

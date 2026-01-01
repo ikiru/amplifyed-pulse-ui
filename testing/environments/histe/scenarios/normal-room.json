@@ -1,0 +1,35 @@
+{
+  "name": "Normal Room",
+  "participants": [
+    { "id": "a", "name": "Alex" },
+    { "id": "b", "name": "Brooke" },
+    { "id": "c", "name": "Chris" }
+  ],
+  "messages": [
+    { "from": "a", "delayMs": 400, "text": "Morning everyone, ready to dig in." },
+    { "from": "b", "delayMs": 900, "text": "I just revisited the agenda, looks solid." },
+    { "from": "c", "delayMs": 1400, "text": "I liked the framing you opened with." },
+    { "from": "a", "delayMs": 1900, "text": "We’re keeping the timeline steady, correct?" },
+    { "from": "b", "delayMs": 2400, "text": "Yes, the checkpoints stay the same." },
+    { "from": "c", "delayMs": 2900, "text": "I’d appreciate a quick recap when we shift topics." },
+    { "from": "a", "delayMs": 3400, "text": "Sounds fair, I can restate the insight." },
+    { "from": "b", "delayMs": 3900, "text": "The examples are relatable, thanks." },
+    { "from": "c", "delayMs": 4400, "text": "Do we want to add one more perspective?" },
+    { "from": "a", "delayMs": 4900, "text": "Let’s hear from Chris first." },
+    { "from": "b", "delayMs": 5400, "text": "I’ll note the idea so we can refer back." },
+    { "from": "c", "delayMs": 5900, "text": "My thought is we stay curious about the next step." },
+    { "from": "a", "delayMs": 6400, "text": "That keeps the momentum balanced." },
+    { "from": "b", "delayMs": 6900, "text": "Any concerns with the proposed examples?" },
+    { "from": "c", "delayMs": 7400, "text": "Just a slight tweak, otherwise good." },
+    { "from": "a", "delayMs": 7900, "text": "Can we bundle that tweak into the summary?" },
+    { "from": "b", "delayMs": 8400, "text": "I can draft a short note after this." },
+    { "from": "c", "delayMs": 8900, "text": "The tone is calm, keeps us focused." },
+    { "from": "a", "delayMs": 9400, "text": "Shall we check in with the broader team next?" },
+    { "from": "b", "delayMs": 9900, "text": "Yes, I’ll coordinate the follow-up." },
+    { "from": "c", "delayMs": 10400, "text": "I appreciate the steady pace today." },
+    { "from": "a", "delayMs": 10900, "text": "Let’s close with that action item." },
+    { "from": "b", "delayMs": 11400, "text": "Agreed." },
+    { "from": "c", "delayMs": 11900, "text": "Thanks everyone, ready for the next session." },
+    { "from": "a", "delayMs": 12400, "text": "Same here." }
+  ]
+}

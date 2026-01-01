@@ -1,0 +1,39 @@
+.histe-admin {
+  padding: 2rem;
+  font-family: inherit;
+}
+
+.histe-admin h1 {
+  margin: 0 0 1rem;
+  font-size: 1.5rem;
+}
+
+.status-label {
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.histe-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.histe-controls input {
+  flex: 1;
+  padding: 0.4rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+}
+
+.histe-controls button {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+  background: #f5f5f5;
+  cursor: pointer;
+}
+
+.histe-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

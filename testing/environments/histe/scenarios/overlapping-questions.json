@@ -1,0 +1,43 @@
+{
+  "name": "overlapping questions",
+  "participants": [
+    { "id": "a" },
+    { "id": "b" },
+    { "id": "c" },
+    { "id": "d" }
+  ],
+  "messages": [
+    { "from": "a", "delayMs": 400, "text": "I had a quick question before we begin." },
+    { "from": "b", "delayMs": 800, "text": "Go ahead, I was thinking the same." },
+    { "from": "c", "delayMs": 1100, "text": "I’m curious about the data too." },
+    { "from": "d", "delayMs": 1400, "text": "Maybe we can clarify the objective first." },
+    { "from": "a", "delayMs": 1700, "text": "How tightly coupled is the new workflow?" },
+    { "from": "b", "delayMs": 2000, "text": "Does it replace current check-ins?" },
+    { "from": "c", "delayMs": 2300, "text": "I’d like to know the reporting expectations." },
+    { "from": "d", "delayMs": 2600, "text": "We can map dependencies later." },
+    { "from": "a", "delayMs": 2900, "text": "Is there room for a pilot?" },
+    { "from": "b", "delayMs": 3200, "text": "What does success look like here?" },
+    { "from": "c", "delayMs": 3500, "text": "Will we adjust based on feedback?" },
+    { "from": "d", "delayMs": 3800, "text": "I’m noting all these threads." },
+    { "from": "a", "delayMs": 4100, "text": "Should we capture who’s driving each piece?" },
+    { "from": "b", "delayMs": 4400, "text": "Maybe a short checklist will help." },
+    { "from": "c", "delayMs": 4700, "text": "I’m happy to share mine." },
+    { "from": "d", "delayMs": 5000, "text": "Overlapping questions are fine." },
+    { "from": "a", "delayMs": 5300, "text": "I’m hearing action items already." },
+    { "from": "b", "delayMs": 5600, "text": "Let’s hold a quick breakout." },
+    { "from": "c", "delayMs": 5900, "text": "I’ll take the notes." },
+    { "from": "d", "delayMs": 6200, "text": "We can reconvene in five minutes." },
+    { "from": "a", "delayMs": 6500, "text": "I appreciate the spontaneity." },
+    { "from": "b", "delayMs": 6800, "text": "Same here." },
+    { "from": "c", "delayMs": 7100, "text": "Can we share those reflections?" },
+    { "from": "d", "delayMs": 7400, "text": "I’ll highlight the main question." },
+    { "from": "a", "delayMs": 7700, "text": "Ready for the next prompt?" },
+    { "from": "b", "delayMs": 8000, "text": "Let’s keep the rhythm." },
+    { "from": "c", "delayMs": 8300, "text": "I’m following the thread." },
+    { "from": "d", "delayMs": 8600, "text": "Thanks for the patience." },
+    { "from": "a", "delayMs": 8900, "text": "I’ll share the doc afterwards." },
+    { "from": "b", "delayMs": 9200, "text": "Appreciate the context." },
+    { "from": "c", "delayMs": 9500, "text": "Let’s keep asking questions." },
+    { "from": "d", "delayMs": 9800, "text": "I’ll track the overlaps." }
+  ]
+}

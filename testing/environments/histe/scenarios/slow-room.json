@@ -1,0 +1,29 @@
+{
+  "name": "Slow Room",
+  "participants": [
+    { "id": "x", "name": "Morgan" },
+    { "id": "y", "name": "Lee" }
+  ],
+  "messages": [
+    { "from": "x", "delayMs": 800, "text": "I’m here, taking a moment to breathe." },
+    { "from": "y", "delayMs": 1800, "text": "Same, the tempo feels reflective." },
+    { "from": "x", "delayMs": 2800, "text": "Let me share what I noticed last week." },
+    { "from": "y", "delayMs": 3800, "text": "I appreciate the context." },
+    { "from": "x", "delayMs": 4800, "text": "The data urges patience." },
+    { "from": "y", "delayMs": 5800, "text": "Agreed, we can process slowly." },
+    { "from": "x", "delayMs": 6800, "text": "There’s calm in our room." },
+    { "from": "y", "delayMs": 7800, "text": "I’m jotting key thoughts." },
+    { "from": "x", "delayMs": 8800, "text": "No rush to respond." },
+    { "from": "y", "delayMs": 9800, "text": "Thanks for that reminder." },
+    { "from": "x", "delayMs": 10800, "text": "I’m noting a slow build of clarity." },
+    { "from": "y", "delayMs": 11800, "text": "That clarity matters." },
+    { "from": "x", "delayMs": 12800, "text": "Let’s let the ideas settle." },
+    { "from": "y", "delayMs": 13800, "text": "I’ll hold off on rushing." },
+    { "from": "x", "delayMs": 14800, "text": "I’m grateful for this space." },
+    { "from": "y", "delayMs": 15800, "text": "Me too." },
+    { "from": "x", "delayMs": 16800, "text": "Shall we surface one takeaway?" },
+    { "from": "y", "delayMs": 17800, "text": "Maybe pause before we speak." },
+    { "from": "x", "delayMs": 18800, "text": "I’ll speak once the rhythm shifts." },
+    { "from": "y", "delayMs": 19800, "text": "That sounds good." }
+  ]
+}

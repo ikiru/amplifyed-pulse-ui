@@ -1,0 +1,123 @@
+// HISTE Stage 4 Script — Scenario message execution loop
+// Governed by:
+// - docs/TESTING_ENVIRONMENTS.md
+// - server/contracts/Human Interaction Stress Testing Environment (HISTE).md
+
+import { io } from "socket.io-client";
+import SimulationClock from "./SimulationClock.js";
+
+const DEFAULT_SERVER_URL = "http://localhost:3000";
+const DEFAULT_SESSION_ID = "session:default";
+
+const createSocket = (serverUrl, sessionId) =>
+  io(serverUrl, {
+    transports: ["websocket"],
+    reconnection: false,
+  }).on("connect", function handleConnect() {
+    this.emit("session:join", { sessionId });
+  });
+
+export function runScenario(scenario = {}, serverUrl) {
+  const clock = new SimulationClock();
+  const resolvedServerUrl = serverUrl ?? DEFAULT_SERVER_URL;
+  const sessionId =
+    typeof scenario.sessionId === "string" ? scenario.sessionId : DEFAULT_SESSION_ID;
+
+  const participants = Array.isArray(scenario.participants)
+    ? scenario.participants.filter((entry) => entry?.id)
+    : [];
+  if (participants.length === 0) {
+    throw new Error("HISTE scenario requires at least one participant with an id.");
+  }
+  const participantIds = new Set();
+  for (const participant of participants) {
+    if (typeof participant.id !== "string" || participant.id.trim() === "") {
+      throw new Error("HISTE participant id must be a non-empty string.");
+    }
+    participantIds.add(participant.id);
+  }
+  const sockets = new Map();
+
+  const disconnectAll = () => {
+    sockets.forEach((socket) => {
+      if (socket && typeof socket.disconnect === "function") {
+        socket.disconnect();
+      }
+    });
+    sockets.clear();
+  };
+
+  const connectParticipant = (participant) =>
+    new Promise((resolve) => {
+      const socket = createSocket(resolvedServerUrl, sessionId);
+
+      const cleanup = () => {
+        socket.off("connect_error", handleError);
+        socket.off("error", handleError);
+      };
+
+      const handleConnect = () => {
+        cleanup();
+        sockets.set(participant.id, socket);
+        resolve();
+      };
+
+      const handleError = () => {
+        cleanup();
+        resolve();
+      };
+
+      socket.once("connect", handleConnect);
+      socket.once("connect_error", handleError);
+      socket.once("error", handleError);
+    });
+
+  const messages = Array.isArray(scenario.messages) ? scenario.messages : [];
+  if (messages.length === 0) {
+    throw new Error("HISTE scenario requires at least one message.");
+  }
+  for (const message of messages) {
+    if (!participantIds.has(message.from)) {
+      throw new Error(
+        `HISTE message refers to unknown participant "${message.from}".`
+      );
+    }
+  }
+
+  const scheduleMessages = () => {
+    messages.forEach((message) => {
+      const delay = Math.max(0, typeof message.delayMs === "number" ? message.delayMs : 0);
+
+      clock.schedule(() => {
+        const participantId = message.from;
+        const socket = sockets.get(participantId);
+        if (!socket) {
+          throw new Error(`HISTE socket missing for participant ${participantId}.`);
+        }
+
+        const text = String(message.text ?? "");
+        console.log(`[HISTE] Emitting message from ${participantId}: "${text}"`);
+        socket.emit("message:audience", {
+          text,
+          focus: null,
+          parentMessageId: null,
+        });
+      }, delay);
+    });
+  };
+
+  connectParticipantPromises(participants, connectParticipant).then(scheduleMessages);
+
+  return {
+    clear() {
+      clock.clear();
+      disconnectAll();
+    },
+  };
+}
+
+export default { runScenario };
+
+function connectParticipantPromises(list, connectFn) {
+  return Promise.all(list.map((participant) => connectFn(participant)));
+}

@@ -227,3 +227,95 @@ Explicitly deferred to future environments:
 - Success/failure scoring
 
 These are not forbidden. They are **not part of this system**.
+
+## Section 10 — Administrative Execution Model
+
+This section defines the operational boundaries for administrative tooling used to run the Human Interaction Stress Testing Environment (HISTE).
+
+---
+
+### 10.1 Administrative Authority
+
+HISTE simulations may be initiated, paused, modified, or terminated **only** through explicit administrative action.
+
+* No simulation may start automatically
+* No simulation may run implicitly
+* No simulation may alter application behavior without direct human initiation
+
+HISTE is a deliberate testing tool, not a background system.
+
+---
+
+### 10.2 Simulation Lifecycle
+
+All HISTE simulations follow a defined lifecycle:
+
+1. Scenario selection
+2. Runtime configuration (tempo, participant count, flow characteristics)
+3. Explicit start
+4. Live execution
+5. Optional pause and resume
+6. Explicit stop and teardown
+
+State does not persist beyond the lifecycle unless intentionally replayed for testing comparison.
+
+---
+
+### 10.3 Generation vs Runtime Boundary
+
+All simulation logic is generated and managed **exclusively within the administrative environment**, including:
+
+* Scenario interpretation
+* Participant orchestration
+* Timing and cadence control
+* Join, speak, silence, and leave behavior
+
+The runtime application receives **only what a real human participant would produce**.
+
+No simulation metadata, intent, or context may cross into the runtime system.
+
+---
+
+### 10.4 Interaction Boundary Enforcement
+
+HISTE may interact with the application **only** through the same interfaces available to real audience members.
+
+Specifically:
+
+* Simulated participants must enter through the AudienceInput experience
+* Messages must be submitted exactly as a real audience member would submit them
+* Timing and behavior must respect real system constraints
+
+HISTE may not:
+
+* Inject messages directly into pipelines
+* Modify or branch logic in `AudienceInput`
+* Modify or branch logic in `TrainerView.jsx`
+* Introduce simulation-specific flags, shortcuts, or alternate execution paths
+
+If an interaction cannot be performed by a real audience member, it does not belong in HISTE.
+
+---
+
+### 10.5 Observation Scope (Phase 0 Constraint)
+
+At this stage, HISTE introduces **no additional observation surfaces** beyond those already present in the application.
+
+System behavior is observed exclusively through existing runtime interfaces.
+
+No derived, aggregated, or meta-observation layers are introduced in this phase.
+
+Future observation tooling, if required, must be justified by observed failure under stress and governed by a separate scope decision.
+
+---
+
+### 10.6 Structural Safeguard
+
+HISTE implementation code must remain isolated from runtime UI code.
+
+Administrative simulation systems must not import, modify, or depend on:
+
+* `AudienceInput`
+* `TrainerView.jsx`
+
+This safeguard exists to preserve observational integrity and prevent test-only behavior from influencing production experience.
