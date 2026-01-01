@@ -212,12 +212,6 @@ export default function HISTEAdmin() {
     setHisteState(STATE_SCENARIO_ARMED);
   };
 
-  const handleStopClick = () => {
-    if (histeState !== STATE_SIMULATION_RUNNING) return;
-    handleStop();
-    setHisteState(STATE_SCENARIO_ARMED);
-  };
-
   const scenarioNameLabel = selectedScenario
     ? selectedScenario.name
     : "— None Selected —";
