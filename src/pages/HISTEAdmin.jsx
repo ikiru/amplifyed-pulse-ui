@@ -427,6 +427,27 @@ export default function HISTEAdmin() {
     typeof driftScore === "number" ? driftScore.toFixed(2) : "—";
   const silenceLabel = `${silenceDuration}s`;
 
+  const renderScenarioItem = (scenario, isOfficial) => {
+    const debugSource = scenario.source ?? "MISSING";
+    const debugOrigin = scenario.origin ?? "MISSING";
+    return (
+      <button
+        type="button"
+        key={scenario.id}
+        className={`scenario-item ${
+          selectedScenarioId === scenario.id ? "is-selected" : ""
+        }`}
+        onClick={() => handleScenarioSelect(scenario.id)}
+      >
+        <span>{scenario.name}</span>
+        <span className="scenario-debug">
+          id: {scenario.id} · source: {debugSource} · origin: {debugOrigin} · inOfficialArray:{" "}
+          {isOfficial ? "true" : "false"}
+        </span>
+      </button>
+    );
+  };
+
   return (
     <div className="histe-page">
       <header className="histe-header">
@@ -449,18 +470,9 @@ export default function HISTEAdmin() {
               <span className="section-note">Repo</span>
             </div>
             <div className="scenario-list">
-              {filteredOfficial.map((scenario) => (
-                <button
-                  type="button"
-                  key={scenario.id}
-                  className={`scenario-item ${
-                    selectedScenarioId === scenario.id ? "is-selected" : ""
-                  }`}
-                  onClick={() => handleScenarioSelect(scenario.id)}
-                >
-                  {scenario.name}
-                </button>
-              ))}
+              {filteredOfficial.map((scenario) =>
+                renderScenarioItem(scenario, true)
+              )}
               {filteredOfficial.length === 0 && (
                 <p className="no-results">No official scenarios match.</p>
               )}
@@ -485,18 +497,9 @@ export default function HISTEAdmin() {
               style={{ display: "none" }}
             />
             <div className="scenario-list">
-              {filteredDrafts.map((scenario) => (
-                <button
-                  type="button"
-                  key={scenario.id}
-                  className={`scenario-item ${
-                    selectedScenarioId === scenario.id ? "is-selected" : ""
-                  }`}
-                  onClick={() => handleScenarioSelect(scenario.id)}
-                >
-                  {scenario.name}
-                </button>
-              ))}
+              {filteredDrafts.map((scenario) =>
+                renderScenarioItem(scenario, false)
+              )}
               {filteredDrafts.length === 0 && (
                 <p className="no-results">No drafts yet.</p>
               )}

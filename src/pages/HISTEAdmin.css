@@ -237,6 +237,10 @@
   background: #f5f6fb;
   cursor: pointer;
   font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
 }
 
 .scenario-item.is-selected {
@@ -246,6 +250,15 @@
 
 .scenario-item:hover {
   border-color: #c5cad8;
+}
+
+.scenario-debug {
+  font-size: 0.65rem;
+  color: #6b7280;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .no-results {
