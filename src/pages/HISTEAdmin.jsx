@@ -96,7 +96,7 @@ export default function HISTEAdmin() {
     flowStability: 0.5,
     surfacingSpeed: 0.5,
   });
-  const { onEvent, offEvent } = useSocket();
+  const { onEvent, offEvent, emit, socket } = useSocket();
   const [flowDensity, setFlowDensity] = useState(0);
   const [overlapCount, setOverlapCount] = useState(0);
   const [silenceDuration, setSilenceDuration] = useState(0);
@@ -304,6 +304,15 @@ export default function HISTEAdmin() {
     ) {
       handleStop();
     }
+    const sessionId = socket?.sessionId ?? "session:default";
+    emit("message.state.update", {
+      sessionId,
+      messages: [],
+    });
+    emit("audience:drift:update", {
+      sessionId,
+      score: 0,
+    });
     setIsRunning(false);
     setSelectedScenarioId(null);
     setShowJson(false);
