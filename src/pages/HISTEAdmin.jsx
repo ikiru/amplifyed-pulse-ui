@@ -8,68 +8,14 @@ import {
 } from "../../testing/environments/histe/engine/histeRunner.js";
 import { adaptMessage } from "./messageHelpers.js";
 import { useSocket } from "../socket/SocketContext.jsx";
+import { OFFICIAL_SCENARIOS } from "../../testing/environments/histe/scenarios/index.js";
 import "./HISTEAdmin.css";
 
 const SERVER_URL = "http://localhost:3000";
 const OBSERVATION_WINDOW_MS = 10000;
 const OVERLAP_THRESHOLD_MS = 800;
 
-const HISTE_SCENARIOS = [
-  {
-    id: "large-low-energy",
-    name: "Large / Low Energy",
-    participantsRange: "35–40",
-    tempo: "Workshop",
-    flow: "Gradual Drift",
-    surfacing: "Medium",
-    json: { name: "Large / Low Energy", participants: 40, tempo: "Workshop" },
-  },
-  {
-    id: "small-heated",
-    name: "Small / Heated",
-    participantsRange: "5–10",
-    tempo: "Heated",
-    flow: "Burst",
-    surfacing: "Fast",
-    json: { name: "Small / Heated", participants: 8, tempo: "Heated" },
-  },
-  {
-    id: "silent-majority",
-    name: "Silent Majority",
-    participantsRange: "25–30",
-    tempo: "Slow",
-    flow: "Steady",
-    surfacing: "Low",
-    json: { name: "Silent Majority", participants: 28, tempo: "Slow" },
-  },
-  {
-    id: "gradual-drift",
-    name: "Gradual Drift",
-    participantsRange: "20–25",
-    tempo: "Workshop",
-    flow: "Gradual Drift",
-    surfacing: "Medium",
-    json: { name: "Gradual Drift", participants: 22, tempo: "Workshop" },
-  },
-  {
-    id: "post-break-chaos",
-    name: "Post-Break Chaos",
-    participantsRange: "30–35",
-    tempo: "Bursty",
-    flow: "Turbulent",
-    surfacing: "Fast",
-    json: { name: "Post-Break Chaos", participants: 33, tempo: "Bursty" },
-  },
-  {
-    id: "high-overlap-discussion",
-    name: "High Overlap Discussion",
-    participantsRange: "35–40",
-    tempo: "Heated",
-    flow: "Overlap",
-    surfacing: "Fast",
-    json: { name: "High Overlap Discussion", participants: 37, tempo: "Heated" },
-  },
-];
+const DRAFT_STORAGE_KEY = "histe.draftScenarios.v1";
 
 const STATE_SERVER_RUNNING = "SERVER_RUNNING";
 const STATE_PAGE_LOADED = "PAGE_LOADED";
@@ -85,6 +31,7 @@ export default function HISTEAdmin() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedScenarioId, setSelectedScenarioId] = useState(null);
   const [showJson, setShowJson] = useState(false);
+  const [draftScenarios, setDraftScenarios] = useState([]);
   const [histeState, setHisteState] = useState(STATE_PAGE_LOADED);
   const [roomSize, setRoomSize] = useState(35);
   const [conversationTempo, setConversationTempo] = useState(0.5);
@@ -96,6 +43,7 @@ export default function HISTEAdmin() {
     flowStability: 0.5,
     surfacingSpeed: 0.5,
   });
+  const draftFileInputRef = useRef(null);
   const { onEvent, offEvent, emit, socket } = useSocket();
   const [flowDensity, setFlowDensity] = useState(0);
   const [overlapCount, setOverlapCount] = useState(0);
@@ -160,6 +108,56 @@ export default function HISTEAdmin() {
     setHisteState(STATE_SCENARIO_SELECTED);
   };
 
+  const loadDraftScenarios = () => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed;
+    } catch {
+      return [];
+    }
+  };
+
+  const persistDrafts = (nextDrafts) => {
+    setDraftScenarios(nextDrafts);
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(nextDrafts));
+    } catch {
+      // ignore
+    }
+  };
+
+  const addDraftScenario = (draft) => {
+    const next = [draft, ...draftScenarios];
+    persistDrafts(next);
+  };
+
+  const handleExportDraft = () => {
+    const scenario = selectedScenario;
+    if (!scenario || scenario.source !== "draft") return;
+    const blob = new Blob([JSON.stringify(scenario.json, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${scenario.id}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDeleteDraft = () => {
+    const scenario = selectedScenario;
+    if (!scenario || scenario.source !== "draft") return;
+    const next = draftScenarios.filter((item) => item.id !== scenario.id);
+    persistDrafts(next);
+    setSelectedScenarioId(null);
+  };
+
   useEffect(() => {
     if (!onEvent || !offEvent) return;
 
@@ -206,6 +204,46 @@ export default function HISTEAdmin() {
   }, [onEvent, offEvent]);
 
   useEffect(() => {
+    setDraftScenarios(loadDraftScenarios());
+  }, []);
+
+  const handleDraftUploadClick = () => {
+    draftFileInputRef.current?.click();
+  };
+
+  const handleDraftFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        if (!parsed || typeof parsed !== "object") return;
+        const normalized = {
+          id:
+            parsed.id ??
+            parsed.name ??
+            `draft-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          name: parsed.name ?? "Draft Scenario",
+          participantsRange: parsed.participantsRange ?? "N/A",
+          tempo: parsed.tempo ?? "Unknown",
+          flow: parsed.flow ?? "Unknown",
+          surfacing: parsed.surfacing ?? "Unknown",
+          json: parsed,
+          source: "draft",
+          createdAt: Date.now(),
+        };
+        addDraftScenario(normalized);
+        setSelectedScenarioId(normalized.id);
+      } catch (error) {
+        console.error("Invalid scenario JSON", error);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = "";
+  };
+
+  useEffect(() => {
     const interval = setInterval(() => {
       const lastTimestamp =
         messageWindowRef.current[messageWindowRef.current.length - 1];
@@ -235,11 +273,18 @@ export default function HISTEAdmin() {
     };
   }, [onEvent, offEvent]);
 
-  const filteredScenarios = HISTE_SCENARIOS.filter((scenario) =>
+  const allScenarios = [...OFFICIAL_SCENARIOS, ...draftScenarios];
+  const filteredScenarios = allScenarios.filter((scenario) =>
+    scenario.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
+  );
+  const filteredOfficial = OFFICIAL_SCENARIOS.filter((scenario) =>
+    scenario.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
+  );
+  const filteredDrafts = draftScenarios.filter((scenario) =>
     scenario.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
   );
 
-  const selectedScenario = HISTE_SCENARIOS.find(
+  const selectedScenario = allScenarios.find(
     (scenario) => scenario.id === selectedScenarioId
   );
 
@@ -365,47 +410,117 @@ export default function HISTEAdmin() {
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
           />
-          <div className="scenario-list">
-            {filteredScenarios.map((scenario) => (
+          <div className="scenario-section">
+            <div className="scenario-section-header">
+              <h3>Official Scenarios</h3>
+              <span className="section-note">Repo</span>
+            </div>
+            <div className="scenario-list">
+              {filteredOfficial.map((scenario) => (
+                <button
+                  type="button"
+                  key={scenario.id}
+                  className={`scenario-item ${
+                    selectedScenarioId === scenario.id ? "is-selected" : ""
+                  }`}
+                  onClick={() => handleScenarioSelect(scenario.id)}
+                >
+                  {scenario.name}
+                </button>
+              ))}
+              {filteredOfficial.length === 0 && (
+                <p className="no-results">No official scenarios match.</p>
+              )}
+            </div>
+          </div>
+          <div className="scenario-section">
+            <div className="scenario-section-header">
+              <h3>Draft Scenarios</h3>
               <button
                 type="button"
-                key={scenario.id}
-                className={`scenario-item ${
-                  selectedScenarioId === scenario.id ? "is-selected" : ""
-                }`}
-                onClick={() => handleScenarioSelect(scenario.id)}
+                className="draft-upload-button"
+                onClick={handleDraftUploadClick}
               >
-                {scenario.name}
+                Upload Draft JSON
               </button>
-            ))}
-            {filteredScenarios.length === 0 && (
-              <p className="no-results">No scenarios match that search.</p>
-            )}
+            </div>
+            <input
+              ref={draftFileInputRef}
+              type="file"
+              accept="application/json"
+              onChange={handleDraftFileChange}
+              style={{ display: "none" }}
+            />
+            <div className="scenario-list">
+              {filteredDrafts.map((scenario) => (
+                <button
+                  type="button"
+                  key={scenario.id}
+                  className={`scenario-item ${
+                    selectedScenarioId === scenario.id ? "is-selected" : ""
+                  }`}
+                  onClick={() => handleScenarioSelect(scenario.id)}
+                >
+                  {scenario.name}
+                </button>
+              ))}
+              {filteredDrafts.length === 0 && (
+                <p className="no-results">No drafts yet.</p>
+              )}
+            </div>
           </div>
           <div className="scenario-details">
             <h3>Scenario Details</h3>
             {selectedScenario ? (
-              <ul>
-                <li>Participants: {selectedScenario.participantsRange}</li>
-                <li>Tempo: {selectedScenario.tempo}</li>
-                <li>Flow: {selectedScenario.flow}</li>
-                <li>Surfacing: {selectedScenario.surfacing}</li>
-              </ul>
+              <>
+                <ul>
+                  <li>Participants: {selectedScenario.participantsRange}</li>
+                  <li>Tempo: {selectedScenario.tempo}</li>
+                  <li>Flow: {selectedScenario.flow}</li>
+                  <li>Surfacing: {selectedScenario.surfacing}</li>
+                  <li>Source: {selectedScenario.source}</li>
+                </ul>
+                <button
+                  type="button"
+                  onClick={toggleJson}
+                  disabled={!selectedScenario}
+                  className="view-json-button"
+                >
+                  View JSON
+                </button>
+                {selectedScenario.source === "draft" && (
+                  <div className="draft-actions">
+                    <button
+                      type="button"
+                      onClick={handleExportDraft}
+                      className="export-button"
+                    >
+                      Export JSON
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteDraft}
+                      className="delete-button"
+                    >
+                      Delete Draft
+                    </button>
+                  </div>
+                )}
+                {showJson && selectedScenario && (
+                  <pre className="scenario-json">
+                    {JSON.stringify(selectedScenario.json, null, 2)}
+                  </pre>
+                )}
+              </>
             ) : (
               <p>No scenario selected.</p>
             )}
-            <button
-              type="button"
-              onClick={toggleJson}
-              disabled={!selectedScenario}
-              className="view-json-button"
-            >
-              View JSON
-            </button>
-            {showJson && selectedScenario && (
-              <pre className="scenario-json">
-                {JSON.stringify(selectedScenario.json, null, 2)}
-              </pre>
+            {selectedScenario?.source === "draft" && (
+              <p className="draft-note">
+                Drafts are local only. Export and add to
+                testing/environments/histe/scenarios + update index.js when
+                promoting.
+              </p>
             )}
           </div>
         </section>

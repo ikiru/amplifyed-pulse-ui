@@ -208,6 +208,27 @@
   max-height: 220px;
 }
 
+.scenario-section {
+  margin-bottom: 1rem;
+}
+
+.scenario-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.scenario-section-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.section-note {
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+
 .scenario-item {
   text-align: left;
   padding: 0.45rem 0.6rem;
@@ -238,6 +259,42 @@
   font-size: 0.95rem;
 }
 
+.draft-upload-button {
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.35rem;
+  border: 1px solid #c5cad8;
+  background: #eef2ff;
+  color: #1e40af;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.draft-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.export-button,
+.delete-button {
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.35rem;
+  border: 1px solid #c5cad8;
+  background: #f9fafb;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.delete-button {
+  border-color: #f87171;
+  color: #b91c1c;
+}
+
+.draft-note {
+  margin-top: 0.65rem;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
 .scenario-details h3 {
   margin: 0 0 0.5rem;
   font-size: 1rem;
