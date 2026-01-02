@@ -1,9 +1,9 @@
 {
   "name": "Normal Room",
   "participants": [
-    { "id": "a", "name": "Alex" },
-    { "id": "b", "name": "Brooke" },
-    { "id": "c", "name": "Chris" }
+    { "id": "a" },
+    { "id": "b" },
+    { "id": "c" }
   ],
   "messages": [
     { "from": "a", "delayMs": 400, "text": "Morning everyone, ready to dig in." },

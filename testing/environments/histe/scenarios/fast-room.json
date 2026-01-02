@@ -1,10 +1,10 @@
 {
   "name": "Fast Room",
   "participants": [
-    { "id": "p1", "name": "Taylor" },
-    { "id": "p2", "name": "Jordan" },
-    { "id": "p3", "name": "Morgan" },
-    { "id": "p4", "name": "Dev" }
+    { "id": "p1" },
+    { "id": "p2" },
+    { "id": "p3" },
+    { "id": "p4" }
   ],
   "messages": [
     { "from": "p1", "delayMs": 300, "text": "Quick check-in before we jump in." },

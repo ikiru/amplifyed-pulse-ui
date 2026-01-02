@@ -108,6 +108,17 @@ export default function HISTEAdmin() {
     setHisteState(STATE_SCENARIO_SELECTED);
   };
 
+  const sanitizeParticipants = (list) => {
+    if (!Array.isArray(list)) return [];
+    return list
+      .map((entry) => {
+        const candidate = entry?.id ?? entry?.participantId ?? entry?.clientId;
+        if (!candidate) return null;
+        return { id: String(candidate) };
+      })
+      .filter(Boolean);
+  };
+
   const loadDraftScenarios = () => {
     if (typeof window === "undefined") return [];
     try {
@@ -219,6 +230,11 @@ export default function HISTEAdmin() {
       try {
         const parsed = JSON.parse(reader.result);
         if (!parsed || typeof parsed !== "object") return;
+        const sanitizedParticipants = sanitizeParticipants(parsed.participants);
+        if (!sanitizedParticipants.length) {
+          console.warn("Draft scenario must include participants with ids");
+          return;
+        }
         const normalized = {
           id:
             parsed.id ??
@@ -229,7 +245,10 @@ export default function HISTEAdmin() {
           tempo: parsed.tempo ?? "Unknown",
           flow: parsed.flow ?? "Unknown",
           surfacing: parsed.surfacing ?? "Unknown",
-          json: parsed,
+          json: {
+            ...parsed,
+            participants: sanitizedParticipants,
+          },
           source: "draft",
           createdAt: Date.now(),
         };

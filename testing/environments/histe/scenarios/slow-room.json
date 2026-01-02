@@ -1,8 +1,8 @@
 {
   "name": "Slow Room",
   "participants": [
-    { "id": "x", "name": "Morgan" },
-    { "id": "y", "name": "Lee" }
+    { "id": "x" },
+    { "id": "y" }
   ],
   "messages": [
     { "from": "x", "delayMs": 800, "text": "I’m here, taking a moment to breathe." },
