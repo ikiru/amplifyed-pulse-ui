@@ -47,6 +47,23 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
     sockets.clear();
   };
 
+  const validateScenarioTopology = (messages) => {
+    const seenIds = new Set();
+    for (const message of messages) {
+      const messageId = message?.id;
+      if (!messageId) {
+        throw new Error("HISTE scenario message missing required \"id\".");
+      }
+      const threadId = message.threadId;
+      if (threadId && !seenIds.has(threadId)) {
+        throw new Error(
+          `HISTE scenario message "${messageId}" references unknown threadId "${threadId}".`
+        );
+      }
+      seenIds.add(messageId);
+    }
+  };
+
   const connectParticipant = (participant) =>
     new Promise((resolve) => {
       const socket = createSocket(resolvedServerUrl, sessionId);
@@ -76,6 +93,7 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
   if (messages.length === 0) {
     throw new Error("HISTE scenario requires at least one message.");
   }
+  validateScenarioTopology(messages);
   for (const message of messages) {
     if (!participantIds.has(message.from)) {
       throw new Error(
@@ -111,6 +129,7 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
           `[HISTE] Emitting message from ${participantId}: "${text}" (surfacing=${surfacingSpeed})`
         );
         socket.emit("message:audience", {
+          messageId: message.id,
           text,
           focus,
           parentMessageId:
