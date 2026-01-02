@@ -45,6 +45,7 @@ export default function HISTEAdmin() {
   });
   const draftFileInputRef = useRef(null);
   const { onEvent, offEvent, emit, socket } = useSocket();
+  const [draftUploadError, setDraftUploadError] = useState(null);
   const [flowDensity, setFlowDensity] = useState(0);
   const [overlapCount, setOverlapCount] = useState(0);
   const [silenceDuration, setSilenceDuration] = useState(0);
@@ -219,20 +220,28 @@ export default function HISTEAdmin() {
   }, []);
 
   const handleDraftUploadClick = () => {
+    if (draftFileInputRef.current) {
+      draftFileInputRef.current.value = "";
+    }
     draftFileInputRef.current?.click();
   };
 
   const handleDraftFileChange = (event) => {
-    const file = event.target.files?.[0];
+    const fileInput = event.target;
+    const file = fileInput.files?.[0];
     if (!file) return;
+    setDraftUploadError(null);
     const reader = new FileReader();
     reader.onload = () => {
       try {
         const parsed = JSON.parse(reader.result);
-        if (!parsed || typeof parsed !== "object") return;
+        if (!parsed || typeof parsed !== "object") {
+          setDraftUploadError("Draft must be a valid JSON object.");
+          return;
+        }
         const sanitizedParticipants = sanitizeParticipants(parsed.participants);
         if (!sanitizedParticipants.length) {
-          console.warn("Draft scenario must include participants with ids");
+          setDraftUploadError("Draft scenario needs at least one participant ID.");
           return;
         }
         const normalized = {
@@ -256,10 +265,15 @@ export default function HISTEAdmin() {
         setSelectedScenarioId(normalized.id);
       } catch (error) {
         console.error("Invalid scenario JSON", error);
+        setDraftUploadError("Draft upload failed: invalid JSON.");
+      } finally {
+        fileInput.value = "";
+        if (draftFileInputRef.current) {
+          draftFileInputRef.current.value = "";
+        }
       }
     };
     reader.readAsText(file);
-    event.target.value = "";
   };
 
   useEffect(() => {
@@ -487,6 +501,9 @@ export default function HISTEAdmin() {
                 <p className="no-results">No drafts yet.</p>
               )}
             </div>
+            {draftUploadError && (
+              <p className="draft-error">{draftUploadError}</p>
+            )}
           </div>
           <div className="scenario-details">
             <h3>Scenario Details</h3>
