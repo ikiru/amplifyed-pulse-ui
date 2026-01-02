@@ -319,3 +319,184 @@ Administrative simulation systems must not import, modify, or depend on:
 * `TrainerView.jsx`
 
 This safeguard exists to preserve observational integrity and prevent test-only behavior from influencing production experience.
+
+
+## Appendix A — Canonical HISTE Interface Wireframes (Authoritative)
+
+This appendix defines the **authoritative user interface layout and human interaction model** for the Human Interaction Stress Testing Environment (HISTE). These wireframes are **normative**, not illustrative. Any implementation that deviates from these structures or behaviors is considered **non-compliant** with this contract.
+
+---
+
+## A.1 Top-Level Layout (Single Page, Split-Brain)
+
+HISTE operates as a **single-page interface** divided into three persistent vertical columns beneath a unified header.
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│  HUMAN INTERACTION STRESS TESTING ENVIRONMENT                              │
+│  Scenario  •  Run  •  Observe                                              │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────┬──────────────────────────────┬─────────────────────┐
+│  Scenario Library    │  Live Simulation & Controls  │  Observation         │
+│  (Left Brain)        │  (Human Control Center)      │  Surfaces            │
+│                      │                              │  (Read-Only)         │
+└──────────────────────┴──────────────────────────────┴─────────────────────┘
+```
+
+### Structural Invariants
+
+* All three columns are always visible.
+* No column may be conditionally mounted or hidden.
+* Execution authority exists **only** in the center column.
+
+---
+
+## A.2 Scenario Library (Left Column — Informational Only)
+
+```
+┌──────────────────────────────┐
+│  Scenario Library            │
+├──────────────────────────────┤
+│  🔍 Search                   │
+│                              │
+│  ○ Large / Low Energy        │
+│  ○ Small / Heated            │
+│  ○ Silent Majority           │
+│  ○ Gradual Drift             │
+│  ○ Post-Break Chaos          │
+│  ○ High Overlap Discussion   │
+│                              │
+├──────────────────────────────┤
+│  Scenario Details            │
+│  Participants: 35–40         │
+│  Tempo: Workshop             │
+│  Flow: Gradual Drift         │
+│  Surfacing: Medium           │
+│                              │
+│  [ View JSON ]               │
+└──────────────────────────────┘
+```
+
+### Contractual Rules
+
+* The Scenario Library is **read-only**.
+* Selecting a scenario **must not**:
+
+  * Start a simulation
+  * Import files
+  * Trigger runtime behavior
+* Viewing JSON is for inspection only.
+* This column answers: *“What scenarios exist?”* — not *“What is running?”*
+
+---
+
+## A.3 Live Simulation & Controls (Center Column — Sole Execution Authority)
+
+```
+┌────────────────────────────────────────────┐
+│  Live Simulation                            │
+├────────────────────────────────────────────┤
+│  Status: ● Idle                             │
+│  Scenario: — None Armed —                  │
+│                                            │
+│  [ ▶ Start ]   [ ❚❚ Pause ]   [ ■ Stop ]   │
+│                                            │
+├────────────────────────────────────────────┤
+│  Runtime Adjustments                       │
+│                                            │
+│  Room Size        [ 35  ←→  45 ]            │
+│  Conversation     [ Slow ←→ Heated ]        │
+│  Flow Stability   [ Steady ←→ Turbulent ]   │
+│  Surfacing Speed  [ Slow ←→ Fast ]          │
+│                                            │
+│  (Applies to future behavior only)          │
+├────────────────────────────────────────────┤
+│  Simulation Timeline                       │
+│                                            │
+│     ┌───┐     ┌───┐      ┌───┐              │
+│     │   └─────┘   └──────┘   └───           │
+│                                            │
+│  (Human tempo, not throughput)              │
+└────────────────────────────────────────────┘
+```
+
+### Contractual Rules
+
+* **Nothing runs automatically**.
+* Simulations may only begin after:
+
+  1. A scenario is selected (left column)
+  2. The scenario is explicitly *armed* (center column)
+  3. A human presses **Start**
+* No server startup behavior may trigger execution.
+* No page load behavior may trigger execution.
+* Runtime adjustments affect **future behavior only**.
+* This column answers: *“What is happening right now?”*
+
+---
+
+## A.4 Observation Surfaces (Right Column — Reflection Only)
+
+```
+┌──────────────────────────────┐
+│  Observation Surfaces        │
+├──────────────────────────────┤
+│  Message Flow Density        │
+│  ▓▓▓▓▓░░░░░                  │
+│                              │
+│  Overlap Events              │
+│  ▓▓░░░░░░░                   │
+│                              │
+│  Silence Duration            │
+│  ░░░░▓▓▓▓▓                   │
+│                              │
+│  Drift Indicators            │
+│  ░░▓▓▓▓░░░                   │
+│                              │
+│  (Read-only)                 │
+└──────────────────────────────┘
+```
+
+### Contractual Rules
+
+* Observation surfaces are **non-interactive**.
+* They may not:
+
+  * Trigger actions
+  * Modify state
+  * Influence control flow
+* They exist solely to reflect consequences of the running simulation.
+* This column answers: *“What are humans doing as a result?”*
+
+---
+
+## A.5 Execution State Model (Non-Negotiable)
+
+HISTE recognizes **exactly five** system states:
+
+```
+1. Server Running        (neutral)
+2. Page Loaded           (neutral)
+3. Scenario Selected     (informational)
+4. Scenario Armed        (ready, idle)
+5. Simulation Running   (active)
+```
+
+Only **State 5** permits simulated behavior.
+
+All other states **must be inert**.
+
+---
+
+## A.6 Contract Enforcement Clause
+
+Any implementation that:
+
+* Auto-loads scenarios
+* Executes on server startup
+* Executes on page load
+* Collapses these columns
+* Grants execution authority outside the center column
+
+is **in violation of the HISTE contract**.
