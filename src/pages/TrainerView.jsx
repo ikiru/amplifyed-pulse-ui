@@ -623,6 +623,7 @@ export default function TrainerView() {
     summaryCounts.neutral +
     summaryCounts.frustrated;
   const timelineParticipantsCount = canonicalParticipantCount;
+  const sessionIdLabel = socket?.sessionId ?? "session:default";
 
   return (
     <div
@@ -652,12 +653,15 @@ export default function TrainerView() {
                 gap: 12,
               }}
             >
-              <div>
-                <h1 style={{ margin: 0 }}>Session View</h1>
-                <p style={{ margin: 0, color: "#666" }}>
-                  Socket: {connectionStatus}
-                </p>
-              </div>
+            <div>
+              <h1 style={{ margin: 0 }}>Session View</h1>
+              <p style={{ margin: 0, color: "#666" }}>
+                Socket: {connectionStatus}
+              </p>
+              <p className="session-label" style={{ margin: 0 }}>
+                Session: {sessionIdLabel}
+              </p>
+            </div>
               <button
                 onClick={() => {
                   setVisibleInsights(hiddenInsights);

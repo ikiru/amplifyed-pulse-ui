@@ -256,6 +256,27 @@ socket.on("audience:pulse", (payload = {}) => {
     });
   });
 
+  socket.on("message.state.update", (payload = {}) => {
+    const sessionId =
+      payload?.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!Array.isArray(payload?.messages)) return;
+    io.to(sessionId).emit("message.state.update", {
+      ...payload,
+      sessionId,
+    });
+  });
+
+  socket.on("audience:drift:update", (payload = {}) => {
+    const sessionId =
+      payload?.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (typeof payload?.score !== "number") return;
+    io.to(sessionId).emit("audience:drift:update", {
+      ...payload,
+      sessionId,
+      score: payload.score,
+    });
+  });
+
   // -------------------------------------------
   // TRAINER ACTION (PHASE 2.10)
   // -------------------------------------------

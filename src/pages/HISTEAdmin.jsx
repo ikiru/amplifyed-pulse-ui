@@ -337,6 +337,7 @@ export default function HISTEAdmin() {
   const scenarioNameLabel = selectedScenario
     ? selectedScenario.name
     : "— None Selected —";
+  const sessionIdLabel = socket?.sessionId ?? "session:default";
 
   const flowPercent = Math.min(100, (flowDensity / 20) * 100);
   const overlapPercent = Math.min(100, overlapCount * 14);
@@ -352,6 +353,7 @@ export default function HISTEAdmin() {
     <div className="histe-page">
       <header className="histe-header">
         <h1>HISTE — Human Interaction Stress Testing Environment</h1>
+        <p className="session-label">Session: {sessionIdLabel}</p>
       </header>
       <div className="histe-grid">
         <section className="histe-column histe-column--left">

@@ -8,6 +8,13 @@
   box-sizing: border-box;
 }
 
+.session-label {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #555;
+  font-weight: 500;
+}
+
 .pulse-bar {
   display: flex;
   gap: 8px;

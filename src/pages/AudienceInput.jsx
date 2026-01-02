@@ -143,10 +143,12 @@ export default function AudienceInput() {
     });
   };
 
+  const sessionIdLabel = socket?.sessionId ?? "session:default";
   const roots = buildMessageTree(messages);
 
   return (
     <div className="audience-input-page">
+      <p className="session-label">Session: {sessionIdLabel}</p>
       {/* Pulse Buttons — Sticky Top */}
       <div className="pulse-bar">
         {pulseOptions.map((pulse) => (
