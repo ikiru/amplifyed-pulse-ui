@@ -113,7 +113,10 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
         socket.emit("message:audience", {
           text,
           focus,
-          parentMessageId: null,
+          parentMessageId:
+            typeof message.threadId === "string" && message.threadId.trim() !== ""
+              ? message.threadId
+              : null,
         });
       }, delay);
     });
