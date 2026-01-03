@@ -1,52 +1,199 @@
 {
-  "name": "Fast Room",
+  "id": "real-world-multi-thread-100",
+  "name": "Real World Multi-Threaded Discussion (100 messages)",
   "participants": [
     { "id": "p1" },
     { "id": "p2" },
     { "id": "p3" },
-    { "id": "p4" }
+    { "id": "p4" },
+    { "id": "p5" },
+    { "id": "p6" }
   ],
   "messages": [
-    { "from": "p1", "delayMs": 300, "text": "Quick check-in before we jump in." },
-    { "from": "p2", "delayMs": 450, "text": "Yep, ready." },
-    { "from": "p3", "delayMs": 600, "text": "Let’s keep momentum." },
-    { "from": "p4", "delayMs": 750, "text": "Calling out the first example." },
-    { "from": "p1", "delayMs": 900, "text": "Hooking it back to the tracker." },
-    { "from": "p2", "delayMs": 1050, "text": "I want the detail on that metric." },
-    { "from": "p3", "delayMs": 1200, "text": "The pulse is upbeat." },
-    { "from": "p4", "delayMs": 1350, "text": "Agree, small overlaps are fine." },
-    { "from": "p1", "delayMs": 1500, "text": "We can circle back with the doc." },
-    { "from": "p2", "delayMs": 1650, "text": "I’ll grab that note." },
-    { "from": "p3", "delayMs": 1800, "text": "On to the next slide." },
-    { "from": "p4", "delayMs": 1950, "text": "Look at the overlap there." },
-    { "from": "p1", "delayMs": 2100, "text": "I’m seeing the same pattern." },
-    { "from": "p2", "delayMs": 2250, "text": "Let’s set the checkpoint now." },
-    { "from": "p3", "delayMs": 2400, "text": "I can type the summary." },
-    { "from": "p4", "delayMs": 2550, "text": "That works." },
-    { "from": "p1", "delayMs": 2700, "text": "I’ll ping the team." },
-    { "from": "p2", "delayMs": 2850, "text": "Checking the assumptions." },
-    { "from": "p3", "delayMs": 3000, "text": "Need a faster turnaround." },
-    { "from": "p4", "delayMs": 3150, "text": "We can triage later." },
-    { "from": "p1", "delayMs": 3300, "text": "This flow feels energized." },
-    { "from": "p2", "delayMs": 3450, "text": "I love that energy." },
-    { "from": "p3", "delayMs": 3600, "text": "Let’s maintain it." },
-    { "from": "p4", "delayMs": 3750, "text": "Writing it down." },
-    { "from": "p1", "delayMs": 3900, "text": "Great, keep going." },
-    { "from": "p2", "delayMs": 4050, "text": "Yes, small updates." },
-    { "from": "p3", "delayMs": 4200, "text": "Sprinting through this." },
-    { "from": "p4", "delayMs": 4350, "text": "I’m catching up." },
-    { "from": "p1", "delayMs": 4500, "text": "Let’s map the next steps." },
-    { "from": "p2", "delayMs": 4650, "text": "Emoji check." },
-    { "from": "p3", "delayMs": 4800, "text": "I’m on board." },
-    { "from": "p4", "delayMs": 4950, "text": "Appreciate the quick turn." },
-    { "from": "p1", "delayMs": 5100, "text": "I’ll brief the rest." },
-    { "from": "p2", "delayMs": 5250, "text": "Looking forward to the demo." },
-    { "from": "p3", "delayMs": 5400, "text": "This pace suits us." },
-    { "from": "p4", "delayMs": 5550, "text": "We can finesse the phrasing." },
-    { "from": "p1", "delayMs": 5700, "text": "Almost there." },
-    { "from": "p2", "delayMs": 5850, "text": "Yes." },
-    { "from": "p3", "delayMs": 6000, "text": "Thanks for the sync." },
-    { "from": "p4", "delayMs": 6150, "text": "Onward." },
-    { "from": "p1", "delayMs": 6300, "text": "Wrap-up in sight." }
+    { "id": "m1", "from": "p1", "delayMs": 0, "text": "Let’s ground ourselves. What norms matter most when discussions get heated?", "threadId": null },
+    { "id": "m2", "from": "p2", "delayMs": 900, "text": "Time limits help. Otherwise a few voices dominate.", "threadId": "m1" },
+    { "id": "m3", "from": "p3", "delayMs": 1100, "text": "Agreed. I also think clarifying intent early prevents spirals.", "threadId": "m1" },
+    { "id": "m4", "from": "p4", "delayMs": 1300, "text": "Is this about chat norms specifically or facilitation norms overall?", "threadId": "m1" },
+
+    { "id": "m5", "from": "p5", "delayMs": 2000, "text": "I want to flag that some people process slower in chat.", "threadId": null },
+    { "id": "m6", "from": "p6", "delayMs": 2100, "text": "Yes, silence doesn’t always mean disengaged.", "threadId": "m5" },
+    { "id": "m7", "from": "p2", "delayMs": 2300, "text": "But long silence can stall momentum.", "threadId": "m5" },
+    { "id": "m8", "from": "p5", "delayMs": 2600, "text": "True, but nudging gently matters.", "threadId": "m5" },
+
+    { "id": "m9", "from": "p3", "delayMs": 3200, "text": "Can we define what we mean by \"heated\"?", "threadId": null },
+    { "id": "m10", "from": "p1", "delayMs": 3400, "text": "Good question. I mean emotionally charged or fast-paced.", "threadId": "m9" },
+    { "id": "m11", "from": "p4", "delayMs": 3500, "text": "Sometimes fast-paced is fine if it’s still respectful.", "threadId": "m9" },
+
+    { "id": "m12", "from": "p6", "delayMs": 4200, "text": "I’m noticing overlap already 😅", "threadId": null },
+    { "id": "m13", "from": "p2", "delayMs": 4300, "text": "Which is kind of meta.", "threadId": "m12" },
+    { "id": "m14", "from": "p1", "delayMs": 4400, "text": "Let’s let this happen for a second.", "threadId": "m12" },
+
+    { "id": "m15", "from": "p4", "delayMs": 5000, "text": "Back to norms: what about acknowledging before disagreeing?", "threadId": "m1" },
+    { "id": "m16", "from": "p3", "delayMs": 5200, "text": "That reduces defensiveness a lot.", "threadId": "m1" },
+    { "id": "m17", "from": "p2", "delayMs": 5300, "text": "Yes, but it can feel scripted if overdone.", "threadId": "m1" },
+
+    { "id": "m18", "from": "p5", "delayMs": 6000, "text": "Does anyone use explicit turn-taking in chat?", "threadId": null },
+    { "id": "m19", "from": "p6", "delayMs": 6200, "text": "Rarely. It slows things down.", "threadId": "m18" },
+    { "id": "m20", "from": "p1", "delayMs": 6300, "text": "Sometimes useful in conflict moments.", "threadId": "m18" },
+
+    { "id": "m21", "from": "p3", "delayMs": 7000, "text": "I’m a little confused which thread to follow now.", "threadId": null },
+    { "id": "m22", "from": "p4", "delayMs": 7100, "text": "Same. Maybe we should consolidate.", "threadId": "m21" },
+    { "id": "m23", "from": "p2", "delayMs": 7200, "text": "This is a good example of drift.", "threadId": "m21" },
+
+    { "id": "m24", "from": "p1", "delayMs": 8000, "text": "Let’s pause and name the main threads we have.", "threadId": null },
+    { "id": "m25", "from": "p5", "delayMs": 8200, "text": "Norms for pace", "threadId": "m24" },
+    { "id": "m26", "from": "p6", "delayMs": 8300, "text": "Norms for disagreement", "threadId": "m24" },
+    { "id": "m27", "from": "p3", "delayMs": 8400, "text": "Norms for silence", "threadId": "m24" },
+
+    { "id": "m28", "from": "p4", "delayMs": 9000, "text": "I want to return to silence norms.", "threadId": null },
+    { "id": "m29", "from": "p2", "delayMs": 9200, "text": "Same. Silence is often misread.", "threadId": "m28" },
+    { "id": "m30", "from": "p5", "delayMs": 9400, "text": "Especially for neurodivergent participants.", "threadId": "m28" },
+
+    { "id": "m31", "from": "p6", "delayMs": 10000, "text": "Is anyone else feeling a bit overloaded?", "threadId": null },
+    { "id": "m32", "from": "p3", "delayMs": 10100, "text": "Yes.", "threadId": "m31" },
+    { "id": "m33", "from": "p4", "delayMs": 10150, "text": "Same here.", "threadId": "m31" },
+
+    { "id": "m34", "from": "p1", "delayMs": 11000, "text": "That’s useful feedback. Let’s slow the pace.", "threadId": null },
+
+    { "id": "m35", "from": "p2", "delayMs": 12000, "text": "Thanks for naming that.", "threadId": "m34" },
+    { "id": "m36", "from": "p5", "delayMs": 12100, "text": "Appreciated.", "threadId": "m34" },
+
+    { "id": "m37", "from": "p3", "delayMs": 13000, "text": "Can we capture these norms explicitly?", "threadId": null },
+    { "id": "m38", "from": "p6", "delayMs": 13200, "text": "Yes, otherwise we lose them.", "threadId": "m37" },
+
+    { "id": "m39", "from": "p4", "delayMs": 14000, "text": "I’ll draft a quick summary.", "threadId": null },
+
+    { "id": "m40", "from": "p1", "delayMs": 15000, "text": "Before that—any last disagreements?", "threadId": null },
+
+    { "id": "m41", "from": "p2", "delayMs": 16000, "text": "I still think too many norms can constrain.", "threadId": "m40" },
+    { "id": "m42", "from": "p5", "delayMs": 16200, "text": "But absence of norms can exclude.", "threadId": "m40" },
+
+    { "id": "m43", "from": "p3", "delayMs": 17000, "text": "This feels like a productive tension.", "threadId": "m40" },
+
+    { "id": "m44", "from": "p6", "delayMs": 18000, "text": "Agreed.", "threadId": "m40" },
+
+    { "id": "m45", "from": "p4", "delayMs": 19000, "text": "Draft summary coming next.", "threadId": null },
+
+    { "id": "m46", "from": "p4", "delayMs": 20000, "text": "Summary: pace awareness, acknowledge before disagreeing, normalize silence.", "threadId": "m45" },
+
+    { "id": "m47", "from": "p1", "delayMs": 21000, "text": "Does this reflect the room?", "threadId": "m45" },
+
+    { "id": "m48", "from": "p2", "delayMs": 22000, "text": "Mostly, yes.", "threadId": "m45" },
+
+    { "id": "m49", "from": "p5", "delayMs": 22100, "text": "I’d add explicit check-ins.", "threadId": "m45" },
+
+    { "id": "m50", "from": "p6", "delayMs": 22200, "text": "Seconded.", "threadId": "m45" },
+
+    { "id": "m51", "from": "p3", "delayMs": 23000, "text": "This feels solid.", "threadId": "m45" },
+
+    { "id": "m52", "from": "p1", "delayMs": 24000, "text": "Great. Let’s close this loop.", "threadId": null },
+
+    { "id": "m53", "from": "p4", "delayMs": 25000, "text": "Thanks everyone.", "threadId": "m52" },
+
+    { "id": "m54", "from": "p2", "delayMs": 25100, "text": "Appreciate the space.", "threadId": "m52" },
+
+    { "id": "m55", "from": "p5", "delayMs": 25200, "text": "Same.", "threadId": "m52" },
+
+    { "id": "m56", "from": "p6", "delayMs": 25300, "text": "Helpful discussion.", "threadId": "m52" },
+
+    { "id": "m57", "from": "p3", "delayMs": 26000, "text": "Ready to move on.", "threadId": "m52" },
+
+    { "id": "m58", "from": "p1", "delayMs": 27000, "text": "We’ll transition in a moment.", "threadId": null },
+
+    { "id": "m59", "from": "p2", "delayMs": 28000, "text": "Before we do—can we save that summary?", "threadId": "m58" },
+
+    { "id": "m60", "from": "p4", "delayMs": 28100, "text": "Already captured.", "threadId": "m58" },
+
+    { "id": "m61", "from": "p5", "delayMs": 29000, "text": "Nice.", "threadId": "m58" },
+
+    { "id": "m62", "from": "p6", "delayMs": 30000, "text": "Thanks.", "threadId": "m58" },
+
+    { "id": "m63", "from": "p3", "delayMs": 31000, "text": "Okay, ready.", "threadId": "m58" },
+
+    { "id": "m64", "from": "p1", "delayMs": 32000, "text": "Transitioning now.", "threadId": null },
+
+    { "id": "m65", "from": "p2", "delayMs": 33000, "text": "👍", "threadId": "m64" },
+
+    { "id": "m66", "from": "p4", "delayMs": 33100, "text": "👍", "threadId": "m64" },
+
+    { "id": "m67", "from": "p5", "delayMs": 33200, "text": "👍", "threadId": "m64" },
+
+    { "id": "m68", "from": "p6", "delayMs": 33300, "text": "👍", "threadId": "m64" },
+
+    { "id": "m69", "from": "p3", "delayMs": 33400, "text": "👍", "threadId": "m64" },
+
+    { "id": "m70", "from": "p1", "delayMs": 34000, "text": "Thanks everyone.", "threadId": null },
+
+    { "id": "m71", "from": "p2", "delayMs": 35000, "text": "Good facilitation.", "threadId": "m70" },
+
+    { "id": "m72", "from": "p4", "delayMs": 35100, "text": "Agreed.", "threadId": "m70" },
+
+    { "id": "m73", "from": "p5", "delayMs": 35200, "text": "Felt balanced.", "threadId": "m70" },
+
+    { "id": "m74", "from": "p6", "delayMs": 35300, "text": "Yes.", "threadId": "m70" },
+
+    { "id": "m75", "from": "p3", "delayMs": 36000, "text": "Nice close.", "threadId": "m70" },
+
+    { "id": "m76", "from": "p1", "delayMs": 37000, "text": "We’ll take a short break.", "threadId": null },
+
+    { "id": "m77", "from": "p2", "delayMs": 38000, "text": "See you in a bit.", "threadId": "m76" },
+
+    { "id": "m78", "from": "p5", "delayMs": 38100, "text": "Thanks.", "threadId": "m76" },
+
+    { "id": "m79", "from": "p6", "delayMs": 38200, "text": "👍", "threadId": "m76" },
+
+    { "id": "m80", "from": "p3", "delayMs": 38300, "text": "👍", "threadId": "m76" },
+
+    { "id": "m81", "from": "p4", "delayMs": 39000, "text": "👍", "threadId": "m76" },
+
+    { "id": "m82", "from": "p1", "delayMs": 45000, "text": "Welcome back. Let’s resume.", "threadId": null },
+
+    { "id": "m83", "from": "p2", "delayMs": 46000, "text": "Ready.", "threadId": "m82" },
+
+    { "id": "m84", "from": "p3", "delayMs": 46100, "text": "Here.", "threadId": "m82" },
+
+    { "id": "m85", "from": "p5", "delayMs": 46200, "text": "Back.", "threadId": "m82" },
+
+    { "id": "m86", "from": "p6", "delayMs": 46300, "text": "👍", "threadId": "m82" },
+
+    { "id": "m87", "from": "p4", "delayMs": 46400, "text": "Let’s go.", "threadId": "m82" },
+
+    { "id": "m88", "from": "p1", "delayMs": 47000, "text": "New topic coming up.", "threadId": null },
+
+    { "id": "m89", "from": "p2", "delayMs": 48000, "text": "Looking forward to it.", "threadId": "m88" },
+
+    { "id": "m90", "from": "p3", "delayMs": 48100, "text": "Same.", "threadId": "m88" },
+
+    { "id": "m91", "from": "p4", "delayMs": 48200, "text": "👍", "threadId": "m88" },
+
+    { "id": "m92", "from": "p5", "delayMs": 48300, "text": "👍", "threadId": "m88" },
+
+    { "id": "m93", "from": "p6", "delayMs": 48400, "text": "👍", "threadId": "m88" },
+
+    { "id": "m94", "from": "p1", "delayMs": 49000, "text": "We’ll stop here for now.", "threadId": null },
+
+    { "id": "m95", "from": "p2", "delayMs": 50000, "text": "Thanks all.", "threadId": "m94" },
+
+    { "id": "m96", "from": "p3", "delayMs": 50100, "text": "Good session.", "threadId": "m94" },
+
+    { "id": "m97", "from": "p4", "delayMs": 50200, "text": "Appreciated.", "threadId": "m94" },
+
+    { "id": "m98", "from": "p5", "delayMs": 50300, "text": "Helpful.", "threadId": "m94" },
+
+    { "id": "m99", "from": "p6", "delayMs": 50400, "text": "Thanks.", "threadId": "m94" },
+
+    { "id": "m100", "from": "p1", "delayMs": 51000, "text": "End of scenario.", "threadId": null }
+  ],
+  "threads": [
+    { "threadId": "m1", "topic": "Discussion norms", "messages": ["m2", "m3", "m4", "m15", "m16", "m17"] },
+    { "threadId": "m5", "topic": "Silence and processing time", "messages": ["m6", "m7", "m8"] },
+    { "threadId": "m9", "topic": "Defining heated discussion", "messages": ["m10", "m11"] },
+    { "threadId": "m12", "topic": "Meta overlap awareness", "messages": ["m13", "m14"] },
+    { "threadId": "m18", "topic": "Turn-taking mechanics", "messages": ["m19", "m20"] },
+    { "threadId": "m21", "topic": "Confusion and drift", "messages": ["m22", "m23"] },
+    { "threadId": "m24", "topic": "Thread consolidation", "messages": ["m25", "m26", "m27"] },
+    { "threadId": "m28", "topic": "Silence norms deep dive", "messages": ["m29", "m30"] },
+    { "threadId": "m31", "topic": "Cognitive overload check", "messages": ["m32", "m33"] },
+    { "threadId": "m45", "topic": "Norms summary and agreement", "messages": ["m46", "m47", "m48", "m49", "m50", "m51"] }
   ]
 }

@@ -68,7 +68,7 @@ export default function HISTEAdmin() {
     try {
       await start({
         serverUrl: SERVER_URL,
-        scenarioPath: scenarioPath.trim() || undefined,
+        scenario: selectedScenario?.json ?? undefined,
         getAdjustments,
       });
       setIsRunning(true);
@@ -307,11 +307,14 @@ export default function HISTEAdmin() {
   }, [onEvent, offEvent]);
 
   const allScenarios = [...OFFICIAL_SCENARIOS, ...draftScenarios];
+  const draftScenarioIds = new Set(draftScenarios.map((scenario) => scenario.id));
+
   const filteredScenarios = allScenarios.filter((scenario) =>
     scenario.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
   );
   const filteredOfficial = OFFICIAL_SCENARIOS.filter((scenario) =>
     scenario.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
+    && !draftScenarioIds.has(scenario.id)
   );
   const filteredDrafts = draftScenarios.filter((scenario) =>
     scenario.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
@@ -427,13 +430,13 @@ export default function HISTEAdmin() {
     typeof driftScore === "number" ? driftScore.toFixed(2) : "—";
   const silenceLabel = `${silenceDuration}s`;
 
-  const renderScenarioItem = (scenario, isOfficial) => {
+  const renderScenarioItem = (scenario, isOfficial, keyOverride) => {
     const debugSource = scenario.source ?? "MISSING";
     const debugOrigin = scenario.origin ?? "MISSING";
     return (
       <button
         type="button"
-        key={scenario.id}
+        key={keyOverride ?? scenario.id}
         className={`scenario-item ${
           selectedScenarioId === scenario.id ? "is-selected" : ""
         }`}
@@ -466,20 +469,6 @@ export default function HISTEAdmin() {
           />
           <div className="scenario-section">
             <div className="scenario-section-header">
-              <h3>Official Scenarios</h3>
-              <span className="section-note">Repo</span>
-            </div>
-            <div className="scenario-list">
-              {filteredOfficial.map((scenario) =>
-                renderScenarioItem(scenario, true)
-              )}
-              {filteredOfficial.length === 0 && (
-                <p className="no-results">No official scenarios match.</p>
-              )}
-            </div>
-          </div>
-          <div className="scenario-section">
-            <div className="scenario-section-header">
               <h3>Draft Scenarios</h3>
               <button
                 type="button"
@@ -497,8 +486,8 @@ export default function HISTEAdmin() {
               style={{ display: "none" }}
             />
             <div className="scenario-list">
-              {filteredDrafts.map((scenario) =>
-                renderScenarioItem(scenario, false)
+              {filteredDrafts.map((scenario, index) =>
+                renderScenarioItem(scenario, false, `${scenario.id}-draft-${index}`)
               )}
               {filteredDrafts.length === 0 && (
                 <p className="no-results">No drafts yet.</p>
@@ -507,6 +496,20 @@ export default function HISTEAdmin() {
             {draftUploadError && (
               <p className="draft-error">{draftUploadError}</p>
             )}
+          </div>
+          <div className="scenario-section">
+            <div className="scenario-section-header">
+              <h3>Official Scenarios</h3>
+              <span className="section-note">Repo</span>
+            </div>
+            <div className="scenario-list">
+              {filteredOfficial.map((scenario, index) =>
+                renderScenarioItem(scenario, true, `${scenario.id}-official-${index}`)
+              )}
+              {filteredOfficial.length === 0 && (
+                <p className="no-results">No official scenarios match.</p>
+              )}
+            </div>
           </div>
           <div className="scenario-details">
             <h3>Scenario Details</h3>

@@ -25,6 +25,7 @@ export async function runSimulatedAudienceMember({
   messageText = DEFAULT_MESSAGE_TEXT,
   focus = null,
   parentMessageId = null,
+  messageId = null,
   lingerMs = DEFAULT_LINGER_MS,
   socketUrl = DEFAULT_SERVER_URL,
   socketOptions = {},
@@ -58,6 +59,7 @@ export async function runSimulatedAudienceMember({
       );
       socket.emit("session:join", { sessionId });
       socket.emit("message:audience", {
+        ...(messageId ? { messageId } : {}),
         text: messageText,
         focus,
         parentMessageId,

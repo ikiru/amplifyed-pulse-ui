@@ -102,6 +102,7 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
     text,
     content,
     parentMessageId,
+    messageId: incomingMessageId,
   } = {}) {
     const effectiveContent = content ?? (text ? { type: "text", text } : null);
     if (!effectiveContent) return;
@@ -110,7 +111,12 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
     const sessionId =
       providedSessionId ?? this.getSessionIdForSocket?.(socketId);
     if (!sessionId) return;
-    const messageId = uuidv4();
+    const messageId = incomingMessageId ?? uuidv4();
+
+    console.log("[HISTE PAYLOAD]", {
+      incomingMessageId,
+      parentMessageId,
+    });
 
     const message = formatMessage({
       messageId,
