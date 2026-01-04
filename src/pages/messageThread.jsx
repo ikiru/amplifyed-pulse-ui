@@ -27,13 +27,13 @@ const RESOLUTION_DROPDOWN_LABELS = {
   reframed: "Reframed",
 };
 
-function ConfusionMeter({ confusionScore }) {
+export function ConfusionMeter({ confusionScore }) {
   const MAX_BARS = 8;
   const normalizedScore = confusionScore ?? 0;
   const filled = Math.max(0, Math.min(normalizedScore, MAX_BARS));
 
   return (
-    <div className="confusion-meter">
+    <div className="confusion-meter" aria-hidden="true">
       <div className="confusion-bars">
         {Array.from({ length: MAX_BARS }).map((_, i) => (
           <span
@@ -91,6 +91,8 @@ function ThreadItemContent({
   actorRole,
   role,
   showConfusionRow = false,
+  allowConfusionAnchors = true,
+  allowConfusionRow = true,
   confusionScore,
   resolutionType,
 }) {
@@ -188,7 +190,7 @@ function ThreadItemContent({
               ▲
             </button>
           )}
-          {isAnchor && (
+          {isAnchor && allowConfusionAnchors && (
             <>
               <button
                 className="confusion-anchor"
@@ -208,7 +210,7 @@ function ThreadItemContent({
           )}
         </div>
 
-        {showConfusionRow && (
+        {showConfusionRow && allowConfusionRow && (
           <div className="thread-confusion-row">
             <div className="thread-confusion-left">
               <span className="confusion-label">Confusion:</span>
@@ -296,6 +298,8 @@ function ThreadItemContent({
               showReplyControls={showReplyControls}
               showVoteTotals={showVoteTotals}
               onConfusionSignal={onConfusionSignal}
+              allowConfusionAnchors={allowConfusionAnchors}
+              allowConfusionRow={allowConfusionRow}
             />
           ))}
         </div>

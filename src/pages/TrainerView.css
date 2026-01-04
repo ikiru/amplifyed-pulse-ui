@@ -498,3 +498,43 @@
 .confusion-bars .bar.filled {
   background: #ff6b6b;
 }
+
+.trainer-message-area {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.trainer-message-scroller {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.trainer-message-scroller .message-stream {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  font-size: 0.85rem;
+}
+
+.trainer-message-scroller .message-input-bar {
+  position: static;
+  background: transparent;
+  border-top: 1px solid #e5e5e5;
+  padding-top: 8px;
+  margin-top: 0;
+}

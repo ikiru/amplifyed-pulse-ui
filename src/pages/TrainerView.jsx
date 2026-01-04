@@ -4,7 +4,11 @@ import AudienceDriftMeter, {
   createNeutralAudienceDriftProjection,
 } from "../components/AudienceDriftMeter.jsx";
 import { adaptMessage } from "./messageHelpers.js";
-import { buildMessageTree, ThreadItem } from "./messageThread.jsx";
+import {
+  buildMessageTree,
+  ThreadItem,
+  ConfusionMeter,
+} from "./messageThread.jsx";
 import "./AudienceInput.css";
 import "./TrainerView.css";
 
@@ -15,8 +19,6 @@ const assert = (condition, message) => {
     throw new Error(message);
   }
 };
-
-const MOMENT_HISTORY_LIMIT = 18;
 
 const OFF_TOPIC_PATTERN = /off[-_\s]?topic/i;
 
@@ -77,6 +79,53 @@ function getAudienceLabelDisplay(label) {
   return AUDIENCE_LABEL_DISPLAY[label] ?? label;
 }
 
+function summarizeThreadConfusion(root, confusionByRootId) {
+  const confusionSignal = confusionByRootId?.[root.messageId];
+  const contributorValue = confusionSignal?.contributors;
+  const contributorCountFromSignal = Array.isArray(contributorValue)
+    ? contributorValue.length
+    : typeof contributorValue === "number"
+      ? contributorValue
+      : contributorValue && typeof contributorValue === "object"
+        ? Object.keys(contributorValue).length
+        : undefined;
+  const contributorCount = Math.max(
+    0,
+    contributorCountFromSignal ??
+      (typeof confusionSignal?.confusionScore === "number"
+        ? confusionSignal.confusionScore
+        : 0)
+  );
+  const confusionScore =
+    typeof confusionSignal?.confusionScore === "number"
+      ? confusionSignal.confusionScore
+      : contributorCount;
+  const resolutionType = confusionSignal?.resolutionType;
+  const isRoot = !root.parentMessageId;
+  const hasConfusionSignal = contributorCount > 0;
+  const threadIsOffTopic = isThreadOffTopic(root, confusionSignal);
+  const showConfusionRow = isRoot && hasConfusionSignal && !threadIsOffTopic;
+
+  return {
+    confusionSignal,
+    contributorCount,
+    confusionScore,
+    resolutionType,
+    showConfusionRow,
+    threadIsOffTopic,
+    isRoot,
+  };
+}
+
+function scrollToThreadRoot(rootMessageId) {
+  if (!rootMessageId) return;
+  if (typeof document === "undefined") return;
+  const target = document.getElementById(`thread-root-${rootMessageId}`);
+  if (target && typeof target.scrollIntoView === "function") {
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
 export default function TrainerView() {
   const { socket, emit, onEvent, offEvent, connectionStatus } = useSocket();
   const [focus, setFocus] = useState(null);
@@ -89,13 +138,9 @@ export default function TrainerView() {
   const [showInsights, setShowInsights] = useState(false);
   const [hiddenInsights, setHiddenInsights] = useState(null);
   const [visibleInsights, setVisibleInsights] = useState(null);
-  const [moments, setMoments] = useState([]);
   const [driftProjection, setDriftProjection] = useState(() =>
     createNeutralAudienceDriftProjection()
   );
-  const [compareSelection, setCompareSelection] = useState([]);
-  const [compareSnapshot, setCompareSnapshot] = useState(null);
-  const [showCompare, setShowCompare] = useState(false);
   const [trainerInput, setTrainerInput] = useState("");
   const [trainerReplyToId, setTrainerReplyToId] = useState(null);
   const [trainerReplyDrafts, setTrainerReplyDrafts] = useState({});
@@ -387,36 +432,11 @@ export default function TrainerView() {
         return;
       }
 
-      // Normalize moment envelope to stable fields
-      const ts = payload.ts ?? payload.timestamp ?? Date.now();
-      const momentId = payload.id ?? ts;
-
-      // Strip insights from live updates (pull-only enforcement)
       if (Array.isArray(payload.insights)) {
         setHiddenInsights(payload.insights);
       } else {
         setHiddenInsights(null);
       }
-
-      const normalized = {
-        id: momentId,
-        ts,
-        pulse: payload.pulse ?? null,
-        emotion: payload.emotion ?? null,
-        safety: payload.safety ?? "none",
-        message: payload.message ?? null,
-        trainer: payload.trainer ?? null,
-      };
-
-      setMoments((prev) => {
-        const alreadyRecorded = prev.some((entry) => entry.id === normalized.id);
-        if (alreadyRecorded) {
-          return prev;
-        }
-        const next = [normalized, ...prev];
-        return next.slice(0, MOMENT_HISTORY_LIMIT);
-      });
-
     };
 
     // --------------------------------------------------
@@ -566,49 +586,14 @@ export default function TrainerView() {
     setTrainerReplyToId(null);
   };
 
-  const toggleCompareSelection = (moment) => {
-    setCompareSelection((prev) => {
-      const exists = prev.some((entry) => entry.id === moment.id);
-      if (exists) {
-        return prev.filter((entry) => entry.id !== moment.id);
-      }
-
-      if (prev.length >= 3) {
-        return prev;
-      }
-
-      return [...prev, moment];
-    });
-  };
-
-  const openComparison = () => {
-    if (compareSelection.length < 2) return;
-    setCompareSnapshot(compareSelection.map((moment) => ({ ...moment })));
-    setShowCompare(true);
-  };
-
-  const closeComparison = () => {
-    setShowCompare(false);
-    setCompareSnapshot(null);
-  };
-
-  useEffect(() => {
-    if (compareSelection.length < 2 && showCompare) {
-      setShowCompare(false);
-      setCompareSnapshot(null);
-    }
-  }, [compareSelection, showCompare]);
-
-  useEffect(() => {
-    setCompareSelection((prev) => {
-      const next = prev.filter((entry) =>
-        moments.some((moment) => moment.id === entry.id)
-      );
-      return next.length === prev.length ? prev : next;
-    });
-  }, [moments]);
-
   const messageRoots = buildMessageTree(messages);
+  const threadConfusions = messageRoots.map((root) => ({
+    root,
+    confusion: summarizeThreadConfusion(root, confusionByRootId),
+  }));
+  const confusionThreads = threadConfusions.filter(
+    ({ confusion }) => confusion.showConfusionRow
+  );
   const canonicalParticipants =
     livePulse?.participants && typeof livePulse.participants === "object"
       ? livePulse.participants
@@ -628,7 +613,6 @@ export default function TrainerView() {
   return (
     <div
       style={{
-        height: "100vh",
         display: "flex",
         flexDirection: "column",
       }}
@@ -640,6 +624,7 @@ export default function TrainerView() {
           gridTemplateColumns: "1fr 2fr 1fr",
           gap: "12px",
           padding: "12px",
+          minHeight: 0,
         }}
       >
         <div data-column="left">
@@ -736,157 +721,95 @@ export default function TrainerView() {
             <div
               style={{
                 padding: "12px",
-                border: "1px solid #ddd",
+                border: "1px solid #eee",
                 borderRadius: 8,
-                marginBottom: 20,
-                background: "#fff",
+                marginTop: 20,
+                background: "#fbfbfb",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
               }}
             >
-              <h3 style={{ marginTop: 0 }}>What Just Happened</h3>
-              <p style={{ margin: "0 0 12px", color: "#555" }}>
-                Select up to three latest updates
-              </p>
-
-              {moments.length ? (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    maxHeight: 320,
-                    overflowY: "auto",
-                    paddingRight: 4,
-                  }}
-                >
-                  {moments.map((moment) => (
-                    <MomentRow
-                      key={moment.id}
-                      moment={moment}
-                      selected={compareSelection.some(
-                        (entry) => entry.id === moment.id
-                      )}
-                      onClick={() => toggleCompareSelection(moment)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p style={{ margin: 0, color: "#555" }}>
-                  No latest updates yet
-                </p>
-              )}
-
-              {compareSelection.length >= 2 && (
-                <button
-                  type="button"
-                  onClick={openComparison}
-                  style={{
-                    marginTop: 12,
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    border: "1px solid #222",
-                    background: "#222",
-                    color: "#fff",
-                    cursor: "pointer",
-                  }}
-                >
-                  Compare
-                </button>
-              )}
-
-              {showCompare && compareSnapshot && (
-                <div
-                  className="moment-compare-panel"
-                  style={{
-                    marginTop: 12,
-                    border: "1px solid #ccc",
-                    borderRadius: 8,
-                    padding: 12,
-                    background: "#fefefe",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 12,
-                    }}
-                  >
-                    <strong>Comparison</strong>
-                    <button
-                      type="button"
-                      onClick={closeComparison}
+              <h3
+                style={{
+                  margin: 0,
+                  fontWeight: 500,
+                  letterSpacing: "0.02em",
+                  color: "#333",
+                }}
+              >
+                Confusion
+              </h3>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                }}
+              >
+                {confusionThreads.length ? (
+                  confusionThreads.map(({ root, confusion }) => (
+                    <div
+                      key={root.messageId}
+                      onClick={() => scrollToThreadRoot(root.messageId)}
                       style={{
-                        border: "none",
-                        background: "transparent",
-                        color: "#222",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 6,
+                        border: "1px solid #f1f1f1",
+                        borderRadius: 6,
+                        padding: "10px",
+                        background: "#fff",
                         cursor: "pointer",
-                        fontSize: "0.85rem",
                       }}
                     >
-                      Close
-                    </button>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 12,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    {compareSnapshot.map((moment, index) => (
                       <div
-                        key={index}
-                        className="moment-column"
                         style={{
-                          flex: "1 1 200px",
-                          border: "1px solid #eee",
-                          borderRadius: 6,
-                          padding: 8,
-                          background: "#fff",
+                          display: "flex",
+                          alignItems: "baseline",
                         }}
                       >
-                          <div
-                            className="moment-header"
-                            style={{
-                              marginBottom: 6,
-                              fontSize: "0.85rem",
-                              fontWeight: 600,
-                              color: "#333",
-                            }}
-                          >
-                            Latest Update {index + 1}
-                          </div>
-                        <pre
+                        <span
                           style={{
-                            margin: 0,
-                            maxHeight: 220,
-                            overflowY: "auto",
-                            fontSize: "0.7rem",
-                            whiteSpace: "pre-wrap",
-                            wordBreak: "break-word",
+                            fontSize: "0.85rem",
+                            fontWeight: 500,
+                            color: "#333",
                           }}
                         >
-                          {JSON.stringify(moment, null, 2)}
-                        </pre>
+                          {root.text ?? root.messageId}
+                        </span>
                       </div>
-                    ))}
+                      <ConfusionMeter confusionScore={confusion.confusionScore} />
+                    </div>
+                  ))
+                ) : (
+                  <div
+                    style={{
+                      padding: "10px",
+                      borderRadius: 6,
+                      border: "1px dashed #eee",
+                      background: "#fff",
+                      color: "#555",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    No threads currently surfaced
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
           </div>
         </div>
 
-            <div
-              data-column="center"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
+        <div
+          data-column="center"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+          }}
+        >
           {/* ===== Pulse ===== */}
           <section>
             <h2>Pulse</h2>
@@ -969,102 +892,53 @@ export default function TrainerView() {
             </p>
           </section>
 
-            <div
-              style={{
-                padding: "12px",
-                border: "1px solid #ddd",
-                borderRadius: 8,
-                marginBottom: 20,
-                background: "#fff",
-                display: "flex",
-                flexDirection: "column",
-                flex: 1,
-                minHeight: 420,
-              }}
-            >
+            <div className="trainer-message-area">
               <h3 style={{ marginTop: 0 }}>Messages</h3>
+              <div className="trainer-message-scroller">
+                {threadConfusions.length ? (
+                  <div className="message-stream trainer-message-stream">
+                    {threadConfusions.map(({ root, confusion }) => (
+                      <div
+                        key={root.messageId}
+                        id={`thread-root-${root.messageId}`}
+                        className="trainer-thread-wrapper"
+                      >
+                        <ThreadItem
+                          node={root}
+                          depth={0}
+                          replyToId={trainerReplyToId}
+                          setReplyToId={setTrainerReplyToId}
+                          replyDrafts={trainerReplyDrafts}
+                          setReplyDrafts={setTrainerReplyDrafts}
+                          handleSubmitReply={handleTrainerReplySubmit}
+                          voteTotals={voteTotals[root.messageId]}
+                          voteTotalsMap={voteTotals}
+                          confusionByRootId={confusionByRootId}
+                          actorRole="trainer"
+                          showVoteControls={true}
+                          allowConfusionAnchors={false} // TrainerView observes only; no message-level signaling.
+                          allowConfusionRow={false} // Confusion visuals belong in the dedicated left column.
+                          showConfusionRow={confusion.showConfusionRow}
+                          confusionScore={confusion.confusionScore}
+                          resolutionType={confusion.resolutionType}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ margin: 0, color: "#555" }}>No messages yet</p>
+                )}
 
-              {messageRoots.length ? (
-                <div
-                  className="message-stream trainer-message-stream"
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    flex: 1,
-                    minHeight: 360,
-                    overflowY: "auto",
-                    fontSize: "0.85rem",
-                  }}
-                >
-                {messageRoots.map((root) => {
-                  const confusionSignal = confusionByRootId?.[root.messageId];
-                  const contributorValue = confusionSignal?.contributors;
-                  const contributorCountFromSignal =
-                    Array.isArray(contributorValue)
-                      ? contributorValue.length
-                      : typeof contributorValue === "number"
-                      ? contributorValue
-                      : contributorValue && typeof contributorValue === "object"
-                      ? Object.keys(contributorValue).length
-                      : undefined;
-                  const contributorCount = Math.max(
-                    0,
-                    contributorCountFromSignal ??
-                      (typeof confusionSignal?.confusionScore === "number"
-                        ? confusionSignal.confusionScore
-                        : 0)
-                  );
-                  const resolutionType = confusionSignal?.resolutionType;
-                  const isRoot = !root.parentMessageId;
-                  const hasConfusionSignal = contributorCount > 0;
-                  const threadIsOffTopic = isThreadOffTopic(root, confusionSignal);
-                  const showConfusionRow =
-                    isRoot && hasConfusionSignal && !threadIsOffTopic;
-                  const confusionScore =
-                    typeof confusionSignal?.confusionScore === "number"
-                      ? confusionSignal.confusionScore
-                      : contributorCount;
-
-                  return (
-                    <div
-                      key={root.messageId}
-                      className="trainer-thread-wrapper"
-                    >
-                      <ThreadItem
-                        node={root}
-                        depth={0}
-                        replyToId={trainerReplyToId}
-                        setReplyToId={setTrainerReplyToId}
-                        replyDrafts={trainerReplyDrafts}
-                        setReplyDrafts={setTrainerReplyDrafts}
-                        handleSubmitReply={handleTrainerReplySubmit}
-                        voteTotals={voteTotals[root.messageId]}
-                        voteTotalsMap={voteTotals}
-                        confusionByRootId={confusionByRootId}
-                        actorRole="trainer"
-                        showVoteControls={true}
-                        showConfusionRow={showConfusionRow}
-                        confusionScore={confusionScore}
-                        resolutionType={resolutionType}
-                      />
-                    </div>
-                  );
-                })}
-                </div>
-              ) : (
-                <p style={{ margin: 0, color: "#555" }}>No messages yet</p>
-              )}
-
-              <form className="message-input-bar" onSubmit={handleTrainerSubmit}>
-                <input
-                  type="text"
-                  placeholder="Type a message..."
-                  value={trainerInput}
-                  onChange={(event) => setTrainerInput(event.target.value)}
-                />
-                <button type="submit">Send</button>
-              </form>
+                <form className="message-input-bar" onSubmit={handleTrainerSubmit}>
+                  <input
+                    type="text"
+                    placeholder="Type a message..."
+                    value={trainerInput}
+                    onChange={(event) => setTrainerInput(event.target.value)}
+                  />
+                  <button type="submit">Send</button>
+                </form>
+              </div>
             </div>
 
         </div>
@@ -1511,85 +1385,6 @@ function PulseTimeline(props) {
         </div>
       )}
     </div>
-  );
-}
-
-function MomentRow({ moment, onClick, selected }) {
-  const formattedTime = moment.ts
-    ? new Date(moment.ts).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      })
-    : "waiting";
-
-  const primaryLabel =
-    typeof moment.label === "string"
-      ? moment.label
-      : moment.trainer && typeof moment.trainer === "object"
-        ? moment.trainer.actionType ?? "Trainer Action"
-        : typeof moment.emotion === "string"
-          ? moment.emotion.charAt(0).toUpperCase() + moment.emotion.slice(1)
-          : "Latest Update";
-
-  const trainerLabel =
-    moment.trainer && typeof moment.trainer === "object"
-      ? moment.trainer.actionType ?? moment.trainer.type ?? "momentary signal"
-      : moment.trainer;
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={selected}
-      style={{
-        borderRadius: 8,
-        border: selected ? "2px solid #0066ff" : "1px solid #ddd",
-        background: selected ? "#e8f5ff" : "#fff",
-        padding: "10px 12px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 4,
-        textAlign: "left",
-        cursor: "pointer",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          width: "100%",
-          fontWeight: 600,
-        }}
-      >
-        <span>{primaryLabel}</span>
-        <span style={{ fontSize: "0.75rem", color: "#555" }}>
-          {formattedTime}
-        </span>
-      </div>
-      <div style={{ fontSize: "0.8rem", color: "#333" }}>
-        Pulse {typeof moment.pulse === "number" ? moment.pulse : "—"} · Safety{" "}
-        {moment.safety ?? "none"}
-      </div>
-      {moment.message && (
-        <div style={{ fontSize: "0.75rem", color: "#444" }}>
-          {typeof moment.message === "string"
-            ? moment.message
-            : JSON.stringify(moment.message)}
-        </div>
-      )}
-      {trainerLabel && (
-        <div
-          style={{
-            fontSize: "0.7rem",
-            color: "#0066ff",
-            textTransform: "capitalize",
-          }}
-        >
-          Trainer · {trainerLabel}
-        </div>
-      )}
-    </button>
   );
 }
 
