@@ -97,10 +97,12 @@ All replies belong to the same thread.
 
 ### 4.3 Thread Collapse & Expansion
 
-* Threads may be collapsed or expanded
+* Threads may be collapsed or expanded when the UI opts to render a control
 * Collapse affects **visibility only**
 * Anchor always remains visible
-* All thread controls live **inside the anchor card**
+* Thread-level controls live **inside the anchor card** when present
+
+Collapse controls are conditional and may not be available for every message level or view.
 
 ---
 
@@ -128,6 +130,8 @@ Valid states include:
 
 * Confused
 * Resolution
+
+Confused and Resolution metadata are not surfaced on Off Topic messages.
 
 ---
 
@@ -197,18 +201,13 @@ Indentation is mandatory and semantically meaningful for conversational context.
 ### B.1 Thread Anchor (Level 0)
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│ ▾  ▼ 0                                           ▲ 1        │
-│                                                              │
-│ Let’s ground ourselves. What norms matter most when          │
-│ discussions get heated?                                      │
-│                                                              │
-│──────────────────────────────────────────────────────────────│
-│ [ Confused ]        Resolution ▼                             │
-│                                                              │
-│──────────────────────────────────────────────────────────────│
-│ [ Off Topic ]                                   Reply        │
-└──────────────────────────────────────────────────────────────┘
+┌────────────┬──────────────────────────────────────────┬────────────┐
+│    ▼ 0     │ Let’s ground ourselves. What norms        │    ▲ 1     │
+│            │ matter most when discussions get heated? │            │
+├────────────┼──────────────────────────────────────────┼────────────┤
+│     ▾      │ [ Confused ]  Resolution ▼  [ Off Topic ]│   Reply    │
+└────────────┴──────────────────────────────────────────┴────────────┘
+
 ```
 
 ---
@@ -233,38 +232,46 @@ Indentation is mandatory and semantically meaningful for conversational context.
 ### B.3 Reply to Reply (Level 2)
 
 ```
-        ┌──────────────────────────────────────────────────────┐
-        │ ▼ 1                                    ▲ 0          │
-        │                                                      │
-        │ Agreed — without limits people stop listening.      │
-        │                                                      │
-        │──────────────────────────────────────────────────────│
-        │ [ Confused ]        Resolution ▼       Reply         │
-        │                                                      │
-        │ [ Off Topic ]                                        │
-        └──────────────────────────────────────────────────────┘
+┌────────────┬──────────────────────────────────────────┬────────────┐
+│    ▼ 0     │ Time limits help. Otherwise a few voices  │    ▲ 2     │
+│            │ dominate.                                │            │
+├────────────┼──────────────────────────────────────────┼────────────┤
+│            │ [ Confused ]  Resolution ▼  [ Off Topic ]│   Reply    │
+└────────────┴──────────────────────────────────────────┴────────────┘
+
 ```
 
 ---
 
-### B.4 Parallel Reply (Back to Level 1)
+### B.4 MESSAGE CARD — CONFUSION + RESOLUTION + ATTRIBUTION
 
 ```
-    ┌──────────────────────────────────────────────────────────┐
-    │ ▼ 0                                        ▲ 1          │
-    │                                                          │
-    │ I’m not sure time limits solve emotional escalation.     │
-    │                                                          │
-    │──────────────────────────────────────────────────────────│
-    │ [ Confused ]        Resolution ▼           Reply         │
-    │                                                          │
-    │ [ Off Topic ]                                            │
-    └──────────────────────────────────────────────────────────┘
+┌────────────┬──────────────────────────────────────────┬────────────┐
+│    ▼ 0     │ Time limits help. Otherwise a few voices  │    ▲ 2     │
+│            │ dominate.                                │            │
+├────────────┼──────────────────────────────────────────┼────────────┤
+│            │ [ Confused ● ]  Resolution: Clarified ▼  │   Reply    │
+│            │                     by trainer           │            │
+└────────────┴──────────────────────────────────────────┴────────────┘
+
 ```
 
 ---
 
-### B.5 Wireframe Authority
+### B.5 MESSAGE CARD — OFF TOPIC
+
+```
+┌────────────┬──────────────────────────────────────────┬────────────┐
+│    ▼ 0     │ Time limits help. Otherwise a few voices  │    ▲ 2     │
+│            │ dominate.                                │            │
+├────────────┼──────────────────────────────────────────┼────────────┤
+│            │ [ Off Topic ]                            │   Reply    │
+└────────────┴──────────────────────────────────────────┴────────────┘
+
+```
+
+---
+### B.6 Wireframe Authority
 
 This appendix is **normative**.
 

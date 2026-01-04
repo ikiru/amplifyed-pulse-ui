@@ -921,7 +921,7 @@ export default function TrainerView() {
                         showVoteControls={true}
                         showVoteReadOnly={true}
                         allowConfusionAnchors={false} // TrainerView observes only; no message-level signaling.
-                        allowConfusionRow={false} // Confusion visuals belong in the dedicated left column.
+                          allowConfusionRow={true}
                           showConfusionRow={confusion.showConfusionRow}
                           confusionScore={confusion.confusionScore}
                           resolutionType={confusion.resolutionType}
