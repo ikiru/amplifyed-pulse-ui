@@ -812,7 +812,6 @@ export default function TrainerView() {
         >
           {/* ===== Pulse ===== */}
           <section>
-            <h2>Pulse</h2>
             {/* CENTER COLUMN pulse timeline (authoritative) */}
             {(() => {
               if (TRACE_ENABLED) {
