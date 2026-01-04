@@ -281,6 +281,7 @@
   border: 1px solid #ddd;
   border-radius: 10px;
   background: #fff;
+  max-height: 260px;
 }
 
 .pulse-timeline-header {
@@ -373,7 +374,7 @@
 
 .pulse-timeline-svg {
   width: 100%;
-  height: 200px;
+  height: 150px;
   display: block;
 }
 
@@ -507,18 +508,17 @@
   background: #fff;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden;
 }
 
 .trainer-message-scroller {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .trainer-message-scroller .message-stream {
@@ -527,7 +527,6 @@
   flex-direction: column;
   gap: 8px;
   min-height: 0;
-  overflow-y: auto;
   font-size: 0.85rem;
 }
 

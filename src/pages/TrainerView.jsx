@@ -808,6 +808,10 @@ export default function TrainerView() {
             display: "flex",
             flexDirection: "column",
             gap: "12px",
+            flex: "1 1 0",
+            minHeight: 0,
+            maxHeight: "100vh",
+            overflow: "hidden",
           }}
         >
           {/* ===== Pulse ===== */}
