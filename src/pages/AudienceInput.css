@@ -219,6 +219,126 @@
   margin-top: 6px;
 }
 
+.thread-off-focus-row {
+  justify-content: center;
+}
+
+.thread-off-focus-label {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(179, 84, 0, 0.5);
+  color: #b35400;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.thread-card-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 2px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.thread-card-left,
+.thread-card-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thread-card-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.thread-card-center .thread-confusion-row {
+  width: 100%;
+}
+
+.thread-confusion-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.75rem;
+  color: #666;
+  line-height: 1.2;
+  margin-top: 2px;
+  padding-left: 2px;
+  padding-right: 2px;
+  padding-top: 0;
+}
+
+.thread-confusion-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.thread-confusion-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+}
+
+.thread-resolution-attribution {
+  font-size: 0.65rem;
+  color: #666;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+.thread-confusion-right {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.thread-confusion-right select {
+  margin: 0;
+}
+
+.thread-confusion-indicator {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+}
+
+.thread-resolution-select {
+  font-size: 0.8rem;
+  line-height: 1;
+  margin-top: -1px;
+}
+
+.thread-resolution-label {
+  color: #0b5fff;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.thread-resolution-attribution {
+  font-size: 0.65rem;
+  color: #666;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
 .confusion-footprint {
   margin: 6px 0;
   display: inline-flex;

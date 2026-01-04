@@ -611,48 +611,26 @@ export default function TrainerView() {
   const sessionIdLabel = socket?.sessionId ?? "session:default";
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <div
-        style={{
-          flex: 1,
-          display: "grid",
-          gridTemplateColumns: "1fr 2fr 1fr",
-          gap: "12px",
-          padding: "12px",
-          minHeight: 0,
-        }}
-      >
-        <div data-column="left">
-          <div style={{ padding: 16, fontFamily: "system-ui, sans-serif" }}>
-            <header
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                justifyContent: "space-between",
-                marginBottom: 16,
-                gap: 12,
-              }}
-            >
-            <div>
-              <h1 style={{ margin: 0 }}>Session View</h1>
-              <p style={{ margin: 0, color: "#666" }}>
-                Socket: {connectionStatus}
-              </p>
-              <p className="session-label" style={{ margin: 0 }}>
-                Session: {sessionIdLabel}
-              </p>
-            </div>
+    <div className="trainer-view-shell">
+      <div className="trainer-view-grid">
+        <div data-column="left" className="trainer-left-column">
+          <div className="trainer-left-panel">
+            <header className="trainer-session-header">
+              <div className="trainer-session-copy">
+                <h1 className="trainer-session-title">Session View</h1>
+                <p className="trainer-session-status">
+                  Socket: {connectionStatus}
+                </p>
+                <p className="session-label trainer-session-meta">
+                  Session: {sessionIdLabel}
+                </p>
+              </div>
               <button
+                className="trainer-session-toggle"
                 onClick={() => {
                   setVisibleInsights(hiddenInsights);
                   setShowInsights((v) => !v);
                 }}
-                style={{ padding: "6px 10px", cursor: "pointer" }}
               >
                 Insights
               </button>
@@ -660,16 +638,8 @@ export default function TrainerView() {
 
             {/* ---------------- TRAINER INSIGHTS (PULL-ONLY) ---------------- */}
             {showInsights && visibleInsights && (
-              <div
-                style={{
-                  padding: "12px",
-                  border: "1px solid #ddd",
-                  borderRadius: 8,
-                  marginBottom: 20,
-                  background: "#fff",
-                }}
-              >
-                <h3 style={{ marginTop: 0 }}>Insights</h3>
+              <div className="trainer-insights-panel">
+                <h3 className="trainer-section-heading">Insights</h3>
 
                 {Array.isArray(visibleInsights) && visibleInsights.length ? (
                   Object.entries(
@@ -680,24 +650,16 @@ export default function TrainerView() {
                       return acc;
                     }, {})
                   ).map(([category, insights]) => (
-                    <div key={category} style={{ marginBottom: 16 }}>
-                      <div
-                        style={{
-                          fontSize: "0.75rem",
-                          fontWeight: 600,
-                          letterSpacing: "0.04em",
-                          color: "#555",
-                          marginBottom: 6,
-                        }}
-                      >
+                    <div key={category} className="trainer-insights-category">
+                      <div className="trainer-insights-category-label">
                         {category.toUpperCase()}
                       </div>
-                      <ul style={{ margin: 0, paddingLeft: 16 }}>
+                      <ul className="trainer-insights-list">
                         {insights.map((insight) => (
-                          <li key={insight.id} style={{ marginBottom: 6 }}>
+                          <li key={insight.id} className="trainer-insight-item">
                             {insight.language}
                             {typeof insight.confidence === "number" && (
-                              <span style={{ color: "#777", fontSize: "0.8rem" }}>
+                              <span className="trainer-insight-confidence">
                                 {" "}
                                 (confidence {Math.round(insight.confidence * 100)}%)
                               </span>
@@ -708,7 +670,7 @@ export default function TrainerView() {
                     </div>
                   ))
                 ) : (
-                  <p style={{ margin: 0, color: "#555" }}>
+                  <p className="trainer-text-muted">
                     No Insights yet
                   </p>
                 )}
@@ -718,64 +680,20 @@ export default function TrainerView() {
             {console.log("[WIRE_TEST][METER_RENDER]", { driftProjection })}
             <AudienceDriftMeter projection={driftProjection} />
 
-            <div
-              style={{
-                padding: "12px",
-                border: "1px solid #eee",
-                borderRadius: 8,
-                marginTop: 20,
-                background: "#fbfbfb",
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-              }}
-            >
-              <h3
-                style={{
-                  margin: 0,
-                  fontWeight: 500,
-                  letterSpacing: "0.02em",
-                  color: "#333",
-                }}
-              >
+            <div className="trainer-confusion-panel">
+              <h3 className="trainer-section-heading trainer-confusion-heading">
                 Confusion
               </h3>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                }}
-              >
+              <div className="trainer-confusion-list">
                 {confusionThreads.length ? (
                   confusionThreads.map(({ root, confusion }) => (
                     <div
                       key={root.messageId}
                       onClick={() => scrollToThreadRoot(root.messageId)}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 6,
-                        border: "1px solid #f1f1f1",
-                        borderRadius: 6,
-                        padding: "10px",
-                        background: "#fff",
-                        cursor: "pointer",
-                      }}
+                      className="trainer-confusion-thread"
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "baseline",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "0.85rem",
-                            fontWeight: 500,
-                            color: "#333",
-                          }}
-                        >
+                      <div className="trainer-confusion-thread-heading">
+                        <span className="trainer-confusion-thread-title">
                           {root.text ?? root.messageId}
                         </span>
                       </div>
@@ -783,16 +701,7 @@ export default function TrainerView() {
                     </div>
                   ))
                 ) : (
-                  <div
-                    style={{
-                      padding: "10px",
-                      borderRadius: 6,
-                      border: "1px dashed #eee",
-                      background: "#fff",
-                      color: "#555",
-                      fontSize: "0.85rem",
-                    }}
-                  >
+                  <div className="trainer-confusion-empty">
                     No threads currently surfaced
                   </div>
                 )}
@@ -802,18 +711,7 @@ export default function TrainerView() {
           </div>
         </div>
 
-        <div
-          data-column="center"
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
-            flex: "1 1 0",
-            minHeight: 0,
-            maxHeight: "100vh",
-            overflow: "hidden",
-          }}
-        >
+        <div data-column="center" className="trainer-center-column">
           {/* ===== Pulse ===== */}
           <section>
             {/* CENTER COLUMN pulse timeline (authoritative) */}
@@ -863,41 +761,23 @@ export default function TrainerView() {
               participantsCount={canonicalParticipantCount}
             />
             {connectionStatus !== "connected" && (
-              <div
-                className="pulse-timeline-placeholder"
-                style={{
-                  padding: "16px",
-                  border: "1px dashed #bbb",
-                  borderRadius: 8,
-                  background: "#fff",
-                  color: "#666",
-                  fontStyle: "italic",
-                }}
-              >
+              <div className="pulse-timeline-placeholder">
                 Waiting for live pulse data before drawing the timeline.
               </div>
             )}
             <PulseSummary summaryVoteTotals={summaryVoteTotals} />
           </section>
 
-          <section
-            style={{
-              padding: "12px",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              marginBottom: 12,
-              background: "#fff",
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>Focus</h3>
-            <p style={{ margin: 0, color: "#444" }}>
+          <section className="trainer-panel-card trainer-focus-panel">
+            <h3 className="trainer-section-heading">Focus</h3>
+            <p className="trainer-text-muted">
               {focus ?? "No focus set"}
             </p>
           </section>
 
-            <div className="trainer-message-area">
-              <h3 style={{ marginTop: 0 }}>Messages</h3>
-              <div className="trainer-message-scroller">
+          <div className="trainer-message-area">
+            <h3 className="trainer-section-heading">Messages</h3>
+            <div className="trainer-message-scroller">
                 {threadConfusions.length ? (
                   <div className="message-stream trainer-message-stream">
                     {threadConfusions.map(({ root, confusion }) => (
@@ -915,12 +795,12 @@ export default function TrainerView() {
                           setReplyDrafts={setTrainerReplyDrafts}
                           handleSubmitReply={handleTrainerReplySubmit}
                           voteTotals={voteTotals[root.messageId]}
-                        voteTotalsMap={voteTotals}
-                        confusionByRootId={confusionByRootId}
-                        actorRole="trainer"
-                        showVoteControls={true}
-                        showVoteReadOnly={true}
-                        allowConfusionAnchors={false} // TrainerView observes only; no message-level signaling.
+                          voteTotalsMap={voteTotals}
+                          confusionByRootId={confusionByRootId}
+                          actorRole="trainer"
+                          showVoteControls={true}
+                          showVoteReadOnly={true}
+                          allowConfusionAnchors={false} // TrainerView observes only; no message-level signaling.
                           allowConfusionRow={true}
                           showConfusionRow={confusion.showConfusionRow}
                           confusionScore={confusion.confusionScore}
@@ -930,7 +810,7 @@ export default function TrainerView() {
                     ))}
                   </div>
                 ) : (
-                  <p style={{ margin: 0, color: "#555" }}>No messages yet</p>
+                  <p className="trainer-text-muted">No messages yet</p>
                 )}
 
                 <form className="message-input-bar" onSubmit={handleTrainerSubmit}>
@@ -947,16 +827,10 @@ export default function TrainerView() {
 
         </div>
         {/* ================= RIGHT COLUMN ================= */}
-        <div data-column="right">
-          <section style={{ marginBottom: "1rem" }}>
-            <h3>Focus Controls</h3>
-            <p
-              style={{
-                margin: "0 0 0.5rem",
-                color: "#555",
-                fontSize: "0.85rem",
-              }}
-            >
+        <div data-column="right" className="trainer-right-column">
+          <section className="trainer-focus-controls">
+            <h3 className="trainer-section-heading">Focus Controls</h3>
+            <p className="trainer-text-muted trainer-focus-help">
               Current focus is visible above the messages panel.
             </p>
 
@@ -965,43 +839,34 @@ export default function TrainerView() {
               placeholder=""
               value={focusInput}
               onChange={(event) => setFocusInput(event.target.value)}
-              style={{ width: "100%", marginBottom: "0.5rem" }}
+              className="trainer-focus-input"
             />
 
-            <button onClick={handleSetFocus}>Set Focus</button>
-            <button onClick={handleClearFocus} style={{ marginLeft: "0.5rem" }}>
-              Clear Focus
-            </button>
+            <div className="trainer-focus-actions">
+              <button className="trainer-focus-button" onClick={handleSetFocus}>
+                Set Focus
+              </button>
+              <button
+                className="trainer-focus-button trainer-focus-button--secondary"
+                onClick={handleClearFocus}
+              >
+                Clear Focus
+              </button>
+            </div>
           </section>
 
           {/* Session Metadata */}
-          <section
-            style={{
-              padding: "12px",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              marginBottom: 12,
-              background: "#fff",
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>Session Info</h3>
-            <p style={{ fontSize: "0.85rem", color: "#666", margin: 0 }}>
+          <section className="trainer-panel-card">
+            <h3 className="trainer-section-heading">Session Info</h3>
+            <p className="trainer-text-muted trainer-panel-note">
               Session metadata will appear here.
             </p>
           </section>
 
           {/* Insights Placeholder (read-only) */}
-          <section
-            style={{
-              padding: "12px",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              marginBottom: 12,
-              background: "#fff",
-            }}
-          >
-            <h3 style={{ marginTop: 0 }}>Insights</h3>
-            <p style={{ fontSize: "0.85rem", color: "#666", margin: 0 }}>
+          <section className="trainer-panel-card">
+            <h3 className="trainer-section-heading">Insights</h3>
+            <p className="trainer-text-muted trainer-panel-note">
               Insights will appear here after the session.
             </p>
           </section>
@@ -1027,49 +892,11 @@ function PulseSummary({ summaryVoteTotals }) {
   ];
 
   return (
-    <div
-      className="pulse-distribution"
-      style={{
-        marginTop: 12,
-        marginBottom: 8,
-        display: "grid",
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        gap: 12,
-        opacity: 0.9,
-        fontFamily: "system-ui, sans-serif",
-      }}
-    >
+    <div className="pulse-distribution">
       {columns.map(({ label, value }) => (
-        <div
-          key={label}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 6,
-            color: "#555",
-          }}
-        >
-          <span
-            className="label"
-            style={{
-              fontSize: "0.7rem",
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-            }}
-          >
-            {label}
-          </span>
-          <span
-            className="value"
-            style={{
-              fontSize: "1.4rem",
-              fontWeight: 600,
-              color: "#222",
-            }}
-          >
-            {value}
-          </span>
+        <div key={label} className="pulse-distribution-column">
+          <span className="label pulse-distribution-label">{label}</span>
+          <span className="value pulse-distribution-value">{value}</span>
         </div>
       ))}
     </div>

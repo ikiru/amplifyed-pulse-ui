@@ -73,38 +73,63 @@
   position: relative;
 }
 
-.thread-confusion-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-
-  margin-top: 2px;     /* was too large */
-  font-size: 0.75rem;
-  color: #666;
+.thread-card-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 2px;
   padding-left: 2px;
   padding-right: 2px;
-  padding-top: 0;     /* remove footer feel */
-  line-height: 1.2;   /* tighten vertical rhythm */
+}
 
-  flex-wrap: nowrap;
+.thread-card-left,
+.thread-card-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thread-card-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.thread-card-center .thread-confusion-row {
+  width: 100%;
+}
+
+.thread-confusion-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.75rem;
+  color: #666;
+  line-height: 1.2;
+}
+
+.thread-confusion-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.thread-confusion-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
 }
 
 .thread-message > .thread-confusion-row {
   border-top: none;   /* ensure no visual separation */
-}
-
-.thread-confusion-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.thread-confusion-left .confusion-label {
-  font-weight: 500;
-  opacity: 0.8;
 }
 
 .thread-confusion-right {
@@ -131,6 +156,40 @@
 .thread-resolution-label,
 .thread-resolution-select {
   font-weight: 500;
+}
+
+.thread-confusion-indicator {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+}
+
+.thread-off-focus-row {
+  justify-content: center;
+  width: 100%;
+}
+
+.thread-resolution-attribution {
+  font-size: 0.65rem;
+  color: #666;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+.thread-off-focus-label {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(179, 84, 0, 0.5);
+  color: #b35400;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .pulse-step-line {
@@ -394,6 +453,15 @@
   margin-top: 6px;
 }
 
+.pulse-timeline-placeholder {
+  padding: 16px;
+  border: 1px dashed #bbb;
+  border-radius: 8px;
+  background: #fff;
+  color: #666;
+  font-style: italic;
+}
+
 .pulse-timeline-empty {
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -446,35 +514,33 @@
 }
 
 .pulse-distribution {
+  margin-top: 12px;
+  margin-bottom: 8px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin: 0 auto;
-  margin-top: 12px;
-  margin-bottom: 6px;
-  color: #4a4a4a;
+  opacity: 0.9;
+  font-family: system-ui, sans-serif;
 }
 
-.pulse-distribution > div {
+.pulse-distribution-column {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
+  gap: 6px;
+  color: #555;
 }
 
-.pulse-distribution .label {
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
+.pulse-distribution-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  font-weight: 500;
-  opacity: 0.7;
 }
 
-.pulse-distribution .value {
-  font-size: 1.2rem;
-  font-weight: 500;
-  color: #1f1f1f;
+.pulse-distribution-value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #222;
 }
 
 .confusion-meter {
@@ -540,4 +606,244 @@
   border-top: 1px solid #e5e5e5;
   padding-top: 8px;
   margin-top: 0;
+}
+
+.trainer-view-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.trainer-view-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 12px;
+  padding: 12px;
+  min-height: 0;
+}
+
+.trainer-left-column,
+.trainer-center-column,
+.trainer-right-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.trainer-left-panel {
+  padding: 16px;
+  font-family: system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trainer-session-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.trainer-session-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trainer-session-title {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.trainer-session-status,
+.trainer-session-meta {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.trainer-session-toggle {
+  padding: 6px 10px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  font-weight: 600;
+}
+
+.trainer-insights-panel {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  background: #fff;
+}
+
+.trainer-section-heading {
+  margin-top: 0;
+}
+
+.trainer-insights-category {
+  margin-bottom: 16px;
+}
+
+.trainer-insights-category-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.trainer-insights-list {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.trainer-insight-item {
+  margin-bottom: 6px;
+}
+
+.trainer-insight-confidence {
+  color: #777;
+  font-size: 0.8rem;
+}
+
+.trainer-text-muted {
+  margin: 0;
+  color: #444;
+  font-size: 0.85rem;
+}
+
+.trainer-confusion-panel {
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  margin-top: 20px;
+  background: #fbfbfb;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trainer-confusion-heading {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #333;
+}
+
+.trainer-confusion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trainer-confusion-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid #f1f1f1;
+  border-radius: 6px;
+  padding: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.trainer-confusion-thread-heading {
+  display: flex;
+  align-items: baseline;
+}
+
+.trainer-confusion-thread-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.trainer-confusion-empty {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px dashed #eee;
+  background: #fff;
+  color: #555;
+  font-size: 0.85rem;
+}
+
+.trainer-center-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.trainer-panel-card {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  background: #fff;
+}
+
+.trainer-focus-panel {
+  /* reserved for future variants */
+}
+
+.trainer-focus-controls {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trainer-focus-help {
+  color: #555;
+}
+
+.trainer-focus-input {
+  width: 100%;
+  margin-bottom: 0.5rem;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.trainer-focus-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.trainer-focus-button {
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: none;
+  background: #0066ff;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trainer-focus-button--secondary {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #dadada;
+}
+
+.trainer-right-column {
+  gap: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.trainer-panel-note {
+  color: #666;
 }
