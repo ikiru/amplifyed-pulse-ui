@@ -96,6 +96,7 @@ function ThreadItemContent({
   confusionScore,
   resolutionType,
   showVoteReadOnly = false,
+  resolutionBy,
 }) {
   const viewerRole = actorRole ?? role ?? "audience";
   const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
@@ -107,6 +108,30 @@ function ThreadItemContent({
   if (isTrainerMessage) {
     threadMessageClassNames.push("trainer-message");
   }
+  const normalizedLabel =
+    typeof node?.label === "string" ? node.label.toLowerCase() : "";
+  const normalizedLabelDisplay =
+    typeof node?.labelDisplay === "string"
+      ? node.labelDisplay.toLowerCase()
+      : "";
+  const isOffFocus =
+    normalizedLabel === "off_focus" ||
+    normalizedLabel === "off focus" ||
+    normalizedLabelDisplay === "off focus";
+  const resolutionActorRaw =
+    typeof resolutionBy === "string"
+      ? resolutionBy
+      : typeof node?.actorRole === "string"
+        ? node.actorRole
+        : null;
+  const resolutionActor =
+    typeof resolutionActorRaw === "string"
+      ? resolutionActorRaw.toLowerCase()
+      : null;
+  const resolutionAttribution =
+    resolutionType && resolutionActor
+      ? `by ${resolutionActor}`
+      : null;
   const handleReplyToggle = () => {
     if (!setReplyToId) return;
     setReplyToId(isReplyOpen ? null : node.messageId);
@@ -179,18 +204,6 @@ function ThreadItemContent({
             )}
           </div>
 
-          {canToggleCollapse && (
-            <button
-              type="button"
-              className="thread-collapse-toggle"
-              onClick={handleCollapseToggle}
-              aria-expanded={!isCollapsed}
-              aria-label={isCollapsed ? "Show replies" : "Hide replies"}
-            >
-              {isCollapsed ? "▶" : "▼"}
-            </button>
-          )}
-
           {showTrainerVoteTallies && trainerUpCount > 0 && (
             <span className="trainer-vote-ledger trainer-vote-up">
               ▲ {trainerUpCount}
@@ -230,31 +243,74 @@ function ThreadItemContent({
           )}
         </div>
 
-        {showConfusionRow && allowConfusionRow && (
-          <div className="thread-confusion-row">
-            <div className="thread-confusion-left">
-              <span className="confusion-label">Confusion:</span>
-              <ConfusionMeter confusionScore={confusionScore} />
-            </div>
-
-            <div className="thread-confusion-right">
-              {resolutionType ? (
-                <span className="thread-resolution-label">
-                  Resolution: {RESOLUTION_DROPDOWN_LABELS?.[resolutionType] ?? resolutionType}
-                </span>
-              ) : (
-                <select className="thread-resolution-select" defaultValue="">
-                  <option value="" disabled hidden>
-                    Resolution ▾
-                  </option>
-                  <option value="clarified">Clarified</option>
-                  <option value="example">Example</option>
-                  <option value="reframed">Reframed</option>
-                </select>
-              )}
-            </div>
+        <div className="thread-card-row">
+          <div className="thread-card-left">
+            {canToggleCollapse && (
+              <button
+                type="button"
+                className="thread-collapse-toggle"
+                onClick={handleCollapseToggle}
+                aria-expanded={!isCollapsed}
+                aria-label={isCollapsed ? "Show replies" : "Hide replies"}
+              >
+                {isCollapsed ? "▶" : "▼"}
+              </button>
+            )}
           </div>
-        )}
+          <div className="thread-card-center">
+            {showConfusionRow && allowConfusionRow && !isOffFocus && (
+              <div className="thread-confusion-row">
+                <div className="thread-confusion-center">
+                  <div className="thread-confusion-line">
+                    <span className="thread-confusion-indicator">[ Confused ]</span>
+                    <div className="thread-confusion-right">
+                      {resolutionType ? (
+                        <span className="thread-resolution-label">
+                          Resolution: {RESOLUTION_DROPDOWN_LABELS?.[resolutionType] ?? resolutionType}
+                        </span>
+                      ) : (
+                        <select className="thread-resolution-select" defaultValue="">
+                          <option value="" disabled hidden>
+                            Resolution ▾
+                          </option>
+                          <option value="clarified">Clarified</option>
+                          <option value="example">Example</option>
+                          <option value="reframed">Reframed</option>
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                  {resolutionAttribution && (
+                    <div className="thread-resolution-attribution">
+                      {resolutionAttribution}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {isOffFocus && allowConfusionRow && (
+              <div className="thread-confusion-row thread-off-focus-row">
+                <span className="thread-off-focus-label">
+                  [ {node.labelDisplay ?? "Off Focus"} ]
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="thread-card-right">
+            {showReplyControls && setReplyToId && (
+              <div className="thread-actions">
+                <button
+                  type="button"
+                  className="thread-reply-button"
+                  onClick={handleReplyToggle}
+                >
+                  Reply
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
 
         {showVoteTotals && voteTotals && viewerRole === "audience" && (
           <div className="thread-vote-totals">
@@ -263,17 +319,6 @@ function ThreadItemContent({
           </div>
         )}
 
-        {showReplyControls && setReplyToId && (
-          <div className="thread-actions">
-            <button
-              type="button"
-              className="thread-reply-button"
-              onClick={handleReplyToggle}
-            >
-              Reply
-            </button>
-          </div>
-        )}
       </div>
 
       {showReplyControls && isReplyOpen && (
