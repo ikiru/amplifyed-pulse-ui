@@ -95,6 +95,7 @@ function ThreadItemContent({
   allowConfusionRow = true,
   confusionScore,
   resolutionType,
+  showVoteReadOnly = false,
 }) {
   const viewerRole = actorRole ?? role ?? "audience";
   const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
@@ -119,7 +120,16 @@ function ThreadItemContent({
   };
 
   const replyDraftValue = replyDrafts?.[node.messageId] ?? "";
-  const canVote = Boolean(emitVoteIntent) && viewerRole === "audience";
+  const hasVoteHandler = typeof emitVoteIntent === "function";
+  const canVote = hasVoteHandler && viewerRole === "audience";
+  const shouldShowVotes =
+    showVoteControls && (viewerRole === "audience" || showVoteReadOnly);
+  const totalVoteCount =
+    (voteTotals?.up ?? 0) + (voteTotals?.down ?? 0);
+  const showTrainerVoteTallies =
+    viewerRole === "trainer" && voteTotals && totalVoteCount > 0;
+  const trainerDownCount = voteTotals?.down ?? 0;
+  const trainerUpCount = voteTotals?.up ?? 0;
 
   const handleVoteClick = (voteType) => {
     if (!emitVoteIntent) return;
@@ -138,7 +148,7 @@ function ThreadItemContent({
           <div className="thread-message-trainer-badge">Trainer</div>
         )}
         <div className="message-row">
-          {showVoteControls && viewerRole === "audience" && (
+          {shouldShowVotes && viewerRole === "audience" && (
             <button
               type="button"
               className={`vote-btn down ${
@@ -151,6 +161,11 @@ function ThreadItemContent({
             >
               ▼
             </button>
+          )}
+          {showTrainerVoteTallies && trainerDownCount > 0 && (
+            <span className="trainer-vote-ledger trainer-vote-down">
+              ▼ {trainerDownCount}
+            </span>
           )}
 
           <div className="message-content">
@@ -176,7 +191,12 @@ function ThreadItemContent({
             </button>
           )}
 
-          {showVoteControls && viewerRole === "audience" && (
+          {showTrainerVoteTallies && trainerUpCount > 0 && (
+            <span className="trainer-vote-ledger trainer-vote-up">
+              ▲ {trainerUpCount}
+            </span>
+          )}
+          {shouldShowVotes && viewerRole === "audience" && (
             <button
               type="button"
               className={`vote-btn up ${
@@ -236,7 +256,7 @@ function ThreadItemContent({
           </div>
         )}
 
-        {showVoteTotals && voteTotals && (
+        {showVoteTotals && voteTotals && viewerRole === "audience" && (
           <div className="thread-vote-totals">
             <span>▲ {voteTotals.up ?? 0}</span>
             <span>▼ {voteTotals.down ?? 0}</span>
