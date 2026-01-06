@@ -19,29 +19,18 @@ import {
 import "./AudienceInput.css";
 import "./TrainerView.css";
 
-const LINEAGE_PALETTE = [
-  "#94a3b8",
-  "#7c8da5",
-  "#6c7f98",
-  "#59708c",
-  "#506b7e",
-  "#3f556a",
+const CHROMATIC_PALETTE = [
+  "#ef4444", // red
+  "#f97316", // orange
+  "#f59e0b", // amber
+  "#10b981", // emerald
+  "#06b6d4", // cyan
+  "#3b82f6", // blue
+  "#8b5cf6", // violet
+  "#ec4899", // pink
 ];
 
 const TRACE_ENABLED = false;
-
-function getLineageHue(threadKey) {
-  if (!threadKey) {
-    return LINEAGE_PALETTE[0];
-  }
-
-  let hash = 0;
-  for (let i = 0; i < threadKey.length; i += 1) {
-    hash = (hash * 31 + threadKey.charCodeAt(i)) | 0;
-  }
-
-  return LINEAGE_PALETTE[Math.abs(hash) % LINEAGE_PALETTE.length];
-}
 
 function TrainerThreadRow({
   root,
@@ -54,6 +43,7 @@ function TrainerThreadRow({
   trainerReplyDrafts,
   setTrainerReplyDrafts,
   handleTrainerReplySubmit,
+  lineageColor,
 }) {
   const rowRef = useRef(null);
   const messageRefs = useRef(new Map());
@@ -62,8 +52,9 @@ function TrainerThreadRow({
   const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 });
   const [messageRegistryVersion, setMessageRegistryVersion] = useState(0);
 
-  const lineageColor = getLineageHue(root.messageId);
-  const themeStyle = { "--lineage-color": lineageColor };
+  const themeStyle = lineageColor
+    ? { "--lineage-color": lineageColor }
+    : undefined;
 
   const updatePath = useCallback(() => {
     const row = rowRef.current;
@@ -365,6 +356,36 @@ export default function TrainerView() {
 
     return map;
   }, [confusionAdvisory]);
+
+  const threadColorRegistryRef = useRef({
+    map: new Map(),
+    counts: new Map(CHROMATIC_PALETTE.map((color) => [color, 0])),
+  });
+
+  const getThreadColor = useCallback((threadId) => {
+    if (!threadId) {
+      return null;
+    }
+    const registry = threadColorRegistryRef.current;
+    if (registry.map.has(threadId)) {
+      return registry.map.get(threadId);
+    }
+    const counts = registry.counts;
+    const unused = CHROMATIC_PALETTE.find(
+      (color) => (counts.get(color) ?? 0) === 0
+    );
+    const chosen =
+      unused ??
+      CHROMATIC_PALETTE.reduce((least, candidate) => {
+        const candidateCount = counts.get(candidate) ?? Infinity;
+        const leastCount = counts.get(least) ?? Infinity;
+        return candidateCount < leastCount ? candidate : least;
+      }, CHROMATIC_PALETTE[0]);
+
+    registry.map.set(threadId, chosen);
+    counts.set(chosen, (counts.get(chosen) ?? 0) + 1);
+    return chosen;
+  }, []);
 
   // PulseTimeline now relies directly on the `pulse:update` payload so the visual stays tied to the canonical stream without cached selectors.
   // Source: canonical `livePulse` updates from the server (pulse:update) drive this value via `canonicalParticipantCount`, counting only `actorRole === "audience"` sockets.
@@ -993,6 +1014,7 @@ export default function TrainerView() {
                       trainerReplyDrafts={trainerReplyDrafts}
                       setTrainerReplyDrafts={setTrainerReplyDrafts}
                       handleTrainerReplySubmit={handleTrainerReplySubmit}
+                      lineageColor={getThreadColor(root.messageId)}
                     />
                   ))}
                 </div>
