@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
 import AudienceDriftMeter, {
   createNeutralAudienceDriftProjection,
@@ -12,7 +19,200 @@ import {
 import "./AudienceInput.css";
 import "./TrainerView.css";
 
+const LINEAGE_PALETTE = [
+  "#94a3b8",
+  "#7c8da5",
+  "#6c7f98",
+  "#59708c",
+  "#506b7e",
+  "#3f556a",
+];
+
 const TRACE_ENABLED = false;
+
+function getLineageHue(threadKey) {
+  if (!threadKey) {
+    return LINEAGE_PALETTE[0];
+  }
+
+  let hash = 0;
+  for (let i = 0; i < threadKey.length; i += 1) {
+    hash = (hash * 31 + threadKey.charCodeAt(i)) | 0;
+  }
+
+  return LINEAGE_PALETTE[Math.abs(hash) % LINEAGE_PALETTE.length];
+}
+
+function TrainerThreadRow({
+  root,
+  confusion,
+  confusionByRootId,
+  voteTotals,
+  voteTotalsMap,
+  trainerReplyToId,
+  setTrainerReplyToId,
+  trainerReplyDrafts,
+  setTrainerReplyDrafts,
+  handleTrainerReplySubmit,
+}) {
+  const rowRef = useRef(null);
+  const messageRefs = useRef(new Map());
+  const [rowNode, setRowNode] = useState(null);
+  const [connectorPaths, setConnectorPaths] = useState([]);
+  const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 });
+  const [messageRegistryVersion, setMessageRegistryVersion] = useState(0);
+
+  const lineageColor = getLineageHue(root.messageId);
+  const themeStyle = { "--lineage-color": lineageColor };
+
+  const updatePath = useCallback(() => {
+    const row = rowRef.current;
+    if (!row) {
+      setOverlaySize({ width: 0, height: 0 });
+      setConnectorPaths([]);
+      return;
+    }
+    const rowRect = row.getBoundingClientRect();
+    setOverlaySize({ width: rowRect.width, height: rowRect.height });
+
+    const newPaths = [];
+    messageRefs.current.forEach(({ node, parentId }, messageId) => {
+      if (!node || !parentId) {
+        return;
+      }
+      const parentEntry = messageRefs.current.get(parentId);
+      if (!parentEntry?.node) {
+        return;
+      }
+      const parentRect = parentEntry.node.getBoundingClientRect();
+      const parentX = parentRect.left - rowRect.left;
+      const parentY = parentRect.bottom - rowRect.top;
+      const replyRect = node.getBoundingClientRect();
+      const childX = replyRect.left - rowRect.left;
+      const childY =
+        replyRect.top + replyRect.height / 2 - rowRect.top;
+      newPaths.push({
+        key: messageId,
+        d: `M ${parentX} ${parentY} L ${parentX} ${childY} L ${childX} ${childY}`,
+      });
+    });
+
+    setConnectorPaths(newPaths);
+  }, []);
+
+  const attachRowRef = useCallback((node) => {
+    rowRef.current = node;
+    setRowNode(node);
+  }, []);
+
+  const registerMessageRef = useCallback(
+    (messageId, parentMessageId, node) => {
+      if (node) {
+        messageRefs.current.set(messageId, { node, parentId: parentMessageId });
+      } else {
+        messageRefs.current.delete(messageId);
+      }
+      setMessageRegistryVersion((prev) => prev + 1);
+      updatePath();
+    },
+    [updatePath]
+  );
+
+  useLayoutEffect(() => {
+    updatePath();
+    if (!rowNode) {
+      return undefined;
+    }
+    const handleResize = () => updatePath();
+    window.addEventListener("resize", handleResize);
+    let observer;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(handleResize);
+      const nodesToObserve = new Set([rowNode]);
+      messageRefs.current.forEach(({ node }) => {
+        if (node) nodesToObserve.add(node);
+      });
+      nodesToObserve.forEach((node) => {
+        if (node) observer.observe(node);
+      });
+    }
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (observer) {
+        observer.disconnect();
+      }
+    };
+  }, [rowNode, messageRegistryVersion, updatePath]);
+
+  const overlayVisible =
+    connectorPaths.length > 0 &&
+    overlaySize.width > 0 &&
+    overlaySize.height > 0;
+
+  return (
+    <div
+      className="trainer-message-stream-row"
+      ref={attachRowRef}
+      style={themeStyle}
+    >
+      <div className="thread-connector-layer" aria-hidden="true">
+        {overlayVisible && (
+          <svg
+            width={overlaySize.width}
+            height={overlaySize.height}
+            viewBox={`0 0 ${overlaySize.width} ${overlaySize.height}`}
+            preserveAspectRatio="none"
+          >
+        {connectorPaths.map(({ key, d }) => (
+          <path
+            key={`connector-${key}`}
+            d={d}
+            fill="none"
+            stroke="var(--lineage-color, rgba(0, 0, 0, 0.15))"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        ))}
+      </svg>
+    )}
+  </div>
+      <div className="trainer-message-lineage-gutter">
+        <div
+          className="trainer-message-lineage-bar"
+          aria-hidden="true"
+          role="presentation"
+        />
+      </div>
+      <div
+        id={`thread-root-${root.messageId}`}
+        className="trainer-thread-wrapper"
+      >
+        <ThreadItem
+          node={root}
+          depth={0}
+          replyToId={trainerReplyToId}
+          setReplyToId={setTrainerReplyToId}
+          replyDrafts={trainerReplyDrafts}
+          setReplyDrafts={setTrainerReplyDrafts}
+          handleSubmitReply={handleTrainerReplySubmit}
+          voteTotals={voteTotals}
+          voteTotalsMap={voteTotalsMap}
+          confusionByRootId={confusionByRootId}
+          actorRole="trainer"
+          showVoteControls={true}
+          showVoteReadOnly={true}
+          allowConfusionAnchors={false}
+          allowConfusionRow={true}
+          showConfusionRow={confusion.showConfusionRow}
+          confusionScore={confusion.confusionScore}
+          resolutionType={confusion.resolutionType}
+          registerMessageRef={registerMessageRef}
+          lineageColor={lineageColor}
+        />
+      </div>
+    </div>
+  );
+}
 
 const assert = (condition, message) => {
   if (!condition) {
@@ -779,51 +979,38 @@ export default function TrainerView() {
             <h3 className="trainer-section-heading">Messages</h3>
             <div className="trainer-message-scroller">
                 {threadConfusions.length ? (
-                  <div className="message-stream trainer-message-stream">
-                    {threadConfusions.map(({ root, confusion }) => (
-                      <div
-                        key={root.messageId}
-                        id={`thread-root-${root.messageId}`}
-                        className="trainer-thread-wrapper"
-                      >
-                        <ThreadItem
-                          node={root}
-                          depth={0}
-                          replyToId={trainerReplyToId}
-                          setReplyToId={setTrainerReplyToId}
-                          replyDrafts={trainerReplyDrafts}
-                          setReplyDrafts={setTrainerReplyDrafts}
-                          handleSubmitReply={handleTrainerReplySubmit}
-                          voteTotals={voteTotals[root.messageId]}
-                          voteTotalsMap={voteTotals}
-                          confusionByRootId={confusionByRootId}
-                          actorRole="trainer"
-                          showVoteControls={true}
-                          showVoteReadOnly={true}
-                          allowConfusionAnchors={false} // TrainerView observes only; no message-level signaling.
-                          allowConfusionRow={true}
-                          showConfusionRow={confusion.showConfusionRow}
-                          confusionScore={confusion.confusionScore}
-                          resolutionType={confusion.resolutionType}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="trainer-text-muted">No messages yet</p>
-                )}
+                <div className="message-stream trainer-message-stream">
+                  {threadConfusions.map(({ root, confusion }) => (
+                    <TrainerThreadRow
+                      key={root.messageId}
+                      root={root}
+                      confusion={confusion}
+                      confusionByRootId={confusionByRootId}
+                      voteTotals={voteTotals[root.messageId]}
+                      voteTotalsMap={voteTotals}
+                      trainerReplyToId={trainerReplyToId}
+                      setTrainerReplyToId={setTrainerReplyToId}
+                      trainerReplyDrafts={trainerReplyDrafts}
+                      setTrainerReplyDrafts={setTrainerReplyDrafts}
+                      handleTrainerReplySubmit={handleTrainerReplySubmit}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="trainer-text-muted">No messages yet</p>
+              )}
 
-                <form className="message-input-bar" onSubmit={handleTrainerSubmit}>
-                  <input
-                    type="text"
-                    placeholder="Type a message..."
-                    value={trainerInput}
-                    onChange={(event) => setTrainerInput(event.target.value)}
-                  />
-                  <button type="submit">Send</button>
-                </form>
-              </div>
+              <form className="message-input-bar" onSubmit={handleTrainerSubmit}>
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  value={trainerInput}
+                  onChange={(event) => setTrainerInput(event.target.value)}
+                />
+                <button type="submit">Send</button>
+              </form>
             </div>
+          </div>
 
         </div>
         {/* ================= RIGHT COLUMN ================= */}

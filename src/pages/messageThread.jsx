@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./AudienceInput.css";
 export function buildMessageTree(messages) {
   const map = {};
@@ -97,6 +97,8 @@ function ThreadItemContent({
   resolutionType,
   showVoteReadOnly = false,
   resolutionBy,
+  lineageColor,
+  registerMessageRef,
 }) {
   const viewerRole = actorRole ?? role ?? "audience";
   const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
@@ -104,9 +106,18 @@ function ThreadItemContent({
   const canToggleCollapse = isAnchor && typeof onToggleCollapse === "function";
   const repliesVisible = !isAnchor || !isCollapsed;
   const isTrainerMessage = node?.actorRole === "trainer";
+  const isReply = depth > 0;
+  const messageRef = useRef(null);
   const threadMessageClassNames = ["thread-message"];
   if (isTrainerMessage) {
     threadMessageClassNames.push("trainer-message");
+  }
+  if (isReply) {
+    threadMessageClassNames.push("thread-message-reply");
+  }
+  const hasReplies = Array.isArray(node?.replies) && node.replies.length > 0;
+  if (hasReplies) {
+    threadMessageClassNames.push("thread-message-has-replies");
   }
   const normalizedLabel =
     typeof node?.label === "string" ? node.label.toLowerCase() : "";
@@ -166,9 +177,27 @@ function ThreadItemContent({
     onToggleCollapse();
   };
 
+  const messageStyle =
+    lineageColor !== undefined
+      ? { "--lineage-color": lineageColor }
+      : undefined;
+
+  useEffect(() => {
+    if (!registerMessageRef) {
+      return undefined;
+    }
+    const parentId = node?.parentMessageId ?? null;
+    registerMessageRef(node.messageId, parentId, messageRef.current);
+    return () => registerMessageRef(node.messageId, parentId, null);
+  }, [registerMessageRef, node.messageId, node.parentMessageId]);
+
   return (
-    <div className="thread-item" data-depth={String(Math.min(depth, 3))}>
-      <div className={threadMessageClassNames.join(" ")}>
+    <div className="thread-item">
+      <div
+        className={threadMessageClassNames.join(" ")}
+        ref={messageRef}
+        style={messageStyle}
+      >
         {isTrainerMessage && (
           <div className="thread-message-trainer-badge">Trainer</div>
         )}
@@ -342,7 +371,7 @@ function ThreadItemContent({
 
       {repliesVisible && node.replies?.length > 0 && (
         <div className="thread-replies">
-          {node.replies.map((child) => (
+          {node.replies.map((child, index) => (
             <ThreadItem
               key={child.messageId}
               node={child}
@@ -365,6 +394,8 @@ function ThreadItemContent({
               onConfusionSignal={onConfusionSignal}
               allowConfusionAnchors={allowConfusionAnchors}
               allowConfusionRow={allowConfusionRow}
+              registerMessageRef={registerMessageRef}
+              lineageColor={lineageColor}
             />
           ))}
         </div>
