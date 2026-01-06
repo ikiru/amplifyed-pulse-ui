@@ -177,17 +177,15 @@
 }
 
 .vote-btn.selected {
-  border-color: #0066ff;
+  border-color: #6b7280;
   color: #fff;
-  background: #0066ff;
+  background: #4b5563;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.45);
 }
 
-.vote-btn.up.selected {
-  background: #0e7e1a;
-}
-
+.vote-btn.up.selected,
 .vote-btn.down.selected {
-  background: #b22222;
+  background: #4b5563;
 }
 
 .message-content {

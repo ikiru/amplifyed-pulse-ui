@@ -1,156 +1,221 @@
-# 📜 Visual Meaning & Anonymity Contract  
-**Threads, Messages, Color, and Visual Gravity**
+# 📜 VISUAL MEANING & ANONYMITY CONTRACT  
+## Thread Lineage, Depth, and Sensemaking
 
 ---
 
-## 0. Purpose of This Contract
+## 0. Purpose
 
-This contract defines how **visual units communicate meaning** in an anonymous, sensemaking-first system.
+This contract defines how **visual structure communicates meaning** in an anonymous, sensemaking-first system.
 
 Its purpose is to ensure that:
-- Ideas, not people, carry visual weight
-- Anonymity is preserved not just technically, but perceptually
-- Visual signals reduce drift without creating social pressure
-- No UI choice accidentally teaches adversarial or performative behavior
+
+- Ideas are perceived as **lines of thought**, not conversational turns
+- Users can understand the **shape and depth of collective thinking** without reading message content
+- Anonymity is preserved perceptually, not just technically
+- Visual cues support orientation without creating competition, evaluation, or social pressure
 
 This contract governs **visual semantics only**.  
-It does **not** prescribe layout, structure, behavior, or implementation.
+It does **not** prescribe layout mechanics, interaction logic, behavior, or implementation.
+
+---
+
+## 0.1 Visual Metaphor (Normative)
+
+The system adopts a **sensemaking / mind-map–inspired metaphor**, rather than a chat or conversational metaphor.
+
+- Threads represent **paths of thought**
+- Replies extend or branch those paths
+- Messages function as **nodes along a path**, not standalone artifacts
+
+The system is not a literal mind map, but it must *feel* like one in how structure and depth are perceived.
 
 ---
 
 ## 1. Unit of Meaning
 
-### 1.1 Primary Unit: The Thread (Idea Lineage)
-- A thread represents a **shared line of thought**
-- Visual emphasis must privilege **idea continuity**, not message frequency
-- Threads are the primary carriers of visual identity
+### 1.1 Primary Unit: The Thread (Path of Thought)
 
-### 1.2 Secondary Unit: The Message
-- Messages are **momentary contributions**
-- Messages do not own persistent visual identity
-- Messages exist in service of the thread, not as independent entities
+- A thread represents a **continuous line of exploration**
+- Threads are the primary carriers of structural meaning
+- A thread’s visual footprint reflects **how far a line of thinking has been explored**, not its correctness, popularity, or importance
+
+Threads must be perceptible **without reading message text**.
 
 ---
 
-## 2. Anonymity Protection Principles
+### 1.2 Secondary Unit: The Message (Node)
 
-### 2.1 No Persistent Identity Signals
-The system must not allow users to:
-- Recognize recurring contributors visually
-- Infer identity through color, position, rhythm, or styling
-- Associate tone, correctness, or dominance with a visual marker
+- Messages are **nodes attached to a thread**
+- Messages do not own persistent visual identity
+- Messages exist in service of the thread’s progression
 
-### 2.2 Pattern Resistance
-Visual design must resist:
-- Hue consistency across sessions
-- Memorable chromatic signatures
-- Stable visual rhythms that imply authorship
+Message-level visuals must not redefine thread structure or depth.
 
-Anonymity is considered broken if **pattern recognition becomes possible**, even without explicit identity markers.
+---
+
+## 2. Structural Lineage Representation
+
+### 2.1 Left-Side Lineage Bar
+
+- Each thread is represented by a **vertical lineage bar** positioned along the left edge
+- The height of the bar corresponds to the **vertical extent of the thread**
+- Bar height communicates **structural depth**, not value or priority
+
+The lineage bar is a pre-attentive orientation cue.
+
+---
+
+### 2.2 Elbow Geometry (Depth Transitions)
+
+- Changes in depth are represented using **elbow-style connectors**
+- Each elbow indicates **derivation from a prior node**
+- Elbows communicate lineage and continuation, not response, challenge, or opposition
+
+Elbows exist to make **structure visible**, not expressive.
 
 ---
 
 ## 3. Color Philosophy
 
-### 3.1 Color Is Idea-Bound, Not Person-Bound
-- Color may only attach to **threads**
-- Color may never attach to individual participants or messages
-- Color represents **idea lineage**, not ownership
+### 3.1 Color Is Idea-Bound
 
-### 3.2 Forking Behavior
-- Forked threads **retain the same base color**
-- Forking indicates *conceptual divergence*, not the creation of a new side
-- Color continuity communicates shared ancestry
-
-No new hues are introduced at fork points.
-
-### 3.3 Color Scope
-- Colors are **session-scoped**
-- No color meaning persists across sessions
-- Color reuse across sessions must be considered semantically empty
+- Color may attach to **thread lineage**
+- Color must not attach to people, authors, or identities
+- Color represents **idea continuity**, not ownership
 
 ---
 
-## 4. Intensity and Hierarchy
+### 3.2 Forking Behavior
 
-### 4.1 Intensity ≠ Importance
-- Changes in intensity may reflect **depth or position**
-- Intensity must never imply correctness, popularity, or authority
+- Forked paths retain the same base hue
+- Forking indicates **conceptual divergence**, not sides or camps
+- No new hues are introduced at forks
 
-### 4.2 Monotonic Intensity Rules
-- Intensity changes must be predictable and monotonic
-- No expressive jumps or emotional signaling through color strength
-- Intensity should be difficult to anthropomorphize
+---
+
+### 3.3 Thread Color Assignment & Lifecycle
+
+- Thread color is assigned once at creation
+- Thread color remains stable for the lifetime of the thread within a session
+- Thread color must not change based on activity, participation, voting, or ordering
+
+Color resets between sessions and carries no meaning beyond structural grouping.
+
+---
+
+### 3.4 Color Presence vs Emphasis
+
+- The presence of color does not itself imply emphasis
+- Emphasis refers to **relative perceptual contrast**, not existence of color
+- Color may remain visible even when a thread is not visually prominent
+
+---
+
+## 4. Depth, Intensity, and Legibility
+
+### 4.1 Depth-Based Intensity
+
+- Intensity variation may reflect **distance from the thread origin**
+- Intensity changes must be monotonic and predictable
+- Intensity must not imply correctness, authority, or importance
+
+---
+
+### 4.2 Anchor Reference
+
+- The thread origin is the perceptual reference point
+- No depth-based treatment may create a focal point stronger than the anchor
+
+Depth communicates structure, not escalation.
+
+---
+
+### 4.3 Text Legibility
+
+- Structural shading must not compromise readability
+- Text color may adapt mechanically to maintain contrast
+- Such adaptation must remain semantically neutral and non-expressive
+
+Legibility adjustments exist solely to preserve readability.
 
 ---
 
 ## 5. Visual Gravity and Scale
 
 ### 5.1 Meaning Over Activity
-- Visual weight must scale with **collective attention**, not message volume
-- High activity alone must not amplify visual prominence
 
-### 5.2 Large Room Constraint (40–60+ Participants)
-- Color must never multiply linearly with participation
-- At any moment, only a small number of threads should carry visual emphasis
-- Visual quieting is mandatory as concurrency increases
+- Visual weight must reflect **structure**, not activity volume
+- High participation alone must not amplify visual prominence
 
-If all threads appear equally “alive,” the system is considered visually overloaded.
+---
+
+### 5.2 Large-Room Constraint
+
+- Structural cues must remain calm under high concurrency
+- The interface must prevent visual overload
+- Only a small number of threads should carry strong contrast at any moment
+
+If all threads appear equally dominant, the system has failed.
 
 ---
 
 ## 6. Off-Topic Treatment
 
-### 6.1 Off-Topic Is De-Emphasis, Not Classification
-- Off-topic content is not wrong or discouraged
-- It is simply **lower relevance to the current inquiry**
+### 6.1 Off-Topic as De-Emphasis
 
-### 6.2 Visual Treatment of Off-Topic
-- Off-topic must use a **muted, neutral tone**
-- It must not introduce a new hue family
-- It must feel closer to absence than presence
+- Off-topic content is not incorrect or discouraged
+- It represents **lower relevance** to the current inquiry
 
-Off-topic visuals must never:
-- Compete with on-topic threads
-- Become memorable
-- Function as a parallel channel
+---
 
-If users remember “the off-topic color,” the design has failed.
+### 6.2 Off-Topic Visual Treatment
+
+- Off-topic visuals must feel closer to absence than presence
+- No new hue families may be introduced
+- Off-topic paths must not compete with primary threads
+
+If users remember the off-topic styling, the design has failed.
 
 ---
 
 ## 7. Prohibited Visual Signals
 
-The following are explicitly disallowed:
-- Color implying sides, camps, or positions
-- Visual cues implying “winning,” “losing,” or dominance
-- Persistent styling that could be reverse-engineered into identity
-- Chromatic signals that carry emotional or moral valence
+The following are disallowed:
+
+- Signals implying winning, losing, dominance, or correctness
+- Visual cues that create sides or factions
+- Persistent styling that enables identity inference
+- Expressive geometry or color that anthropomorphizes ideas
+- Escalation tied to participation, speed, or volume
 
 ---
 
-## 8. Contract Enforcement Rule
+## 8. Enforcement Rule
 
 If a visual decision:
+
 - Encourages comparison between contributors
-- Creates visual competition
-- Makes off-topic feel like a place
+- Creates competition between paths
 - Makes forks feel adversarial
-- Or increases pattern recognition risk
+- Makes depth feel evaluative
+- Enables pattern recognition of individuals
 
 …it violates this contract and must be rejected or reworked.
 
 ---
 
-## 9. Relationship to Component Work
+## 9. Relationship to Components
 
 This contract exists **upstream of components**.
 
-All component-level UX decisions must:
-- Declare which section(s) of this contract they rely on
-- Avoid introducing meaning not defined here
+Component-level decisions must:
+
+- Be justifiable under this contract
+- Avoid introducing new semantic meaning
 - Defer to this contract in cases of ambiguity
 
-If a component decision cannot be justified under this contract, it must pause.
+If a decision cannot be justified here, it must pause.
 
 ---
+
+**End of Contract**
