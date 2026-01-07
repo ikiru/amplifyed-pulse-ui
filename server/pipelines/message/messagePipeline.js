@@ -23,7 +23,11 @@ import { broadcastVoteUpdate } from "./message.vote.broadcast.js";
 import { v4 as uuidv4 } from "uuid";
 import { detectConfusionFromText } from "../../confusion/confusion.phrases.js";
 import { handleVoteIntent as processVoteIntent } from "./message.vote.handle.js";
-import { setAudienceLabelEmitter } from "../audienceDrift/classification.state.js";
+import {
+  setAudienceLabelEmitter,
+  AudienceDriftClassification,
+  getMessageClassification,
+} from "../audienceDrift/classification.state.js";
 import {
   setAudienceDriftEmitter,
   updateDriftForMessage,
@@ -153,7 +157,11 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
           ? effectiveContent
           : effectiveContent?.text ?? null;
 
-    const detected = detectConfusionFromText(audienceText);
+    const classification = getMessageClassification(sessionId, messageId);
+    const isOffFocus =
+      classification === AudienceDriftClassification.OFF_FOCUS;
+    const detected =
+      !isOffFocus && detectConfusionFromText(audienceText);
 
     if (detected) {
       const rootMessageId = resolveRootMessageId(
