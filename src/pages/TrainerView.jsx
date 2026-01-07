@@ -19,20 +19,22 @@ import {
 import "./AudienceInput.css";
 import "./TrainerView.css";
 
-const LINEAGE_PALETTE = [
-  "#94a3b8",
-  "#7c8da5",
-  "#6c7f98",
-  "#59708c",
-  "#506b7e",
-  "#3f556a",
+// §3.1 Color Is Idea-Bound; §3.3 Thread Color Assignment & Lifecycle — use a calibrated palette of
+// clearly separated hues so each root thread retains a stable, idea-bound tone for the lineage visuals.
+const THREAD_COLOR_PALETTE = [
+  "#e63946", // red
+  "#f4d35e", // yellow
+  "#52b788", // green
+  "#48bfe3", // cyan
+  "#4361ee", // blue
+  "#9d4edd", // magenta
 ];
 
 const TRACE_ENABLED = false;
 
 function getLineageHue(threadKey) {
   if (!threadKey) {
-    return LINEAGE_PALETTE[0];
+    return THREAD_COLOR_PALETTE[0];
   }
 
   let hash = 0;
@@ -40,7 +42,7 @@ function getLineageHue(threadKey) {
     hash = (hash * 31 + threadKey.charCodeAt(i)) | 0;
   }
 
-  return LINEAGE_PALETTE[Math.abs(hash) % LINEAGE_PALETTE.length];
+  return THREAD_COLOR_PALETTE[Math.abs(hash) % THREAD_COLOR_PALETTE.length];
 }
 
 function TrainerThreadRow({
@@ -62,8 +64,8 @@ function TrainerThreadRow({
   const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 });
   const [messageRegistryVersion, setMessageRegistryVersion] = useState(0);
 
-  const lineageColor = getLineageHue(root.messageId);
-  const themeStyle = { "--lineage-color": lineageColor };
+  const threadColor = getLineageHue(root.messageId);
+  const themeStyle = { "--thread-color": threadColor };
 
   const updatePath = useCallback(() => {
     const row = rowRef.current;
@@ -163,19 +165,19 @@ function TrainerThreadRow({
             viewBox={`0 0 ${overlaySize.width} ${overlaySize.height}`}
             preserveAspectRatio="none"
           >
-        {connectorPaths.map(({ key, d }) => (
-          <path
-            key={`connector-${key}`}
-            d={d}
-            fill="none"
-            stroke="var(--lineage-color, rgba(0, 0, 0, 0.15))"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        ))}
-      </svg>
-    )}
-  </div>
+            {connectorPaths.map(({ key, d }) => (
+              <path
+                key={`connector-${key}`}
+                d={d}
+                fill="none"
+                stroke="var(--thread-color, #e63946)"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            ))}
+          </svg>
+        )}
+      </div>
       <div className="trainer-message-lineage-gutter">
         <div
           className="trainer-message-lineage-bar"
@@ -207,7 +209,6 @@ function TrainerThreadRow({
           confusionScore={confusion.confusionScore}
           resolutionType={confusion.resolutionType}
           registerMessageRef={registerMessageRef}
-          lineageColor={lineageColor}
         />
       </div>
     </div>

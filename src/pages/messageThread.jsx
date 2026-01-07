@@ -97,7 +97,6 @@ function ThreadItemContent({
   resolutionType,
   showVoteReadOnly = false,
   resolutionBy,
-  lineageColor,
   registerMessageRef,
 }) {
   const viewerRole = actorRole ?? role ?? "audience";
@@ -177,11 +176,6 @@ function ThreadItemContent({
     onToggleCollapse();
   };
 
-  const messageStyle =
-    lineageColor !== undefined
-      ? { "--lineage-color": lineageColor }
-      : undefined;
-
   useEffect(() => {
     if (!registerMessageRef) {
       return undefined;
@@ -196,7 +190,6 @@ function ThreadItemContent({
       <div
         className={threadMessageClassNames.join(" ")}
         ref={messageRef}
-        style={messageStyle}
       >
         {isTrainerMessage && (
           <div className="thread-message-trainer-badge">Trainer</div>
@@ -395,7 +388,6 @@ function ThreadItemContent({
               allowConfusionAnchors={allowConfusionAnchors}
               allowConfusionRow={allowConfusionRow}
               registerMessageRef={registerMessageRef}
-              lineageColor={lineageColor}
             />
           ))}
         </div>

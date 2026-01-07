@@ -15,6 +15,7 @@
   width: 100%;
 }
 
+/* §2.1 Left-Side Lineage Bar; §2.2 Elbow Geometry (Depth Transitions) — these gutters and connectors reuse the thread hue. */
 .thread-connector-layer {
   position: absolute;
   inset: 0;
@@ -28,7 +29,8 @@
 }
 
 .thread-connector-layer svg path {
-  stroke: var(--lineage-color, rgba(0, 0, 0, 0.15));
+  /* §2.2 Elbow Geometry (Depth Transitions) — elbows share the thread hue to signal derivation. */
+  stroke: var(--thread-color, #e63946);
   stroke-width: 2;
   stroke-linecap: round;
 }
@@ -650,7 +652,8 @@
   left: 50%;
   transform: translateX(-50%);
   width: 3px;
-  background: var(--lineage-color, rgba(0, 0, 0, 0.15));
+  /* §2.1 Left-Side Lineage Bar — keep the vertical cue in the thread hue. */
+  background: var(--thread-color, #e63946);
   border-radius: 1px;
   opacity: 0.7;
   pointer-events: none;
