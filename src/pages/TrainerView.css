@@ -662,8 +662,10 @@
   top: 0;
   bottom: 0;
   left: 50%;
-  transform: translateX(-50%);
-  width: 3px;
+  /* Visual-only spacing tweak per §2.1 / §2.2 so the lineage stroke clears the elbow start without altering structure. */
+  transform: translateX(calc(-50% - 4px));
+  width: 4px;
+  /* Lineage thickness bump (visual-only) to assert the thread spine without altering layout. */
   /* §2.1 Left-Side Lineage Bar — keep the vertical cue in the thread hue. */
   background: var(--thread-color, #e63946);
   border-radius: 1px;
