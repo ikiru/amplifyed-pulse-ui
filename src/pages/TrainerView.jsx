@@ -32,17 +32,33 @@ const THREAD_COLOR_PALETTE = [
 
 const TRACE_ENABLED = false;
 
-function getLineageHue(threadKey) {
-  if (!threadKey) {
-    return THREAD_COLOR_PALETTE[0];
+function assignThreadColors(roots = []) {
+  const assignments = new Map();
+  const paletteLength = THREAD_COLOR_PALETTE.length;
+  if (paletteLength === 0) {
+    return assignments;
   }
 
-  let hash = 0;
-  for (let i = 0; i < threadKey.length; i += 1) {
-    hash = (hash * 31 + threadKey.charCodeAt(i)) | 0;
-  }
+  let previousColor = null;
+  let paletteIndex = 0;
 
-  return THREAD_COLOR_PALETTE[Math.abs(hash) % THREAD_COLOR_PALETTE.length];
+  roots.forEach((root) => {
+    if (!root || typeof root.messageId !== "string") {
+      return;
+    }
+    let candidate = THREAD_COLOR_PALETTE[paletteIndex];
+    // Avoid assigning the same hue as the immediately preceding root to keep adjacent threads visually separable.
+    if (candidate === previousColor) {
+      paletteIndex = (paletteIndex + 1) % paletteLength;
+      candidate = THREAD_COLOR_PALETTE[paletteIndex];
+    }
+    assignments.set(root.messageId, candidate);
+    previousColor = candidate;
+    paletteIndex = (paletteIndex + 1) % paletteLength;
+    // Palette reuse is tolerated after a different hue appears so we keep the set concise yet consistent.
+  });
+
+  return assignments;
 }
 
 function TrainerThreadRow({
@@ -56,6 +72,7 @@ function TrainerThreadRow({
   trainerReplyDrafts,
   setTrainerReplyDrafts,
   handleTrainerReplySubmit,
+  threadColor,
 }) {
   const rowRef = useRef(null);
   const messageRefs = useRef(new Map());
@@ -64,8 +81,11 @@ function TrainerThreadRow({
   const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 });
   const [messageRegistryVersion, setMessageRegistryVersion] = useState(0);
 
-  const threadColor = getLineageHue(root.messageId);
-  const themeStyle = { "--thread-color": threadColor };
+  const resolvedThreadColor =
+    typeof threadColor === "string"
+      ? threadColor
+      : THREAD_COLOR_PALETTE[0];
+  const themeStyle = { "--thread-color": resolvedThreadColor };
 
   const updatePath = useCallback(() => {
     const row = rowRef.current;
@@ -788,9 +808,11 @@ export default function TrainerView() {
   };
 
   const messageRoots = buildMessageTree(messages);
+  const rootColorAssignments = assignThreadColors(messageRoots);
   const threadConfusions = messageRoots.map((root) => ({
     root,
     confusion: summarizeThreadConfusion(root, confusionByRootId),
+    threadColor: rootColorAssignments.get(root.messageId),
   }));
   const confusionThreads = threadConfusions.filter(
     ({ confusion }) => confusion.showConfusionRow
@@ -981,10 +1003,11 @@ export default function TrainerView() {
             <div className="trainer-message-scroller">
                 {threadConfusions.length ? (
                 <div className="message-stream trainer-message-stream">
-                  {threadConfusions.map(({ root, confusion }) => (
+                  {threadConfusions.map(({ root, confusion, threadColor }) => (
                     <TrainerThreadRow
                       key={root.messageId}
                       root={root}
+                      threadColor={threadColor}
                       confusion={confusion}
                       confusionByRootId={confusionByRootId}
                       voteTotals={voteTotals[root.messageId]}
