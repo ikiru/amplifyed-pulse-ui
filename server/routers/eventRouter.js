@@ -26,7 +26,11 @@
 
  */
 
-import { applyOffFocusSelfReportGate } from "../pipelines/audienceDrift/classification.state.js";
+import {
+  applyOffFocusSelfReportGate,
+  AudienceDriftClassification,
+  getMessageClassification,
+} from "../pipelines/audienceDrift/classification.state.js";
 
 const DEFAULT_SESSION_ID = "session:default";
 
@@ -312,6 +316,11 @@ socket.on("audience:pulse", (payload = {}) => {
     }
 
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    const rootMessageId = payload?.rootMessageId;
+    const classification = getMessageClassification(sessionId, rootMessageId);
+    if (classification === AudienceDriftClassification.OFF_FOCUS) {
+      return;
+    }
 
     confusionPipeline.handleConfusionSignal({
       sessionId,
