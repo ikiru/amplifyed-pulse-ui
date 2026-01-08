@@ -238,24 +238,6 @@ function ThreadItemContent({
               ▲
             </button>
           )}
-          {isAnchor && allowConfusionAnchors && (
-            <>
-              <button
-                className="confusion-anchor"
-                onClick={() => onConfusionSignal(node.messageId)}
-                aria-label="This topic is confusing"
-              >
-                Confused
-              </button>
-              <button
-                className="confusion-anchor"
-                onClick={() => onOffFocusSignal(node.messageId)}
-                aria-label="This topic is off focus"
-              >
-                Off Focus
-              </button>
-            </>
-          )}
         </div>
 
         <div className="thread-card-row">

@@ -154,11 +154,19 @@
   height: 32px;
   flex-shrink: 0;
   border-radius: 6px;
-  border: 1px solid #ccc;
-  background: #f3f3f3;
-  color: #111;
+  border: 1px solid rgba(148, 163, 184, 0.65);
+  background: #f8fafc;
+  color: #475569;
   cursor: pointer;
   font-weight: 600;
+}
+
+.vote-btn.up {
+  color: #2563eb;
+}
+
+.vote-btn.down {
+  color: #b45309;
 }
 
 .thread-collapse-toggle {
@@ -177,21 +185,25 @@
 }
 
 .vote-btn.selected {
-  border-color: #6b7280;
-  color: #fff;
-  background: #4b5563;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.45);
+  border-color: rgba(148, 163, 184, 0.9);
+  background: rgba(148, 163, 184, 0.25);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
 }
 
 .vote-btn.up.selected,
 .vote-btn.down.selected {
-  background: #4b5563;
+  background: rgba(148, 163, 184, 0.25);
 }
 
 .message-content {
   flex: 1;
-  font-size: 14px;
-  line-height: 1.4;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 400;
+  color: #0f172a;
+  padding: 2px 0;
   word-break: break-word;
 }
 
@@ -205,11 +217,24 @@
   border: none;
   padding: 4px 6px;
   font-size: 13px;
-  color: #555;
+  color: #475569;
+  opacity: 0.7;
+  letter-spacing: 0.02em;
   cursor: pointer;
+  transition: color 0.2s ease, opacity 0.2s ease;
+  text-decoration: none;
 }
 
 .thread-reply-button:hover {
+  opacity: 1;
+  text-decoration: underline;
+  color: #475569;
+}
+
+.thread-reply-button:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.35);
+  outline-offset: 2px;
+  opacity: 1;
   text-decoration: underline;
 }
 
@@ -227,9 +252,9 @@
   font-size: 0.7rem;
   font-weight: 500;
   letter-spacing: 0.02em;
-  border: 1px solid rgba(179, 84, 0, 0.5);
-  color: #b35400;
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  color: #475569;
+  background: rgba(15, 23, 42, 0.04);
 }
 
 .thread-card-row {
@@ -267,7 +292,7 @@
   align-items: center;
   gap: 2px;
   font-size: 0.75rem;
-  color: #666;
+  color: #475569;
   line-height: 1.2;
   margin-top: 2px;
   padding-left: 2px;
@@ -313,9 +338,9 @@
   font-size: 0.7rem;
   font-weight: 500;
   letter-spacing: 0.02em;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  background: rgba(255, 255, 255, 0.9);
-  color: #333;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(148, 163, 184, 0.15);
+  color: #0f172a;
 }
 
 .thread-resolution-select {
@@ -325,9 +350,15 @@
 }
 
 .thread-resolution-label {
-  color: #0b5fff;
-  line-height: 1;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
   font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.15);
+  color: #0f172a;
 }
 
 .thread-resolution-attribution {

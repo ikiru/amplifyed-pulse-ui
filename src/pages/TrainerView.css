@@ -65,6 +65,14 @@
   max-width: calc(100% - 96px);
   margin: 0 auto;
   text-align: center;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 400;
+  color: #0f172a;
+  padding: 2px 0;
+  word-break: break-word;
 }
 
 .thread-message-label {
@@ -98,12 +106,17 @@
   justify-content: space-between;
   pointer-events: none;
   font-size: 0.8rem;
-  color: #333;
+  color: #475569;
 }
 
 .trainer-message-stream .thread-message .thread-vote-totals span {
   flex-basis: auto;
   min-width: 60px;
+}
+
+.trainer-vote-ledger {
+  font-size: 0.8rem;
+  color: #475569;
 }
 
 .trainer-message-stream .thread-message .thread-vote-totals span:first-child {
@@ -143,6 +156,37 @@
   justify-content: center;
 }
 
+.thread-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.thread-reply-button {
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  font-size: 13px;
+  color: #475569;
+  opacity: 0.7;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: color 0.2s ease, opacity 0.2s ease;
+  text-decoration: none;
+}
+
+.thread-reply-button:hover {
+  opacity: 1;
+  text-decoration: underline;
+  color: #475569;
+}
+
+.thread-reply-button:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.35);
+  outline-offset: 2px;
+  opacity: 1;
+  text-decoration: underline;
+}
+
 .thread-card-center {
   display: flex;
   flex-direction: column;
@@ -161,7 +205,7 @@
   align-items: center;
   gap: 2px;
   font-size: 0.75rem;
-  color: #666;
+  color: #475569;
   line-height: 1.2;
 }
 
@@ -202,8 +246,15 @@
 }
 
 .thread-resolution-label {
-  color: #0b5fff;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   line-height: 1;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.15);
+  color: #0f172a;
 }
 
 .thread-resolution-label,
@@ -217,9 +268,9 @@
   font-size: 0.7rem;
   font-weight: 500;
   letter-spacing: 0.02em;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  background: rgba(255, 255, 255, 0.9);
-  color: #333;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(148, 163, 184, 0.15);
+  color: #0f172a;
 }
 
 .thread-off-focus-row {
@@ -240,9 +291,9 @@
   font-size: 0.7rem;
   font-weight: 500;
   letter-spacing: 0.02em;
-  border: 1px solid rgba(179, 84, 0, 0.5);
-  color: #b35400;
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  color: #475569;
+  background: rgba(15, 23, 42, 0.04);
 }
 
 .pulse-step-line {

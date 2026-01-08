@@ -218,4 +218,198 @@ If a decision cannot be justified here, it must pause.
 
 ---
 
+---
+
+## 10. Message Card — Element-Level Visual Rules (Authoritative)
+
+This section defines **non-negotiable visual semantics** for elements inside an individual message card.
+
+These rules govern **visual meaning only**.  
+They do **not** prescribe layout mechanics, interaction logic, behavior, or implementation.
+
+Unless explicitly stated, these rules apply consistently across **TrainerView** and **AudienceInput**.
+
+---
+### 10.x Message Card Structural Invariants (Authoritative)
+
+The Messages system uses a fixed structural grid that must not be altered.
+
+This structure is not a visual design choice.
+It is a semantic and anonymity boundary.
+
+All visual, spacing, and affordance rules in Section 10 assume this grid.
+
+#### Fixed Grid: 2 Rows × 3 Columns
+
+┌───────────────┬────────────────────────────┬───────────────┐
+│ CELL 1        │ CELL 2                     │ CELL 3        │
+│ LEFT · TOP    │ CENTER · TOP               │ RIGHT · TOP   │
+│               │                             │               │
+│ Downvote      │ Message body text           │ Upvote        │
+│ arrow + count │ (primary semantic content)  │ arrow + count │
+│ (always on)   │                             │ (conditional) │
+├───────────────┼────────────────────────────┼───────────────┤
+│ CELL 4        │ CELL 5                     │ CELL 6        │
+│ LEFT · BOTTOM │ CENTER · BOTTOM            │ RIGHT · BOTTOM│
+│               │                             │               │
+│ Collapse /    │ Badges + clarification     │ Reply         │
+│ expand arrow  │ (Off Focus, Confused,      │               │
+│               │ dropdown, etc.)             │               │
+└───────────────┴────────────────────────────┴───────────────┘
+
+#### Non-Negotiable Rules
+
+- Elements MUST NOT move between cells.
+- Cells MUST NOT be merged, split, or repurposed.
+- Votes MUST remain in the top row only.
+- Badges and clarification controls MUST remain in the bottom center cell.
+- Collapse control MUST remain bottom left.
+- Reply MUST remain bottom right.
+- Conditional rendering (e.g., upvotes) does not change cell ownership.
+
+Any change that violates this grid is a contract violation.
+
+
+### 10.1 Message Text (Primary Content)
+
+Message text is the **primary perceptual focus** of the message card.
+
+**Rules**
+- Font family must use the system UI font stack.
+- Typography must feel **inviting and idea-friendly**, encouraging thoughtful reading and writing.
+- Message text must not imply:
+  - importance
+  - correctness
+  - urgency
+  - hierarchy between messages
+- All messages must appear visually equal in status.
+
+**Constraints**
+- Font size may vary only within a narrow, readability-focused range.
+- Line height must support multi-sentence reading without visual crowding.
+- Color adjustments are permitted only to preserve legibility and must remain semantically neutral.
+
+Message text must always dominate badges, votes, and controls perceptually.
+
+---
+
+### 10.2 Badges (Facilitation Signals)
+
+Badges include:
+- Off Focus  
+- Confusion  
+- Clarification / Resolution  
+
+Badges communicate **facilitation-relevant state**, not evaluation or judgment.
+
+**Rules**
+- Badge location is fixed and must not change.
+- Badge color:
+  - must be independent of thread color
+  - must be stable per badge type
+  - must be muted and non-alerting
+- Badges must be noticeable at scan level but remain secondary to message text.
+
+**Prohibitions**
+- Badges must not imply correctness, error, authority, or urgency.
+- Badge colors must not be reused by votes, thread structure, or controls.
+- Badges must not feel clickable or evaluative.
+
+Badges function as **annotations**, not status markers.
+
+---
+
+### 10.3 Votes (Approval / Disapproval Signals)
+
+Votes represent **explicit approval and disapproval** from the audience.
+
+This semantic truth must be acknowledged visually without escalation, gamification, or judgment.
+
+**Shape Language**
+- Vote indicators use **filled triangles**.
+- Collapse / structural controls use **chevrons**.
+- These shape systems must remain visually distinct.
+
+**Color Semantics**
+- Votes use **constrained soft polarity**:
+  - approval and disapproval may differ subtly in tone
+  - tones must be muted and emotionally restrained
+- Vote counts must remain **neutral in color**.
+- Color must not change based on magnitude.
+
+**Rules**
+- Votes must not imply:
+  - correctness
+  - popularity
+  - ranking
+  - winning or losing
+- Votes must not compete with message text or badges.
+
+**Context**
+- TrainerView: votes are read-only indicators.
+- AudienceInput: votes are interactive.
+- Placement and visual identity must remain consistent across views.
+
+---
+
+
+#### 10.3.1 Vote Placement & Spacing (Authoritative)
+
+Votes represent **anonymous audience voice** and may be positioned prominently to ensure they are felt, not merely seen.
+
+**Clarifications**
+- Votes may be placed symmetrically on either side of message text to:
+  - reduce accidental interaction on mobile
+  - increase legibility of audience sentiment
+  - encourage readers to scan across and read the message content
+- Symmetric placement is permitted when it serves attention, comprehension, and voice expression — not evaluation.
+
+**Spacing Rules**
+- Votes must not visually enclose, box, or frame the message text.
+- A clear visual gutter must exist between vote indicators and the message text block.
+- Message text must remain perceptually open and uninterrupted.
+
+**Semantic Constraint**
+- Votes function as **reactions to a message**, not as containers of it.
+- Placement must preserve causal reading:
+  - message → reaction
+  - not reaction → message → reaction as a score frame
+
+This rule exists to amplify anonymous voice without redefining messages as scored artifacts.
+
+
+### 10.4 Reply Affordance (Cross-Domain Action)
+
+Reply is the **only element shared** between Trainer and Audience domains.
+
+**Rules**
+- Reply must read as a **neutral, optional action**.
+- Visual treatment must be identical across TrainerView and AudienceInput.
+- Reply must not feel instructional, encouraging, or authoritative.
+
+**Constraints**
+- Text-only affordance.
+- Neutral color.
+- No button chrome, icons, animation, or call-to-action styling.
+
+Reply must fade during scanning while remaining discoverable when intentionally sought.
+
+---
+
+### 10.5 Global Prohibitions (Message Card)
+
+Within message cards, the following are disallowed:
+
+- Reordering or moving elements between sections
+- Visual cues that rank messages or contributors
+- Identity cues of any kind
+- Gamification or escalation based on activity or volume
+- Reuse of thread color outside structural lineage
+- Visual treatment that implies judgment, authority, or correctness
+
+Any message-level visual decision that violates anonymity, introduces competition, or redefines meaning must be rejected.
+
+---
+
+
 **End of Contract**
