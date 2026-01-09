@@ -206,12 +206,11 @@ function ThreadItemContent({
               aria-pressed={selectedVote === "down"}
               disabled={!canVote}
             >
-              ▼
             </button>
           )}
           {showTrainerVoteTallies && trainerDownCount > 0 && (
             <span className="trainer-vote-ledger trainer-vote-down">
-              ▼ {trainerDownCount}
+              {trainerDownCount}
             </span>
           )}
 
@@ -221,22 +220,21 @@ function ThreadItemContent({
 
           {showTrainerVoteTallies && trainerUpCount > 0 && (
             <span className="trainer-vote-ledger trainer-vote-up">
-              ▲ {trainerUpCount}
+              {trainerUpCount}
             </span>
           )}
           {shouldShowVotes && viewerRole === "audience" && (
-            <button
-              type="button"
-              className={`vote-btn up ${
-                selectedVote === "up" ? "selected" : ""
-              }`}
-              onClick={() => handleVoteClick("up")}
-              aria-label="Upvote"
-              aria-pressed={selectedVote === "up"}
-              disabled={!canVote}
-            >
-              ▲
-            </button>
+              <button
+                type="button"
+                className={`vote-btn up ${
+                  selectedVote === "up" ? "selected" : ""
+                }`}
+                onClick={() => handleVoteClick("up")}
+                aria-label="Upvote"
+                aria-pressed={selectedVote === "up"}
+                disabled={!canVote}
+              >
+              </button>
           )}
         </div>
 

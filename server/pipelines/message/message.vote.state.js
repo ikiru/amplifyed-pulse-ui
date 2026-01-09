@@ -74,6 +74,17 @@ function applyVote({ sessionId, messageId, voteType, voterId, actorRole }) {
   }
 
   const previous = state.voters.get(voterId);
+  // State-change guard: ignore no-op vote intents (contract §6)
+  if (previous === normalized) {
+    console.log("[VOTE][STATE] no-op vote ignored", {
+      sessionId,
+      messageId,
+      actorRole,
+      voterId,
+      voteType: normalized,
+    });
+    return null;
+  }
 
   if (previous === normalized) {
     // no-op

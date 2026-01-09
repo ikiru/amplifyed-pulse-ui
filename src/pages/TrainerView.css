@@ -75,6 +75,62 @@
   word-break: break-word;
 }
 
+/* TrainerView — Vote Arrow Rendering (CSS-only, first pass) */
+.trainer-message-stream .thread-message .vote-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: #f8fafc;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  text-shadow: 0 0 2px rgba(15, 23, 42, 0.25);
+  font-weight: 700;
+  overflow: hidden;
+  white-space: nowrap;
+  text-indent: 9999px;
+  position: relative;
+}
+
+.trainer-message-stream .thread-message .vote-btn.up {
+  color: #15803d;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.trainer-message-stream .thread-message .vote-btn.down {
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.trainer-message-stream .thread-message .vote-btn::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.trainer-message-stream .thread-message .vote-btn.up::before {
+  border-bottom: 14px solid currentColor;
+}
+
+.trainer-message-stream .thread-message .vote-btn.down::before {
+  border-top: 14px solid currentColor;
+}
+
+.trainer-message-stream .thread-message .vote-btn:hover,
+.trainer-message-stream .thread-message .vote-btn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
 .thread-message-label {
   margin-left: 8px;
   padding: 2px 8px;
@@ -117,6 +173,8 @@
 .trainer-vote-ledger {
   font-size: 0.8rem;
   color: #475569;
+  font-weight: 400;
+  opacity: 0.8;
 }
 
 .trainer-message-stream .thread-message .thread-vote-totals span:first-child {
