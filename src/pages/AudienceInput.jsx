@@ -186,6 +186,7 @@ export default function AudienceInput() {
               onOffFocusSignal={emitOffFocusSignal}
               showVoteTotals={false}
               voteSelectionMap={selectedVotes}
+              showLineageBar
             />
           ))
         )}

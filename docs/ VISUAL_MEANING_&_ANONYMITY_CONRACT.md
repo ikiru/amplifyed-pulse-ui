@@ -218,6 +218,32 @@ If a decision cannot be justified here, it must pause.
 
 ---
 
+### 9.x Cross-View Message Thread Visual Consistency
+
+The message thread visual system (including message cards, grid structure,
+thread color, spine, elbows, outlines, vote indicators, and badge placement)
+is authoritative and shared across all views.
+
+This includes, but is not limited to:
+
+- TrainerView
+- AudienceInput
+- Any future Live View or observer views
+
+All of the above views MUST render the same message thread structure and base
+visual semantics.
+
+View-specific components MAY modify interaction affordances only (for example:
+clickability, hover states, pointer events, or disabled states), but MUST NOT
+alter:
+
+- Structural layout (including the 2×3 message grid)
+- Visual meaning of votes, badges, spine, elbows, or outlines
+- Color assignment or thread identity
+
+If a visual change would alter how a message is perceived semantically or
+structurally, it is prohibited unless this contract is explicitly amended.
+
 ---
 
 ## 10. Message Card — Element-Level Visual Rules (Authoritative)

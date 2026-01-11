@@ -817,6 +817,7 @@ export default function TrainerView() {
   const confusionThreads = threadConfusions.filter(
     ({ confusion }) => confusion.showConfusionRow
   );
+  const hasMessages = messageRoots.length > 0;
   const canonicalParticipants =
     livePulse?.participants && typeof livePulse.participants === "object"
       ? livePulse.participants
@@ -998,10 +999,10 @@ export default function TrainerView() {
             </p>
           </section>
 
-          <div className="trainer-message-area">
-            <h3 className="trainer-section-heading">Messages</h3>
-            <div className="trainer-message-scroller">
-                {threadConfusions.length ? (
+            <div className="trainer-message-area">
+              <h3 className="trainer-section-heading">Messages</h3>
+              <div className="trainer-message-scroller">
+                {hasMessages ? (
                 <div className="message-stream trainer-message-stream">
                   {threadConfusions.map(({ root, confusion, threadColor }) => (
                     <TrainerThreadRow

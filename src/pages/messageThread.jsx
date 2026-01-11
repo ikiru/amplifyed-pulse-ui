@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import "./AudienceInput.css";
 export function buildMessageTree(messages) {
   const map = {};
@@ -58,12 +58,169 @@ export function ThreadItem(props) {
 function AnchorThreadItem(props) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   return (
-    <ThreadItemContent
+    <ThreadConnectorOverlay
       {...props}
       isAnchor
       isCollapsed={isCollapsed}
       onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
     />
+  );
+}
+
+function ThreadConnectorOverlay({
+  node,
+  depth = 0,
+  threadColor,
+  registerMessageRef: _registerMessageRef,
+  ...props
+}) {
+  if (!node || typeof node.messageId !== "string") {
+    return null;
+  }
+  const rowRef = useRef(null);
+  const messageRefs = useRef(new Map());
+  const [rowNode, setRowNode] = useState(null);
+  const [connectorPaths, setConnectorPaths] = useState([]);
+  const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 });
+  const [messageRegistryVersion, setMessageRegistryVersion] = useState(0);
+
+  const updatePath = useCallback(() => {
+    const row = rowRef.current;
+    if (!row) {
+      setOverlaySize({ width: 0, height: 0 });
+      setConnectorPaths([]);
+      return;
+    }
+    const rowRect = row.getBoundingClientRect();
+    setOverlaySize({ width: rowRect.width, height: rowRect.height });
+
+    const newPaths = [];
+    messageRefs.current.forEach(({ node: messageNode, parentId }, messageId) => {
+      if (!messageNode || !parentId) {
+        return;
+      }
+      const parentEntry = messageRefs.current.get(parentId);
+      if (!parentEntry?.node) {
+        return;
+      }
+      const parentRect = parentEntry.node.getBoundingClientRect();
+      const parentX = parentRect.left - rowRect.left;
+      const parentY = parentRect.bottom - rowRect.top;
+      const replyRect = messageNode.getBoundingClientRect();
+      const childX = replyRect.left - rowRect.left;
+      const childY =
+        replyRect.top + replyRect.height / 2 - rowRect.top;
+      newPaths.push({
+        key: messageId,
+        d: `M ${parentX} ${parentY} L ${parentX} ${childY} L ${childX} ${childY}`,
+      });
+    });
+
+    setConnectorPaths(newPaths);
+  }, []);
+
+  const attachRowRef = useCallback((node) => {
+    rowRef.current = node;
+    setRowNode(node);
+  }, []);
+
+  const registerMessageRef = useCallback(
+    (messageId, parentMessageId, element) => {
+      if (element) {
+        messageRefs.current.set(messageId, {
+          node: element,
+          parentId: parentMessageId,
+        });
+      } else {
+        messageRefs.current.delete(messageId);
+      }
+      setMessageRegistryVersion((prev) => prev + 1);
+      updatePath();
+    },
+    [updatePath]
+  );
+
+  useLayoutEffect(() => {
+    updatePath();
+    if (!rowNode) {
+      return undefined;
+    }
+    const handleResize = () => updatePath();
+    window.addEventListener("resize", handleResize);
+    let observer;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => updatePath());
+      const nodesToObserve = new Set([rowNode]);
+      messageRefs.current.forEach(({ node }) => {
+        if (node) {
+          nodesToObserve.add(node);
+        }
+      });
+      nodesToObserve.forEach((node) => {
+        if (node) {
+          observer.observe(node);
+        }
+      });
+    }
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (observer) {
+        observer.disconnect();
+      }
+    };
+  }, [rowNode, messageRegistryVersion, updatePath]);
+
+  const overlayVisible =
+    connectorPaths.length > 0 &&
+    overlaySize.width > 0 &&
+    overlaySize.height > 0;
+  const resolvedThreadColor =
+    typeof threadColor === "string"
+      ? threadColor
+      : typeof node?.threadColor === "string"
+        ? node.threadColor
+        : "#e63946";
+  const themeStyle = { "--thread-color": resolvedThreadColor };
+
+  return (
+    <div
+      className="trainer-message-stream-row"
+      ref={attachRowRef}
+      style={themeStyle}
+    >
+      <div className="thread-connector-layer" aria-hidden="true">
+        {overlayVisible && (
+          <svg
+            width={overlaySize.width}
+            height={overlaySize.height}
+            viewBox={`0 0 ${overlaySize.width} ${overlaySize.height}`}
+            preserveAspectRatio="none"
+          >
+            {connectorPaths.map(({ key, d }) => (
+              <path
+                key={`connector-${key}`}
+                d={d}
+                fill="none"
+                stroke="var(--thread-color, #e63946)"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            ))}
+          </svg>
+        )}
+      </div>
+      <div
+        id={`thread-root-${node.messageId}`}
+        className="trainer-thread-wrapper"
+      >
+        <ThreadItemContent
+          {...props}
+          node={node}
+          depth={depth}
+          registerMessageRef={registerMessageRef}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -98,6 +255,7 @@ function ThreadItemContent({
   showVoteReadOnly = false,
   resolutionBy,
   registerMessageRef,
+  showLineageBar = false,
 }) {
   const viewerRole = actorRole ?? role ?? "audience";
   const selectedVote = voteSelectionMap?.[node.messageId] ?? null;
@@ -138,6 +296,11 @@ function ThreadItemContent({
     typeof resolutionActorRaw === "string"
       ? resolutionActorRaw.toLowerCase()
       : null;
+  const threadColor = node?.threadColor;
+  const threadStyle =
+    typeof threadColor === "string"
+      ? { "--thread-color": threadColor }
+      : undefined;
   const resolutionAttribution =
     resolutionType && resolutionActor
       ? `by ${resolutionActor}`
@@ -181,7 +344,9 @@ function ThreadItemContent({
       return undefined;
     }
     const parentId = node?.parentMessageId ?? null;
-    registerMessageRef(node.messageId, parentId, messageRef.current);
+    if (node?.messageId) {
+      registerMessageRef(node.messageId, parentId, messageRef.current);
+    }
     return () => registerMessageRef(node.messageId, parentId, null);
   }, [registerMessageRef, node.messageId, node.parentMessageId]);
 
@@ -190,7 +355,17 @@ function ThreadItemContent({
       <div
         className={threadMessageClassNames.join(" ")}
         ref={messageRef}
+        style={threadStyle}
       >
+        {showLineageBar && (
+          <div className="trainer-message-lineage-gutter" aria-hidden="true">
+            <div
+              className="trainer-message-lineage-bar"
+              aria-hidden="true"
+              role="presentation"
+            />
+          </div>
+        )}
         {isTrainerMessage && (
           <div className="thread-message-trainer-badge">Trainer</div>
         )}
@@ -360,6 +535,7 @@ function ThreadItemContent({
               onConfusionSignal={onConfusionSignal}
               allowConfusionAnchors={allowConfusionAnchors}
               allowConfusionRow={allowConfusionRow}
+              showLineageBar={showLineageBar}
               registerMessageRef={registerMessageRef}
             />
           ))}

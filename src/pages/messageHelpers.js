@@ -52,5 +52,7 @@ export function adaptMessage(message = {}) {
       envelope.parentMessageId ?? payload.parentMessageId ?? undefined,
     envelope,
     payload,
+    threadColor:
+      message.threadColor ?? payload.threadColor ?? undefined,
   };
 }
