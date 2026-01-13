@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useSocket } from "../socket/SocketContext.jsx";
 import { useSessionJoin } from "../hooks/useSessionJoin.js";
 import { SessionEntry } from "../components/session/SessionEntry.jsx";
@@ -18,6 +19,10 @@ const pulseOptions = [
 
 export default function AudienceInput() {
   const { emit, onEvent, offEvent, socket } = useSocket();
+  const [searchParams] = useSearchParams();
+  
+  // Extract code from URL params (from QR code scan)
+  const initialCode = searchParams.get('code');
   
   // Session join state
   const { isJoined, isJoining, error, joinSession, clearError } = useSessionJoin({
@@ -175,6 +180,7 @@ export default function AudienceInput() {
         isJoining={isJoining}
         error={error}
         onClearError={clearError}
+        initialCode={initialCode}
       />
     );
   }

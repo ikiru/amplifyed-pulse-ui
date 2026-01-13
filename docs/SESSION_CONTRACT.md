@@ -226,14 +226,36 @@ Access codes are **structural identifiers only**.
 
 ### 5.7 QR Code Generation
 
+**Status: ✅ IMPLEMENTED**
+
 QR codes:
 
-* encode the session access URL and/or sessionId
-* are generated when session begins
-* remain constant throughout session
-* can be scanned multiple times by different participants
-* expire when session ends
-* do not encode participant data
+* **encode** the full session join URL: `${window.location.origin}/join?code=${accessCode}`
+* are **generated automatically** when session begins (via `QRCodeDisplay` component)
+* remain **constant** throughout session lifetime
+* can be **scanned multiple times** by different participants
+* **expire** when session ends (access code becomes invalid)
+* do **not** encode participant data (only session routing information)
+* are displayed in **TrainerView** `SessionAccessPanel` component
+* use **QRCodeSVG** from `qrcode.react` library
+* **error correction level**: M (15% recovery capacity)
+* **size**: 150x150px (optimal for phone camera scanning)
+
+#### Implementation Details
+
+**Scanning Flow:**
+1. Audience member scans QR code with phone camera
+2. Camera app opens URL: `https://yourapp.com/join?code=ABCD-1234`
+3. App routes to `/join` → redirects to `/audience?code=ABCD-1234`
+4. `AudienceInput` extracts code from URL params
+5. `SessionEntry` auto-populates and submits code
+6. Participant joins session
+
+**Technical Stack:**
+- **Library**: `qrcode.react` (lightweight, zero dependencies)
+- **Component**: `src/components/session/QRCodeDisplay.jsx`
+- **Routing**: `/join` route handler in `src/App.jsx`
+- **Scanning**: External (phone camera), not in-app
 
 QR code content is **session join information only**.
 

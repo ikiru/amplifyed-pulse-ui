@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
+import { QRCodeDisplay } from './QRCodeDisplay.jsx';
 
 /**
  * SessionAccessPanel Component
  * 
- * Displays session access code and participant count for trainers.
+ * Displays session access code for trainers.
  * Matches wireframe A.2.1 from SESSION_CONTRACT.md
+ * 
+ * Note: Participant count is displayed in the PULSE window, not here.
  * 
  * @param {Object} props
  * @param {string} props.accessCode - Session access code (e.g., "ABCD-1234")
- * @param {number} props.participantCount - Number of active participants
  */
-export function SessionAccessPanel({ accessCode, participantCount = 0 }) {
+export function SessionAccessPanel({ accessCode }) {
   const [copySuccess, setCopySuccess] = useState(false);
 
   /**
@@ -58,22 +60,8 @@ export function SessionAccessPanel({ accessCode, participantCount = 0 }) {
           {copySuccess ? '✓ Copied!' : 'Copy Code'}
         </button>
 
-        {/* Participant Count */}
-        <div className="session-participant-count">
-          <span className="participant-icon">👥</span>
-          <span className="participant-number">{participantCount}</span>
-          <span className="participant-label">
-            {participantCount === 1 ? 'participant' : 'participants'}
-          </span>
-        </div>
-
-        {/* QR Code Placeholder (Future Implementation) */}
-        <div className="session-qr-placeholder">
-          <div className="qr-placeholder-box">
-            <span className="qr-placeholder-text">QR Code</span>
-            <span className="qr-placeholder-subtitle">(Coming Soon)</span>
-          </div>
-        </div>
+        {/* QR Code */}
+        <QRCodeDisplay accessCode={accessCode} />
       </div>
     </div>
   );

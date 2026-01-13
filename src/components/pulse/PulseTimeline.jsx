@@ -252,7 +252,7 @@ export function PulseTimeline(props) {
           <div className="pulse-timeline-title">PULSE</div>
         </div>
         <div className="pulse-timeline-current">
-          Room: {participantCount}
+          👥 {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
         </div>
       </div>
       <div className="pulse-timeline-track">

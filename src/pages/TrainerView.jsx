@@ -287,7 +287,6 @@ export default function TrainerView() {
             {/* Session Access Code */}
             <SessionAccessPanel
               accessCode={accessCode}
-              participantCount={participantCount}
             />
             
             {/* Session Metadata */}

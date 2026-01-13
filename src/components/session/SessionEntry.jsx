@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 /**
  * SessionEntry Component
@@ -11,9 +11,27 @@ import React, { useState } from 'react';
  * @param {boolean} props.isJoining - Loading state
  * @param {string} props.error - Error message to display
  * @param {Function} props.onClearError - Callback to clear error
+ * @param {string} props.initialCode - Pre-populated code (from QR scan URL)
  */
-export function SessionEntry({ onJoin, isJoining = false, error = null, onClearError }) {
-  const [code, setCode] = useState('');
+export function SessionEntry({ onJoin, isJoining = false, error = null, onClearError, initialCode = null }) {
+  // Format initial code if provided (ensure XXXX-XXXX format)
+  const formatCode = (rawCode) => {
+    if (!rawCode) return '';
+    const cleaned = rawCode.replace(/-/g, '').toUpperCase().substring(0, 8);
+    if (cleaned.length > 4) {
+      return cleaned.substring(0, 4) + '-' + cleaned.substring(4);
+    }
+    return cleaned;
+  };
+
+  const [code, setCode] = useState(formatCode(initialCode));
+
+  // Auto-submit if valid code is provided from QR scan
+  useEffect(() => {
+    if (initialCode && formatCode(initialCode).length === 9 && !isJoining) {
+      onJoin(formatCode(initialCode));
+    }
+  }, []); // Only run once on mount
 
   /**
    * Format code input with automatic hyphen insertion
