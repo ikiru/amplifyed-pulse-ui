@@ -11,7 +11,7 @@ import { useSocket } from "../socket/SocketContext.jsx";
 import { OFFICIAL_SCENARIOS } from "../../testing/environments/histe/scenarios/index.js";
 import "./HISTEAdmin.css";
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || ""; // Use same origin (Vite proxy)
 const OBSERVATION_WINDOW_MS = 10000;
 const OVERLAP_THRESHOLD_MS = 800;
 

@@ -219,6 +219,49 @@ export async function runScenario({ scenario = {}, serverUrl, getAdjustments } =
     });
   };
 
+  /**
+   * Schedule pulse events from scenario
+   * Pulse events are emitted by participant sockets
+   * Values: -1 (frustrated), 0 (neutral), 1 (engaged)
+   */
+  const schedulePulseEvents = () => {
+    const pulseEvents = Array.isArray(scenario.pulseEvents) ? scenario.pulseEvents : [];
+    
+    console.log('[HISTE-DIAG] Scheduling', pulseEvents.length, 'pulse events');
+    console.log('[HISTE-DIAG] Pulse events:', pulseEvents);
+    
+    if (pulseEvents.length === 0) {
+      return; // No pulse events to schedule
+    }
+    
+    pulseEvents.forEach((event) => {
+      const delay = Math.max(0, typeof event.delayMs === "number" ? event.delayMs : 0);
+      
+      clock.schedule(() => {
+        const participantId = event.participantId || event.from;
+        const socket = sockets.get(participantId);
+        
+        if (!socket) {
+          console.warn(`[HISTE] No socket for participant ${participantId} - skipping pulse event`);
+          return;
+        }
+        
+        const pulseValue = typeof event.value === "number" ? event.value : 0;
+        
+        // Validate pulse value
+        if (pulseValue < -1 || pulseValue > 1) {
+          console.warn(`[HISTE] Invalid pulse value ${pulseValue} - must be -1, 0, or 1`);
+          return;
+        }
+        
+        const emotionLabel = pulseValue === 1 ? "engaged" : pulseValue === -1 ? "frustrated" : "neutral";
+        console.log(`[HISTE] ${participantId} submitting pulse: ${pulseValue} (${emotionLabel})`);
+        
+        socket.emit("audience:pulse", { pulse: emotionLabel });
+      }, delay);
+    });
+  };
+
   const scheduleMessages = () => {
     messages.forEach((message) => {
       const delay = Math.max(0, typeof message.delayMs === "number" ? message.delayMs : 0);
@@ -284,6 +327,7 @@ export async function runScenario({ scenario = {}, serverUrl, getAdjustments } =
     fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'runScenario.js:207',message:'all connections complete',data:{socketsCount:sockets.size,hasTrainerSocket:!!trainerSocket,sessionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
     // #endregion
     scheduleFocusEvents(); // Schedule focus events first
+    schedulePulseEvents(); // Schedule pulse votes
     scheduleMessages();     // Then schedule messages
   });
 

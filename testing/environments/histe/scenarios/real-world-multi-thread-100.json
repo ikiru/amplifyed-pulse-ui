@@ -16,6 +16,26 @@
   "focusEvents": [
     { "delayMs": 0, "action": "set", "text": "Establishing ground rules for respectful disagreement" }
   ],
+  "pulseEvents": [
+    { "delayMs": 500, "participantId": "p1", "value": 1 },
+    { "delayMs": 1200, "participantId": "p2", "value": 1 },
+    { "delayMs": 1500, "participantId": "p3", "value": 0 },
+    { "delayMs": 2200, "participantId": "p5", "value": 0 },
+    { "delayMs": 2800, "participantId": "p4", "value": -1 },
+    { "delayMs": 3500, "participantId": "p6", "value": 1 },
+    { "delayMs": 4200, "participantId": "p1", "value": 0 },
+    { "delayMs": 5000, "participantId": "p3", "value": -1 },
+    { "delayMs": 6000, "participantId": "p2", "value": 0 },
+    { "delayMs": 7000, "participantId": "p4", "value": 1 },
+    { "delayMs": 8500, "participantId": "p5", "value": 1 },
+    { "delayMs": 10000, "participantId": "p6", "value": -1 },
+    { "delayMs": 12000, "participantId": "p1", "value": 1 },
+    { "delayMs": 14000, "participantId": "p3", "value": 0 },
+    { "delayMs": 16000, "participantId": "p2", "value": 1 },
+    { "delayMs": 18000, "participantId": "p5", "value": -1 },
+    { "delayMs": 20000, "participantId": "p4", "value": 0 },
+    { "delayMs": 22000, "participantId": "p6", "value": 1 }
+  ],
   "messages": [
     { "id": "m1", "from": "p1", "delayMs": 0, "text": "Let’s ground ourselves. What norms matter most when discussions get heated?", "threadId": null },
     { "id": "m2", "from": "p2", "delayMs": 900, "text": "Time limits help. Otherwise a few voices dominate.", "threadId": "m1" },
