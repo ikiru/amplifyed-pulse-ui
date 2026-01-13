@@ -1,50 +1,23 @@
+/**
+ * ThreadItem Component
+ * 
+ * Renders a threaded message with support for:
+ * - Nested replies (hierarchical indentation)
+ * - Voting (upvote/downvote)
+ * - Confusion signals
+ * - Reply composition
+ * - Collapse/expand for anchors
+ * 
+ * Used by both TrainerView and AudienceInput for displaying message threads.
+ */
+
 import { useEffect, useRef, useState } from "react";
-import "./AudienceInput.css";
-export function buildMessageTree(messages) {
-  const map = {};
-  const roots = [];
-
-  messages.forEach((msg) => {
-    if (!msg || typeof msg.messageId !== "string") return;
-    map[msg.messageId] = { ...msg, replies: [] };
-  });
-
-  messages.forEach((msg) => {
-    if (!msg || typeof msg.messageId !== "string") return;
-    if (msg.parentMessageId && map[msg.parentMessageId]) {
-      map[msg.parentMessageId].replies.push(map[msg.messageId]);
-    } else if (map[msg.messageId]) {
-      roots.push(map[msg.messageId]);
-    }
-  });
-
-  return roots;
-}
 
 const RESOLUTION_DROPDOWN_LABELS = {
   clarified: "Clarified",
   example: "Example",
   reframed: "Reframed",
 };
-
-export function ConfusionMeter({ confusionScore }) {
-  const MAX_BARS = 8;
-  const normalizedScore = confusionScore ?? 0;
-  const filled = Math.max(0, Math.min(normalizedScore, MAX_BARS));
-
-  return (
-    <div className="confusion-meter" aria-hidden="true">
-      <div className="confusion-bars">
-        {Array.from({ length: MAX_BARS }).map((_, i) => (
-          <span
-            key={i}
-            className={i < filled ? "bar filled" : "bar empty"}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export function ThreadItem(props) {
   const depth = props.depth ?? 0;
@@ -107,6 +80,12 @@ function ThreadItemContent({
   const isTrainerMessage = node?.actorRole === "trainer";
   const isReply = depth > 0;
   const messageRef = useRef(null);
+  
+  // Local state for confusion and off-focus signals
+  const [localConfusionSignaled, setLocalConfusionSignaled] = useState(false);
+  const [localOffFocusSignaled, setLocalOffFocusSignaled] = useState(false);
+  const [localResolutionType, setLocalResolutionType] = useState(null);
+  const [localResolvedBy, setLocalResolvedBy] = useState(null);
   const threadMessageClassNames = ["thread-message"];
   if (isTrainerMessage) {
     threadMessageClassNames.push("trainer-message");
@@ -118,6 +97,28 @@ function ThreadItemContent({
   if (hasReplies) {
     threadMessageClassNames.push("thread-message-has-replies");
   }
+  
+  // Message bubble position for dynamic corner roundness
+  // This creates iOS-style message bubbles
+  const hasPreviousSibling = depth > 0 && node?.hasPreviousSibling;
+  const hasNextSibling = depth > 0 && node?.hasNextSibling;
+  
+  if (depth > 0) {
+    // Reply messages get dynamic corners based on stack position
+    if (hasPreviousSibling && hasNextSibling) {
+      // Middle of stack - both top and bottom corners on spine side are less rounded
+      threadMessageClassNames.push("thread-message-middle");
+    } else if (hasPreviousSibling) {
+      // Last in stack - only bottom corner on spine side is less rounded
+      threadMessageClassNames.push("thread-message-last");
+    } else if (hasNextSibling) {
+      // First in stack - only top corner on spine side is less rounded
+      threadMessageClassNames.push("thread-message-first");
+    } else {
+      // Standalone - only bottom corner on spine side is less rounded
+      threadMessageClassNames.push("thread-message-standalone");
+    }
+  }
   const normalizedLabel =
     typeof node?.label === "string" ? node.label.toLowerCase() : "";
   const normalizedLabelDisplay =
@@ -128,9 +129,13 @@ function ThreadItemContent({
     normalizedLabel === "off_focus" ||
     normalizedLabel === "off focus" ||
     normalizedLabelDisplay === "off focus";
+  // Use local resolution state if available, otherwise use server state
+  const effectiveResolutionType = localResolutionType || resolutionType;
+  const effectiveResolvedBy = localResolvedBy || resolutionBy;
+  
   const resolutionActorRaw =
-    typeof resolutionBy === "string"
-      ? resolutionBy
+    typeof effectiveResolvedBy === "string"
+      ? effectiveResolvedBy
       : typeof node?.actorRole === "string"
         ? node.actorRole
         : null;
@@ -139,7 +144,7 @@ function ThreadItemContent({
       ? resolutionActorRaw.toLowerCase()
       : null;
   const resolutionAttribution =
-    resolutionType && resolutionActor
+    effectiveResolutionType && resolutionActor
       ? `by ${resolutionActor}`
       : null;
   const handleReplyToggle = () => {
@@ -174,6 +179,34 @@ function ThreadItemContent({
   const handleCollapseToggle = () => {
     if (!onToggleCollapse) return;
     onToggleCollapse();
+  };
+
+  const handleConfusionClick = () => {
+    setLocalConfusionSignaled(true);
+    onConfusionSignal(node.messageId);
+  };
+
+  const handleOffFocusClick = () => {
+    setLocalOffFocusSignaled(true);
+    onOffFocusSignal(node.messageId);
+  };
+
+  const handleResolutionChange = (event) => {
+    const resolution = event.target.value;
+    if (resolution) {
+      setLocalResolutionType(resolution);
+      setLocalResolvedBy(viewerRole);
+      // Signal resolution - you may want to add a separate handler for this
+      console.log('[RESOLUTION]', { messageId: node.messageId, resolution, resolvedBy: viewerRole });
+    }
+  };
+
+  const handleReopenConfusion = () => {
+    if (viewerRole === "audience") {
+      setLocalResolutionType(null);
+      setLocalResolvedBy(null);
+      console.log('[REOPEN_CONFUSION]', { messageId: node.messageId });
+    }
   };
 
   useEffect(() => {
@@ -245,24 +278,6 @@ function ThreadItemContent({
               ▲
             </button>
           )}
-          {isAnchor && allowConfusionAnchors && (
-            <>
-              <button
-                className="confusion-anchor"
-                onClick={() => onConfusionSignal(node.messageId)}
-                aria-label="This topic is confusing"
-              >
-                Confused
-              </button>
-              <button
-                className="confusion-anchor"
-                onClick={() => onOffFocusSignal(node.messageId)}
-                aria-label="This topic is off focus"
-              >
-                Off Focus
-              </button>
-            </>
-          )}
         </div>
 
         <div className="thread-card-row">
@@ -280,18 +295,35 @@ function ThreadItemContent({
             )}
           </div>
           <div className="thread-card-center">
-            {showConfusionRow && allowConfusionRow && !isOffFocus && (
+            {(showConfusionRow || localConfusionSignaled) && allowConfusionRow && !isOffFocus && !localOffFocusSignaled && (
               <div className="thread-confusion-row">
                 <div className="thread-confusion-center">
                   <div className="thread-confusion-line">
                     <span className="thread-confusion-indicator">[ Confused ]</span>
                     <div className="thread-confusion-right">
-                      {resolutionType ? (
-                        <span className="thread-resolution-label">
-                          Resolution: {RESOLUTION_DROPDOWN_LABELS?.[resolutionType] ?? resolutionType}
-                        </span>
+                      {effectiveResolutionType ? (
+                        <div className="thread-resolution-display">
+                          <span className="thread-resolution-label">
+                            Resolution: {RESOLUTION_DROPDOWN_LABELS?.[effectiveResolutionType] ?? effectiveResolutionType}
+                          </span>
+                          {viewerRole === "audience" && (
+                            <button
+                              className="thread-resolution-reopen"
+                              onClick={handleReopenConfusion}
+                              aria-label="Reopen confusion"
+                              title="Click to change resolution"
+                            >
+                              ↻
+                            </button>
+                          )}
+                        </div>
                       ) : (
-                        <select className="thread-resolution-select" defaultValue="">
+                        <select 
+                          className="thread-resolution-select" 
+                          value={localResolutionType || ""}
+                          onChange={handleResolutionChange}
+                          disabled={viewerRole === "trainer"}
+                        >
                           <option value="" disabled hidden>
                             Resolution ▾
                           </option>
@@ -311,7 +343,26 @@ function ThreadItemContent({
               </div>
             )}
 
-            {isOffFocus && allowConfusionRow && (
+            {isAnchor && allowConfusionAnchors && !showConfusionRow && !localConfusionSignaled && !isOffFocus && !localOffFocusSignaled && (
+              <div className="thread-confusion-actions">
+                <button
+                  className={`confusion-anchor ${localConfusionSignaled ? 'active' : ''}`}
+                  onClick={handleConfusionClick}
+                  aria-label="This topic is confusing"
+                >
+                  Confused
+                </button>
+                <button
+                  className={`confusion-anchor ${localOffFocusSignaled ? 'active' : ''}`}
+                  onClick={handleOffFocusClick}
+                  aria-label="This topic is off focus"
+                >
+                  Off Focus
+                </button>
+              </div>
+            )}
+
+            {(isOffFocus || localOffFocusSignaled) && allowConfusionRow && (
               <div className="thread-confusion-row thread-off-focus-row">
                 <span className="thread-off-focus-label">
                   [ {node.labelDisplay ?? "Off Focus"} ]
@@ -364,7 +415,7 @@ function ThreadItemContent({
 
       {repliesVisible && node.replies?.length > 0 && (
         <div className="thread-replies">
-          {node.replies.map((child, index) => (
+          {node.replies.map((child) => (
             <ThreadItem
               key={child.messageId}
               node={child}
