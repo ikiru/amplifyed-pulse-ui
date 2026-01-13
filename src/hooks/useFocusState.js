@@ -34,7 +34,7 @@ export function useFocusState({ emit }) {
    * Handle clearing the current focus
    */
   const handleClearFocus = () => {
-    emit("focus:cleared");
+    emit("focus:clear");
   };
 
   return {

@@ -196,8 +196,6 @@ export default function TrainerView() {
             <SessionHeader
               connectionStatus={connectionStatus}
               sessionIdLabel={sessionIdLabel}
-              showInsights={showInsights}
-              onToggleInsights={handleToggleInsights}
             />
 
             {showInsights && visibleInsights && (
@@ -275,17 +273,60 @@ export default function TrainerView() {
           {/* Session Metadata */}
           <section className="trainer-panel-card">
             <h3 className="trainer-section-heading">Session Info</h3>
-            <p className="trainer-text-muted trainer-panel-note">
-              Session metadata will appear here.
-            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Participants
+                </p>
+                <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600', color: '#222' }}>
+                  {canonicalParticipantCount ?? '—'}
+                </p>
+              </div>
+              
+              <div>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Messages
+                </p>
+                <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600', color: '#222' }}>
+                  {messages.length}
+                </p>
+              </div>
+              
+              <div>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Status
+                </p>
+                <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600', color: connectionStatus === 'connected' ? '#0b5fff' : '#666' }}>
+                  {connectionStatus === 'connected' ? 'Live' : connectionStatus}
+                </p>
+              </div>
+            </div>
           </section>
 
-          {/* Insights Placeholder (read-only) */}
+          {/* Insights Panel with Toggle */}
           <section className="trainer-panel-card">
-            <h3 className="trainer-section-heading">Insights</h3>
-            <p className="trainer-text-muted trainer-panel-note">
-              Insights will appear here after the session.
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 className="trainer-section-heading" style={{ margin: 0 }}>Insights</h3>
+              <button 
+                className="trainer-session-toggle" 
+                onClick={handleToggleInsights}
+                style={{ fontSize: '0.85rem' }}
+              >
+                {showInsights ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            
+            {showInsights && visibleInsights && (
+              <div style={{ marginTop: '12px' }}>
+                <InsightsPanel insights={visibleInsights} />
+              </div>
+            )}
+            
+            {!showInsights && (
+              <p className="trainer-text-muted trainer-panel-note" style={{ marginTop: '12px' }}>
+                Click "Show" to view insights when available.
+              </p>
+            )}
           </section>
         </div>
       </div>
