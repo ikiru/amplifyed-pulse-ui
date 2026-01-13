@@ -19,6 +19,8 @@ import { computePulseSummaryCounts } from "../utils/pulseUtils.js";
 import { useTrainerSocket } from "../hooks/useTrainerSocket.js";
 import { useMessageState } from "../hooks/useMessageState.js";
 import { useFocusState } from "../hooks/useFocusState.js";
+import { useSessionState } from "../hooks/useSessionState.js";
+import { SessionAccessPanel } from "../components/session/SessionAccessPanel.jsx";
 import "./AudienceInput.css";
 import "./TrainerView.css";
 
@@ -80,6 +82,14 @@ export default function TrainerView() {
     setHiddenInsights,
     setConfusionAdvisory,
     setFocus,
+  });
+
+  // Session state hook
+  const { accessCode, participantCount } = useSessionState({
+    socket,
+    emit,
+    onEvent,
+    offEvent,
   });
   // Memoized confusion lookup
   const confusionByRootId = useMemo(() => {
@@ -270,19 +280,17 @@ export default function TrainerView() {
             handleClearFocus={handleClearFocus}
           />
 
-          {/* Session Metadata */}
+          {/* Session Info with Access */}
           <section className="trainer-panel-card">
             <h3 className="trainer-section-heading">Session Info</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Participants
-                </p>
-                <p style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600', color: '#222' }}>
-                  {canonicalParticipantCount ?? '—'}
-                </p>
-              </div>
-              
+            
+            {/* Session Access Code */}
+            <SessionAccessPanel
+              accessCode={accessCode}
+            />
+            
+            {/* Session Metadata */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>
               <div>
                 <p style={{ margin: 0, fontSize: '0.75rem', color: '#666', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Messages

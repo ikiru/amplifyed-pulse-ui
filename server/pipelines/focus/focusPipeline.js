@@ -17,9 +17,31 @@ export function registerFocusHandlers({ io } = {}) {
     });
   }
 
+  /**
+   * Sync focus state to a specific socket (for join/rejoin)
+   * 
+   * @param {Object} socket - Socket.IO socket instance
+   * @param {string} sessionId - Session identifier
+   */
+  function syncFocusState(socket, sessionId) {
+    if (!socket || !sessionId) {
+      return;
+    }
+
+    const focusState = getActiveFocus(sessionId);
+    
+    if (focusState) {
+      socket.emit('focus:update', {
+        sessionId,
+        focus: focusState,
+      });
+    }
+  }
+
   return {
     handleSetFocus,
     handleClearFocus,
     getActiveFocus,
+    syncFocusState,
   };
 }

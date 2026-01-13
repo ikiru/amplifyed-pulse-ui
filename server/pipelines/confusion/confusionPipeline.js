@@ -94,7 +94,7 @@ export function createConfusionPipeline(io) {
       rootMessageId,
       resolutionType,
     }) {
-      // Stage 2 records the trainer’s response to confusion; it never decides whether confusion mattered.
+      // Stage 2 records the trainer's response to confusion; it never decides whether confusion mattered.
       if (!sessionId || !rootMessageId || !resolutionType) {
         return;
       }
@@ -109,6 +109,25 @@ export function createConfusionPipeline(io) {
       }
 
       broadcastSession(io, sessionId, true);
+    },
+    /**
+     * Sync confusion state to a specific socket (for join/rejoin)
+     * 
+     * @param {Object} socket - Socket.IO socket instance
+     * @param {string} sessionId - Session identifier
+     */
+    syncConfusionState(socket, sessionId) {
+      if (!socket || !sessionId) {
+        return;
+      }
+
+      const sessionState = getSessionConfusion(sessionId);
+      const envelopes = buildEnvelopes(sessionState);
+
+      socket.emit('confusion:advisory', {
+        sessionId,
+        threads: envelopes,
+      });
     },
   };
 }

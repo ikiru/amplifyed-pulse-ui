@@ -78,14 +78,16 @@ export default function registerEventRouter(io, socket, pipelines = {}) {
     });
   };
 
-  const sessionId = assignSessionId(socket.sessionId ?? DEFAULT_SESSION_ID);
-  sessionPipeline?.handleJoin({
-    socketId: socket.id,
-    payload: {},
-  });
+  // Assign socket to default session room (for routing) but don't add as participant yet
+  // Participants are only added when they explicitly call session:join with a code
+  const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+  socket.sessionId = sessionId;
+  socket.join(sessionId);
+  
+  // Sync focus state so UI can show current focus (if any)
   syncFocusState(sessionId);
 
-  console.log("[ROUTER] client connected:", socket.id);
+  console.log("[ROUTER] client connected:", socket.id, "- awaiting explicit join");
 
   /**
    * --------------------------------------------------
@@ -138,21 +140,63 @@ socket.on("audience:pulse", (payload = {}) => {
   });
 
   // ----------------------------------------------------
-  // SESSION JOIN (Step 7.2)
-  // Does not alter production behavior until frontend emits.
+  // SESSION JOIN - Enhanced with access code support
   // ----------------------------------------------------
   socket.on("session:join", (payload = {}) => {
-    const nextSessionId = assignSessionId(
-      payload?.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID
-    );
-    syncFocusState(nextSessionId);
+    console.log("[ROUTER] session:join received:", { socketId: socket.id, payload });
 
-    if (sessionPipeline?.handleJoin) {
-      sessionPipeline.handleJoin({
-        socketId: socket.id,
-        payload,
-      });
+    if (!sessionPipeline?.handleJoin) {
+      console.warn("[ROUTER] sessionPipeline.handleJoin not available");
+      return;
     }
+
+    // Call session pipeline to handle join (validates code, adds participant)
+    const result = sessionPipeline.handleJoin({
+      socketId: socket.id,
+      payload,
+    });
+
+    // Handle error
+    if (result.status === 'error') {
+      console.warn("[ROUTER] session:join failed:", result.error);
+      socket.emit('session:error', {
+        error: result.error,
+        message: result.message,
+      });
+      return;
+    }
+
+    // Success - assign session and sync state
+    const { sessionId, accessCode, participant } = result;
+    
+    // Assign socket to session room
+    assignSessionId(sessionId);
+
+    // Sync state from all pipelines
+    if (messagePipeline?.syncSessionState) {
+      messagePipeline.syncSessionState(sessionId);
+    }
+    
+    syncFocusState(sessionId);
+    
+    // Sync confusion state (if available)
+    if (confusionPipeline?.syncConfusionState) {
+      confusionPipeline.syncConfusionState(socket, sessionId);
+    }
+    
+    // Sync pulse state (if available)
+    if (pulsePipeline?.syncPulseState) {
+      pulsePipeline.syncPulseState(socket, sessionId);
+    }
+
+    // Send success response to client
+    socket.emit('session:joined', {
+      sessionId,
+      accessCode,
+      participant,
+    });
+
+    console.log("[ROUTER] session:join success:", { socketId: socket.id, sessionId, accessCode });
   });
 
   socket.on("session:leave", () => {
@@ -180,6 +224,28 @@ socket.on("audience:pulse", (payload = {}) => {
         });
       }
     }
+  });
+
+  // ----------------------------------------------------
+  // SESSION METADATA REQUEST (for trainer view)
+  // ----------------------------------------------------
+  socket.on("session:request_metadata", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    
+    if (!sessionPipeline?.getAccessCode || !sessionPipeline?.getParticipantCount) {
+      return;
+    }
+
+    const accessCode = sessionPipeline.getAccessCode(sessionId);
+    const participantCount = sessionPipeline.getParticipantCount(sessionId);
+
+    console.log(`[ROUTER] session:request_metadata - ${sessionId} → code: ${accessCode}, participants: ${participantCount}`);
+
+    socket.emit('session:metadata', {
+      sessionId,
+      accessCode,
+      participantCount,
+    });
   });
 
   // ----------------------------------------------------
