@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import TrainerView from "./pages/TrainerView.jsx";
 import AudienceInput from "./pages/AudienceInput.jsx";
 import HISTEAdmin from "./pages/HISTEAdmin.jsx";
+import LiveView from "./pages/LiveView.jsx";
 
 /**
  * JoinRedirect Component
@@ -24,6 +25,7 @@ export default function App() {
       <Route path="/trainer" element={<TrainerView />} />
       <Route path="/audience" element={<AudienceInput />} />
       <Route path="/join" element={<JoinRedirect />} />
+      <Route path="/live/:sessionCode" element={<LiveView />} />
       <Route path="/testing/histe" element={<HISTEAdmin />} />
     </Routes>
   );

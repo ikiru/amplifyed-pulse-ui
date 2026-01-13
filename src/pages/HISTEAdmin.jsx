@@ -167,6 +167,13 @@ export default function HISTEAdmin() {
 
       const now = Date.now();
       const timestamps = canonicalMessages
+        .map((msg) => msg.timestamp)
+        .filter(Boolean);
+      const trimmed = timestamps.filter(
+        (ts) => now - ts <= OBSERVATION_WINDOW_MS
+      );
+      messageWindowRef.current = trimmed;
+      setFlowDensity(trimmed.length);
 
       let overlaps = 0;
       for (let i = 1; i < trimmed.length; i += 1) {

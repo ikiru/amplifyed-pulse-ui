@@ -1131,3 +1131,35 @@
   display: block;
   border-radius: 4px;
 }
+
+/* ================================
+   LiveView Button
+   ================================ */
+
+.trainer-liveview-button {
+  width: 100%;
+  margin: 16px 0;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  background: #0b5fff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 200ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.trainer-liveview-button:hover:not(:disabled) {
+  background: #0952d9;
+}
+
+.trainer-liveview-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}

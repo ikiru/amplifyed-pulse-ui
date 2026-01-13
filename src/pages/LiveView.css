@@ -1,0 +1,256 @@
+/* LiveView - Projection-Optimized Display */
+
+/* Shell */
+.liveview-shell {
+  min-height: 100vh;
+  background: #f5f3f0; /* warm cream background */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Reconnecting indicator */
+.liveview-reconnecting {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 500;
+  z-index: 1000;
+}
+
+/* Error state */
+.liveview-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.liveview-error-content {
+  text-align: center;
+  padding: 64px;
+}
+
+.liveview-error-content h1 {
+  font-size: 48px;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.liveview-error-content p {
+  font-size: 24px;
+  color: #4a4a4a;
+}
+
+/* Focus Bar (top, full width) */
+.liveview-focus-bar {
+  background: #fff4e6;
+  border-bottom: 2px solid #e0e0e0;
+  padding: 48px 64px;
+  text-align: center;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.liveview-focus-label {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.liveview-focus-text {
+  font-size: 72px; /* large for projection */
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.2;
+  max-width: 1400px;
+  transition: opacity 400ms ease-in-out;
+}
+
+/* Two-column content */
+.liveview-content {
+  display: grid;
+  grid-template-columns: 35% 65%;
+  flex: 1;
+  gap: 0;
+  min-height: 0;
+}
+
+/* Pulse Zone (left) */
+.liveview-pulse-zone {
+  padding: 32px;
+  border-right: 2px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Message Zone (right) */
+.liveview-message-zone {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.liveview-section-heading {
+  font-size: 32px;
+  font-weight: 600;
+  margin: 0 0 24px 0;
+  color: #1a1a1a;
+}
+
+.liveview-message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden; /* No scrolling on projection */
+  flex: 1;
+  justify-content: flex-end; /* New messages appear at bottom */
+}
+
+.liveview-empty-state {
+  font-size: 24px;
+  color: #999;
+  text-align: center;
+  margin-top: 48px;
+}
+
+/* Override component styles for projection */
+
+/* Pulse Timeline scaling */
+.liveview-shell .pulse-timeline-title {
+  font-size: 32px; /* larger than TrainerView */
+  font-weight: 700;
+}
+
+.liveview-shell .pulse-timeline-current {
+  font-size: 24px;
+}
+
+.liveview-shell .pulse-timeline-scale-label {
+  font-size: 20px;
+}
+
+/* Session Access Panel (below pulse) */
+.liveview-session-access {
+  margin-top: 32px;
+  padding: 24px;
+  background: #ffffff;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.liveview-session-access-label {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.liveview-session-access .session-qr-code {
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.liveview-session-access-code {
+  font-family: 'Courier New', monospace;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #0b5fff;
+  text-align: center;
+}
+
+.liveview-session-access-help {
+  font-size: 16px;
+  color: #666;
+  text-align: center;
+  line-height: 1.5;
+  max-width: 300px;
+}
+
+/* Message text scaling */
+.liveview-shell .message-bubble {
+  font-size: 32px; /* large for distance readability */
+  line-height: 1.4;
+  padding: 16px 20px;
+}
+
+.liveview-shell .message-author {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.liveview-shell .message-timestamp {
+  font-size: 18px;
+}
+
+/* Projection-optimized text scaling - don't override component functionality */
+.liveview-shell .trainer-vote-ledger {
+  font-size: 20px; /* Scale vote counts for projection */
+}
+
+.liveview-shell .thread-message-label {
+  font-size: 18px; /* Scale badges for projection */
+}
+
+.liveview-shell .thread-confusion-row {
+  font-size: 16px; /* Scale confusion indicators for projection */
+}
+
+/* Animations */
+.liveview-focus-text {
+  transition: opacity 400ms ease-in-out;
+}
+
+.liveview-message-list .message-bubble {
+  animation: fadeIn 400ms ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* No scrollbar needed - messages fit on screen for projection */
+
+/* Responsive adjustments for 4:3 aspect ratio */
+@media (max-aspect-ratio: 4/3) {
+  .liveview-content {
+    grid-template-columns: 40% 60%;
+  }
+}
+
+/* Ensure high contrast for projection */
+.liveview-shell * {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
