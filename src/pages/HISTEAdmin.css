@@ -354,3 +354,9 @@
   font-size: 0.9rem;
   color: #6b7280;
 }
+
+.focus-text {
+  font-style: italic;
+  color: #1f2937;
+  font-weight: 500;
+}

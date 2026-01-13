@@ -50,6 +50,7 @@ export default function HISTEAdmin() {
   const [overlapCount, setOverlapCount] = useState(0);
   const [silenceDuration, setSilenceDuration] = useState(0);
   const [driftScore, setDriftScore] = useState(null);
+  const [currentFocus, setCurrentFocus] = useState(null);
   const messageWindowRef = useRef([]);
 
   const getCurrentAdjustments = () => ({ ...adjustmentsRef.current });
@@ -306,6 +307,31 @@ export default function HISTEAdmin() {
     };
   }, [onEvent, offEvent]);
 
+  // Focus observation listener
+  useEffect(() => {
+    if (!onEvent || !offEvent) return;
+
+    const handleFocusUpdate = (payload) => {
+      if (payload?.focus?.text) {
+        setCurrentFocus(payload.focus.text);
+      } else if (payload?.text) {
+        setCurrentFocus(payload.text);
+      }
+    };
+
+    const handleFocusCleared = () => {
+      setCurrentFocus(null);
+    };
+
+    onEvent("focus:update", handleFocusUpdate);
+    onEvent("focus:cleared", handleFocusCleared);
+    
+    return () => {
+      offEvent("focus:update", handleFocusUpdate);
+      offEvent("focus:cleared", handleFocusCleared);
+    };
+  }, [onEvent, offEvent]);
+
   const allScenarios = [...OFFICIAL_SCENARIOS, ...draftScenarios];
   const draftScenarioIds = new Set(draftScenarios.map((scenario) => scenario.id));
 
@@ -402,6 +428,7 @@ export default function HISTEAdmin() {
     setOverlapCount(0);
     setSilenceDuration(0);
     setDriftScore(null);
+    setCurrentFocus(null);
     messageWindowRef.current = [];
     adjustmentsRef.current = {
       roomSize: 35,
@@ -768,6 +795,12 @@ export default function HISTEAdmin() {
                 style={{ width: `${driftPercent}%` }}
               />
             </div>
+          </div>
+          <div className="observation-card">
+            <span className="observation-label">Current Focus</span>
+            <span className="observation-value focus-text">
+              {currentFocus || "— No Focus Set —"}
+            </span>
           </div>
           <p className="readonly-label">(Read-only)</p>
         </section>
