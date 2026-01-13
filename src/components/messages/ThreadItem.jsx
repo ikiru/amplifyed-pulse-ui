@@ -1,50 +1,23 @@
+/**
+ * ThreadItem Component
+ * 
+ * Renders a threaded message with support for:
+ * - Nested replies (hierarchical indentation)
+ * - Voting (upvote/downvote)
+ * - Confusion signals
+ * - Reply composition
+ * - Collapse/expand for anchors
+ * 
+ * Used by both TrainerView and AudienceInput for displaying message threads.
+ */
+
 import { useEffect, useRef, useState } from "react";
-import "./AudienceInput.css";
-export function buildMessageTree(messages) {
-  const map = {};
-  const roots = [];
-
-  messages.forEach((msg) => {
-    if (!msg || typeof msg.messageId !== "string") return;
-    map[msg.messageId] = { ...msg, replies: [] };
-  });
-
-  messages.forEach((msg) => {
-    if (!msg || typeof msg.messageId !== "string") return;
-    if (msg.parentMessageId && map[msg.parentMessageId]) {
-      map[msg.parentMessageId].replies.push(map[msg.messageId]);
-    } else if (map[msg.messageId]) {
-      roots.push(map[msg.messageId]);
-    }
-  });
-
-  return roots;
-}
 
 const RESOLUTION_DROPDOWN_LABELS = {
   clarified: "Clarified",
   example: "Example",
   reframed: "Reframed",
 };
-
-export function ConfusionMeter({ confusionScore }) {
-  const MAX_BARS = 8;
-  const normalizedScore = confusionScore ?? 0;
-  const filled = Math.max(0, Math.min(normalizedScore, MAX_BARS));
-
-  return (
-    <div className="confusion-meter" aria-hidden="true">
-      <div className="confusion-bars">
-        {Array.from({ length: MAX_BARS }).map((_, i) => (
-          <span
-            key={i}
-            className={i < filled ? "bar filled" : "bar empty"}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export function ThreadItem(props) {
   const depth = props.depth ?? 0;
@@ -364,7 +337,7 @@ function ThreadItemContent({
 
       {repliesVisible && node.replies?.length > 0 && (
         <div className="thread-replies">
-          {node.replies.map((child, index) => (
+          {node.replies.map((child) => (
             <ThreadItem
               key={child.messageId}
               node={child}

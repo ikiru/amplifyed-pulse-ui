@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
 import { adaptMessage } from "./messageHelpers.js";
-import { buildMessageTree, ThreadItem } from "./messageThread.jsx";
-import "./AudienceInput.css"; // optional, if you split styles later
+import { buildMessageTree } from "../utils/messageUtils.js";
+import { ThreadItem } from "../components/messages/ThreadItem.jsx";
+import { MessageInputBar } from "../components/messages/MessageInputBar.jsx";
+import "./AudienceInput.css";
 
 const pulseOptions = [
   { value: "frustrated", label: "Frustrated" },
@@ -192,15 +194,12 @@ export default function AudienceInput() {
       </div>
 
       {/* Message Input — Sticky Bottom */}
-      <form className="message-input-bar" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Type a message..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-        />
-        <button type="submit">Send</button>
-      </form>
+      <MessageInputBar
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onSubmit={handleSubmit}
+        placeholder="Type a message..."
+      />
     </div>
   );
 }
