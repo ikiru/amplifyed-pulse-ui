@@ -8,8 +8,6 @@ import React, {
 } from "react";
 import { io } from "socket.io-client";
 import { useDevToolsBus } from "../utils/useDevToolsBus.js";
-import { useInteractionIntents } from "../state/useInteractionIntents";
-import { useEmotionStream } from "../state/useEmotionStream";
 
 
 export const SocketContext = createContext(null);
@@ -47,12 +45,12 @@ export function SocketProvider({ children }) {
     const socket = socketRef.current;
 
     // ------------------------------------------------------
-    // PHASE 2.10: TEMPORARY DEBUG EXPOSURE
+    // PHASE 2.10: DEBUG EXPOSURE (Development Only)
     // Lets the browser inspect the live socket instance:
     //    window.__SOCKET__
-    // Remove this after baseline validation passes.
+    // Only available in development mode for debugging.
     // ------------------------------------------------------
-    if (typeof window !== "undefined") {
+    if (process.env.NODE_ENV !== 'production' && typeof window !== "undefined") {
       window.__SOCKET__ = socket;
     }
     const handleConnect = () => {

@@ -1,7 +1,7 @@
 /**
- * TrainerThreadRow Component
+ * MessageThreadRow Component
  * 
- * Renders a single thread row in the TrainerView message stream with:
+ * Renders a single message thread row with:
  * - SVG connector lines showing reply relationships
  * - Thread color theming (idea-bound color palette)
  * - Lineage gutter for visual thread grouping
@@ -9,23 +9,25 @@
  * 
  * This component manages the complex SVG path calculations for drawing
  * visual connectors between parent messages and their replies.
+ * 
+ * Role-agnostic: displays threads from any participant role.
  */
 
 import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { ThreadItem } from "../messages/ThreadItem.jsx";
 import { THREAD_COLOR_PALETTE } from "../../utils/threadUtils.js";
 
-export function TrainerThreadRow({
+export function MessageThreadRow({
   root,
   confusion,
   confusionByRootId,
   voteTotals,
   voteTotalsMap,
-  trainerReplyToId,
-  setTrainerReplyToId,
-  trainerReplyDrafts,
-  setTrainerReplyDrafts,
-  handleTrainerReplySubmit,
+  replyToId,
+  setReplyToId,
+  replyDrafts,
+  setReplyDrafts,
+  handleReplySubmit,
   threadColor,
 }) {
   const rowRef = useRef(null);
@@ -166,11 +168,11 @@ export function TrainerThreadRow({
         <ThreadItem
           node={root}
           depth={0}
-          replyToId={trainerReplyToId}
-          setReplyToId={setTrainerReplyToId}
-          replyDrafts={trainerReplyDrafts}
-          setReplyDrafts={setTrainerReplyDrafts}
-          handleSubmitReply={handleTrainerReplySubmit}
+        replyToId={replyToId}
+        setReplyToId={setReplyToId}
+        replyDrafts={replyDrafts}
+        setReplyDrafts={setReplyDrafts}
+        handleSubmitReply={handleReplySubmit}
           voteTotals={voteTotals}
           voteTotalsMap={voteTotalsMap}
           confusionByRootId={confusionByRootId}

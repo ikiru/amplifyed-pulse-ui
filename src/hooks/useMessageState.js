@@ -3,17 +3,19 @@ import { useState } from "react";
 /**
  * useMessageState
  * 
- * Manages message-related state for TrainerView:
+ * Manages message-related state:
  * - Messages array
  * - Vote totals per message
  * - Reply drafts (message ID → draft text)
  * - Current reply target (which message is being replied to)
- * - Trainer input (top-level message input)
+ * - Message input (top-level message input)
  * 
  * Provides handlers for:
  * - Submitting top-level messages
  * - Submitting replies to existing messages
  * - Managing reply drafts
+ * 
+ * Role-agnostic: works for any participant role.
  * 
  * @param {object} params
  * @param {function} params.emit - Socket emit function from useSocket
@@ -21,18 +23,18 @@ import { useState } from "react";
 export function useMessageState({ emit }) {
   const [messages, setMessages] = useState([]);
   const [voteTotals, setVoteTotals] = useState({});
-  const [trainerInput, setTrainerInput] = useState("");
-  const [trainerReplyToId, setTrainerReplyToId] = useState(null);
-  const [trainerReplyDrafts, setTrainerReplyDrafts] = useState({});
+  const [messageInput, setMessageInput] = useState("");
+  const [replyToId, setReplyToId] = useState(null);
+  const [replyDrafts, setReplyDrafts] = useState({});
 
   /**
-   * Emit a trainer message (either top-level or reply)
+   * Emit a message (either top-level or reply)
    * @param {object} params
    * @param {string} params.text - Message text
    * @param {string|null} params.parentMessageId - Parent message ID for replies
    * @returns {boolean} - true if message was sent, false otherwise
    */
-  const emitTrainerMessage = ({ text, parentMessageId = null }) => {
+  const emitMessage = ({ text, parentMessageId = null }) => {
     const trimmed = text?.trim();
     if (!trimmed) {
       return false;
@@ -47,30 +49,30 @@ export function useMessageState({ emit }) {
   };
 
   /**
-   * Handle submission of top-level trainer message
+   * Handle submission of top-level message
    */
-  const handleTrainerSubmit = (event) => {
+  const handleMessageSubmit = (event) => {
     event.preventDefault();
-    if (emitTrainerMessage({ text: trainerInput })) {
-      setTrainerInput("");
+    if (emitMessage({ text: messageInput })) {
+      setMessageInput("");
     }
   };
 
   /**
    * Handle submission of reply to a specific message
    */
-  const handleTrainerReplySubmit = (parentMessageId) => {
-    const draft = trainerReplyDrafts[parentMessageId] ?? "";
-    if (!emitTrainerMessage({ text: draft, parentMessageId })) {
+  const handleReplySubmit = (parentMessageId) => {
+    const draft = replyDrafts[parentMessageId] ?? "";
+    if (!emitMessage({ text: draft, parentMessageId })) {
       return;
     }
 
-    setTrainerReplyDrafts((prev) => {
+    setReplyDrafts((prev) => {
       const next = { ...prev };
       delete next[parentMessageId];
       return next;
     });
-    setTrainerReplyToId(null);
+    setReplyToId(null);
   };
 
   return {
@@ -79,15 +81,15 @@ export function useMessageState({ emit }) {
     setMessages,
     voteTotals,
     setVoteTotals,
-    trainerInput,
-    setTrainerInput,
-    trainerReplyToId,
-    setTrainerReplyToId,
-    trainerReplyDrafts,
-    setTrainerReplyDrafts,
+    messageInput,
+    setMessageInput,
+    replyToId,
+    setReplyToId,
+    replyDrafts,
+    setReplyDrafts,
 
     // Handlers
-    handleTrainerSubmit,
-    handleTrainerReplySubmit,
+    handleMessageSubmit,
+    handleReplySubmit,
   };
 }

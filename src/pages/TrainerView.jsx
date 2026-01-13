@@ -6,7 +6,7 @@ import AudienceDriftMeter, {
 import { buildMessageTree } from "../utils/messageUtils.js";
 import { PulseSummary } from "../components/pulse/PulseSummary.jsx";
 import { PulseTimeline } from "../components/pulse/PulseTimeline.jsx";
-import { TrainerThreadRow } from "../components/threads/TrainerThreadRow.jsx";
+import { MessageThreadRow } from "../components/threads/MessageThreadRow.jsx";
 import { MessageInputBar } from "../components/messages/MessageInputBar.jsx";
 import { InsightsPanel } from "../components/insights/InsightsPanel.jsx";
 import { ConfusionPanel } from "../components/confusion/ConfusionPanel.jsx";
@@ -58,14 +58,14 @@ export default function TrainerView() {
     setMessages,
     voteTotals,
     setVoteTotals,
-    trainerInput,
-    setTrainerInput,
-    trainerReplyToId,
-    setTrainerReplyToId,
-    trainerReplyDrafts,
-    setTrainerReplyDrafts,
-    handleTrainerSubmit,
-    handleTrainerReplySubmit,
+    messageInput,
+    setMessageInput,
+    replyToId,
+    setReplyToId,
+    replyDrafts,
+    setReplyDrafts,
+    handleMessageSubmit,
+    handleReplySubmit,
   } = useMessageState({ emit });
 
   // Socket event subscriptions hook
@@ -234,7 +234,7 @@ export default function TrainerView() {
               {threadConfusions.length ? (
                 <div className="message-stream trainer-message-stream">
                   {threadConfusions.map(({ root, confusion, threadColor }) => (
-                    <TrainerThreadRow
+                    <MessageThreadRow
                       key={root.messageId}
                       root={root}
                       threadColor={threadColor}
@@ -242,11 +242,11 @@ export default function TrainerView() {
                       confusionByRootId={confusionByRootId}
                       voteTotals={voteTotals[root.messageId]}
                       voteTotalsMap={voteTotals}
-                      trainerReplyToId={trainerReplyToId}
-                      setTrainerReplyToId={setTrainerReplyToId}
-                      trainerReplyDrafts={trainerReplyDrafts}
-                      setTrainerReplyDrafts={setTrainerReplyDrafts}
-                      handleTrainerReplySubmit={handleTrainerReplySubmit}
+                      replyToId={replyToId}
+                      setReplyToId={setReplyToId}
+                      replyDrafts={replyDrafts}
+                      setReplyDrafts={setReplyDrafts}
+                      handleReplySubmit={handleReplySubmit}
                     />
                   ))}
                 </div>
@@ -255,9 +255,9 @@ export default function TrainerView() {
               )}
 
               <MessageInputBar
-                value={trainerInput}
-                onChange={(event) => setTrainerInput(event.target.value)}
-                onSubmit={handleTrainerSubmit}
+                value={messageInput}
+                onChange={(event) => setMessageInput(event.target.value)}
+                onSubmit={handleMessageSubmit}
                 placeholder="Type a message..."
               />
             </div>
