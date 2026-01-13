@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
 import AudienceDriftMeter, {
   createNeutralAudienceDriftProjection,
@@ -167,24 +167,31 @@ export default function TrainerView() {
     }
   }, [canonicalParticipantCount]);
 
-  const messageRoots = buildMessageTree(messages);
-  const rootColorAssignments = assignThreadColors(messageRoots);
-  const threadConfusions = messageRoots.map((root) => ({
-    root,
-    confusion: summarizeThreadConfusion(root, confusionByRootId),
-    threadColor: rootColorAssignments.get(root.messageId),
-  }));
-  const confusionThreads = threadConfusions.filter(
-    ({ confusion }) => confusion.showConfusionRow
-  );
-  const canonicalParticipants =
-    livePulse?.participants && typeof livePulse.participants === "object"
+  const messageRoots = useMemo(() => buildMessageTree(messages), [messages]);
+  const rootColorAssignments = useMemo(() => assignThreadColors(messageRoots), [messageRoots]);
+  const threadConfusions = useMemo(() => {
+    return messageRoots.map((root) => ({
+      root,
+      confusion: summarizeThreadConfusion(root, confusionByRootId),
+      threadColor: rootColorAssignments.get(root.messageId),
+    }));
+  }, [messageRoots, confusionByRootId, rootColorAssignments]);
+  const confusionThreads = useMemo(() => {
+    return threadConfusions.filter(
+      ({ confusion }) => confusion.showConfusionRow
+    );
+  }, [threadConfusions]);
+  const canonicalParticipants = useMemo(() => {
+    return livePulse?.participants && typeof livePulse.participants === "object"
       ? livePulse.participants
       : null;
-  const summaryCounts = computePulseSummaryCounts(
-    livePulse,
-    canonicalParticipants
-  );
+  }, [livePulse]);
+  const summaryCounts = useMemo(() => {
+    return computePulseSummaryCounts(
+      livePulse,
+      canonicalParticipants
+    );
+  }, [livePulse, canonicalParticipants]);
   const summaryVoteTotals = summaryCounts;
   const summaryVoteCount =
     summaryCounts.engaged +
@@ -193,10 +200,14 @@ export default function TrainerView() {
   const timelineParticipantsCount = canonicalParticipantCount;
   const sessionIdLabel = socket?.sessionId ?? "session:default";
 
-  const handleToggleInsights = () => {
+  const handleToggleInsights = useCallback(() => {
     setVisibleInsights(hiddenInsights);
     setShowInsights((v) => !v);
-  };
+  }, [hiddenInsights]);
+
+  const handleMessageInputChange = useCallback((event) => {
+    setMessageInput(event.target.value);
+  }, []);
 
   return (
     <div className="trainer-view-shell">
@@ -212,7 +223,6 @@ export default function TrainerView() {
               <InsightsPanel insights={visibleInsights} />
             )}
 
-            {console.log("[WIRE_TEST][METER_RENDER]", { driftProjection })}
             <AudienceDriftMeter projection={driftProjection} />
 
             <ConfusionPanel confusionThreads={confusionThreads} />
@@ -264,7 +274,7 @@ export default function TrainerView() {
 
               <MessageInputBar
                 value={messageInput}
-                onChange={(event) => setMessageInput(event.target.value)}
+                onChange={handleMessageInputChange}
                 onSubmit={handleMessageSubmit}
                 placeholder="Type a message..."
               />
@@ -288,6 +298,21 @@ export default function TrainerView() {
             <SessionAccessPanel
               accessCode={accessCode}
             />
+            
+            {/* Open LiveView Button */}
+            <button
+              className="trainer-liveview-button"
+              onClick={() => {
+                if (accessCode) {
+                  const liveViewUrl = `/live/${accessCode}`;
+                  window.open(liveViewUrl, '_blank', 'width=1920,height=1080');
+                }
+              }}
+              disabled={!accessCode || connectionStatus !== 'connected'}
+              title="Open projection display for in-room audience"
+            >
+              📺 Open LiveView
+            </button>
             
             {/* Session Metadata */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>

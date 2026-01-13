@@ -17,7 +17,7 @@ import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { ThreadItem } from "../messages/ThreadItem.jsx";
 import { THREAD_COLOR_PALETTE } from "../../utils/threadUtils.js";
 
-export function MessageThreadRow({
+function MessageThreadRowComponent({
   root,
   confusion,
   confusionByRootId,
@@ -205,3 +205,5 @@ export function MessageThreadRow({
     </div>
   );
 }
+
+export const MessageThreadRow = React.memo(MessageThreadRowComponent);

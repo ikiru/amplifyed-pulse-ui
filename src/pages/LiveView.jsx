@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useSocket } from "../socket/SocketContext.jsx";
 import { useLiveViewSocket } from "../hooks/useLiveViewSocket.js";
@@ -45,8 +45,8 @@ export default function LiveView() {
   });
 
   // Build message tree and confusion map (same as TrainerView)
-  const messageRoots = buildMessageTree(messages);
-  const rootColorAssignments = assignThreadColors(messageRoots);
+  const messageRoots = useMemo(() => buildMessageTree(messages), [messages]);
+  const rootColorAssignments = useMemo(() => assignThreadColors(messageRoots), [messageRoots]);
   
   // Build confusion lookup map (same as TrainerView)
   const confusionByRootId = useMemo(() => {
@@ -61,11 +61,13 @@ export default function LiveView() {
   }, [confusionAdvisory]);
 
   // Compute confusion for each thread (same as TrainerView)
-  const threadConfusions = messageRoots.map((root) => ({
-    root,
-    confusion: summarizeThreadConfusion(root, confusionByRootId),
-    threadColor: rootColorAssignments.get(root.messageId),
-  }));
+  const threadConfusions = useMemo(() => {
+    return messageRoots.map((root) => ({
+      root,
+      confusion: summarizeThreadConfusion(root, confusionByRootId),
+      threadColor: rootColorAssignments.get(root.messageId),
+    }));
+  }, [messageRoots, confusionByRootId, rootColorAssignments]);
 
   // Display all messages (never delete messages - they can be collapsed)
   const displayMessages = threadConfusions;
@@ -81,6 +83,9 @@ export default function LiveView() {
       0
     );
   }, [livePulse]);
+
+  // Stable noop callbacks for read-only LiveView (no interaction handlers needed)
+  const noop = useCallback(() => {}, []);
 
   // Error state: no session code
   if (!sessionCode) {
@@ -149,10 +154,10 @@ export default function LiveView() {
                   voteTotals={voteTotals[root.messageId]}
                   voteTotalsMap={voteTotals}
                   replyToId={null}
-                  setReplyToId={() => {}}
+                  setReplyToId={noop}
                   replyDrafts={{}}
-                  setReplyDrafts={() => {}}
-                  handleReplySubmit={() => {}}
+                  setReplyDrafts={noop}
+                  handleReplySubmit={noop}
                 />
               ))}
             </div>

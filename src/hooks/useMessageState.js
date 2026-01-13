@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 /**
  * useMessageState
@@ -34,7 +34,7 @@ export function useMessageState({ emit }) {
    * @param {string|null} params.parentMessageId - Parent message ID for replies
    * @returns {boolean} - true if message was sent, false otherwise
    */
-  const emitMessage = ({ text, parentMessageId = null }) => {
+  const emitMessage = useCallback(({ text, parentMessageId = null }) => {
     const trimmed = text?.trim();
     if (!trimmed) {
       return false;
@@ -46,22 +46,22 @@ export function useMessageState({ emit }) {
     });
 
     return true;
-  };
+  }, [emit]);
 
   /**
    * Handle submission of top-level message
    */
-  const handleMessageSubmit = (event) => {
+  const handleMessageSubmit = useCallback((event) => {
     event.preventDefault();
     if (emitMessage({ text: messageInput })) {
       setMessageInput("");
     }
-  };
+  }, [messageInput, emitMessage, setMessageInput]);
 
   /**
    * Handle submission of reply to a specific message
    */
-  const handleReplySubmit = (parentMessageId) => {
+  const handleReplySubmit = useCallback((parentMessageId) => {
     const draft = replyDrafts[parentMessageId] ?? "";
     if (!emitMessage({ text: draft, parentMessageId })) {
       return;
@@ -73,7 +73,7 @@ export function useMessageState({ emit }) {
       return next;
     });
     setReplyToId(null);
-  };
+  }, [replyDrafts, emitMessage, setReplyDrafts, setReplyToId]);
 
   return {
     // State

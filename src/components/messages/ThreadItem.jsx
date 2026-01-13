@@ -11,7 +11,7 @@
  * Used by both TrainerView and AudienceInput for displaying message threads.
  */
 
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 const RESOLUTION_DROPDOWN_LABELS = {
   clarified: "Clarified",
@@ -19,7 +19,7 @@ const RESOLUTION_DROPDOWN_LABELS = {
   reframed: "Reframed",
 };
 
-export function ThreadItem(props) {
+function ThreadItemComponent(props) {
   const depth = props.depth ?? 0;
   if (depth === 0) {
     return <AnchorThreadItem {...props} />;
@@ -27,6 +27,8 @@ export function ThreadItem(props) {
 
   return <ThreadItemContent {...props} />;
 }
+
+export const ThreadItem = React.memo(ThreadItemComponent);
 
 function AnchorThreadItem(props) {
   const [isCollapsed, setIsCollapsed] = useState(false);

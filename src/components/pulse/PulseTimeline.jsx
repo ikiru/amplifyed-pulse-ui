@@ -12,12 +12,12 @@
  * - Handles pre-session / zero-participant states gracefully
  */
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 
 const VISIBLE_WINDOW_MS = 60_000; // Show roughly one minute of data in the visual "cardiac monitor" window.
 const TRACE_ENABLED = false;
 
-export function PulseTimeline(props) {
+function PulseTimelineComponent(props) {
   const {
     eventLog = [],
     participantsCount,
@@ -92,34 +92,36 @@ export function PulseTimeline(props) {
     frustrated: -1,
   };
 
-  const normalizedEvents = (Array.isArray(eventLog) ? eventLog : [])
-    .map((entry, index) => {
-      if (!entry) {
-        return null;
-      }
-
-      const rawValue =
-        typeof entry.value === "number"
-          ? entry.value
-          : canonicalPulseMap[entry.value];
-      if (
-        rawValue === null ||
-        rawValue === undefined ||
-        (rawValue !== 1 && rawValue !== 0 && rawValue !== -1)
-      ) {
-        return null;
-      }
-
-      return {
-        ts: entry.ts ?? entry.timestamp ?? Date.now() + index,
-        value: rawValue,
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.ts - b.ts);
-
   const [baselineStartTs] = useState(() => Date.now());
   const [nowTs, setNowTs] = useState(() => Date.now());
+
+  const normalizedEvents = useMemo(() => {
+    return (Array.isArray(eventLog) ? eventLog : [])
+      .map((entry, index) => {
+        if (!entry) {
+          return null;
+        }
+
+        const rawValue =
+          typeof entry.value === "number"
+            ? entry.value
+            : canonicalPulseMap[entry.value];
+        if (
+          rawValue === null ||
+          rawValue === undefined ||
+          (rawValue !== 1 && rawValue !== 0 && rawValue !== -1)
+        ) {
+          return null;
+        }
+
+        return {
+          ts: entry.ts ?? entry.timestamp ?? Date.now() + index,
+          value: rawValue,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.ts - b.ts);
+  }, [eventLog]);
 
   useEffect(() => {
     let active = true;
@@ -138,10 +140,12 @@ export function PulseTimeline(props) {
     };
   }, []);
 
-  const timelineEntries = [
-    { ts: baselineStartTs, value: 0 },
-    ...normalizedEvents,
-  ];
+  const timelineEntries = useMemo(() => {
+    return [
+      { ts: baselineStartTs, value: 0 },
+      ...normalizedEvents,
+    ];
+  }, [normalizedEvents, baselineStartTs]);
 
   const participantScale = scale;
   // displayCount bottoms out at 1 so a visible ± range exists even with zero/missing participants, and the left labels are strictly diagnostics for verifying that participant-based scaling.
@@ -150,25 +154,28 @@ export function PulseTimeline(props) {
   const maxY = displayCount;
   const safeScale = displayCount;
 
-  const timelinePoints = [];
-  const startTs = timelineEntries[0]?.ts ?? Date.now();
-  timelinePoints.push({ ts: startTs, netValue: 0 });
+  const timelinePoints = useMemo(() => {
+    const points = [];
+    const startTs = timelineEntries[0]?.ts ?? Date.now();
+    points.push({ ts: startTs, netValue: 0 });
 
-  let previousVote = 0;
-  let netValueTotal = 0;
+    let previousVote = 0;
+    let netValueTotal = 0;
 
-  for (let i = 1; i < timelineEntries.length; i += 1) {
-    const entry = timelineEntries[i];
-    const delta = entry.value - previousVote;
-    netValueTotal += delta;
+    for (let i = 1; i < timelineEntries.length; i += 1) {
+      const entry = timelineEntries[i];
+      const delta = entry.value - previousVote;
+      netValueTotal += delta;
 
-    timelinePoints.push({
-      ts: entry.ts,
-      netValue: netValueTotal,
-    });
+      points.push({
+        ts: entry.ts,
+        netValue: netValueTotal,
+      });
 
-    previousVote = entry.value;
-  }
+      previousVote = entry.value;
+    }
+    return points;
+  }, [timelineEntries]);
 
   const width =
     Math.max(360, Math.max(normalizedEvents.length - 1, 0) * 48 + 80);
@@ -324,3 +331,5 @@ export function PulseTimeline(props) {
     </div>
   );
 }
+
+export const PulseTimeline = React.memo(PulseTimelineComponent);
