@@ -33,16 +33,6 @@ export default function HISTEAdmin() {
   const [showJson, setShowJson] = useState(false);
   const [draftScenarios, setDraftScenarios] = useState([]);
   const [histeState, setHisteState] = useState(STATE_PAGE_LOADED);
-  const [roomSize, setRoomSize] = useState(35);
-  const [conversationTempo, setConversationTempo] = useState(0.5);
-  const [flowStability, setFlowStability] = useState(0.5);
-  const [surfacingSpeed, setSurfacingSpeed] = useState(0.5);
-  const adjustmentsRef = useRef({
-    roomSize: 35,
-    conversationTempo: 0.5,
-    flowStability: 0.5,
-    surfacingSpeed: 0.5,
-  });
   const draftFileInputRef = useRef(null);
   const { onEvent, offEvent, emit, socket } = useSocket();
   const [draftUploadError, setDraftUploadError] = useState(null);
@@ -53,18 +43,7 @@ export default function HISTEAdmin() {
   const [currentFocus, setCurrentFocus] = useState(null);
   const messageWindowRef = useRef([]);
 
-  const getCurrentAdjustments = () => ({ ...adjustmentsRef.current });
-
-  const updateAdjustment = (field, setter, value) => {
-    const numericValue = Number(value);
-    adjustmentsRef.current = {
-      ...adjustmentsRef.current,
-      [field]: numericValue,
-    };
-    setter(numericValue);
-  };
-
-  const handleStart = async (getAdjustments) => {
+  const handleStart = async () => {
     console.log('[HISTE-ADMIN-DEBUG] handleStart called, isRunning:', isRunning, 'selectedScenario:', selectedScenario?.id);
     if (isRunning) {
       console.log('[HISTE-ADMIN-DEBUG] Already running, returning');
@@ -75,7 +54,6 @@ export default function HISTEAdmin() {
       await start({
         serverUrl: SERVER_URL,
         scenario: selectedScenario?.json ?? undefined,
-        getAdjustments,
       });
       console.log('[HISTE-ADMIN-DEBUG] start() completed successfully');
       setIsRunning(true);
@@ -380,7 +358,7 @@ export default function HISTEAdmin() {
       console.log('[HISTE-ADMIN-DEBUG] Not armed, returning');
       return;
     }
-    const started = await handleStart(getCurrentAdjustments);
+    const started = await handleStart();
     console.log('[HISTE-ADMIN-DEBUG] handleStart returned:', started);
     if (started) {
       setHisteState(STATE_SIMULATION_RUNNING);
@@ -433,16 +411,6 @@ export default function HISTEAdmin() {
     setDriftScore(null);
     setCurrentFocus(null);
     messageWindowRef.current = [];
-    adjustmentsRef.current = {
-      roomSize: 35,
-      conversationTempo: 0.5,
-      flowStability: 0.5,
-      surfacingSpeed: 0.5,
-    };
-    setRoomSize(35);
-    setConversationTempo(0.5);
-    setFlowStability(0.5);
-    setSurfacingSpeed(0.5);
   };
 
   const scenarioNameLabel = selectedScenario
@@ -661,93 +629,6 @@ export default function HISTEAdmin() {
             >
               Clear Session
             </button>
-          </div>
-          <div className="runtime-adjustments">
-            <div className="runtime-heading">
-              <p>Runtime Adjustments</p>
-              <span>(Applies to future behavior only)</span>
-            </div>
-            <div className="adjustment-row">
-              <label htmlFor="room-size">Room Size</label>
-              <input
-                id="room-size"
-                className="runtime-slider"
-                type="range"
-                min="6"
-                max="50"
-                value={roomSize}
-                onChange={(event) =>
-                  updateAdjustment("roomSize", setRoomSize, event.target.value)
-                }
-              />
-              <span className="runtime-value">{roomSize}</span>
-            </div>
-            <div className="adjustment-row">
-              <label htmlFor="conversation-tempo">Conversation Tempo</label>
-              <input
-                id="conversation-tempo"
-                className="runtime-slider"
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={conversationTempo}
-                onChange={(event) =>
-                  updateAdjustment(
-                    "conversationTempo",
-                    setConversationTempo,
-                    event.target.value
-                  )
-                }
-              />
-              <span className="runtime-value">
-                {conversationTempo.toFixed(2)}
-              </span>
-            </div>
-            <div className="adjustment-row">
-              <label htmlFor="flow-stability">Flow Stability</label>
-              <input
-                id="flow-stability"
-                className="runtime-slider"
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={flowStability}
-                onChange={(event) =>
-                  updateAdjustment(
-                    "flowStability",
-                    setFlowStability,
-                    event.target.value
-                  )
-                }
-              />
-              <span className="runtime-value">
-                {flowStability.toFixed(2)}
-              </span>
-            </div>
-            <div className="adjustment-row">
-              <label htmlFor="surfacing-speed">Surfacing Speed</label>
-              <input
-                id="surfacing-speed"
-                className="runtime-slider"
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={surfacingSpeed}
-                onChange={(event) =>
-                  updateAdjustment(
-                    "surfacingSpeed",
-                    setSurfacingSpeed,
-                    event.target.value
-                  )
-                }
-              />
-              <span className="runtime-value">
-                {surfacingSpeed.toFixed(2)}
-              </span>
-            </div>
           </div>
           <div className="placeholder">Simulation Timeline (placeholder)</div>
         </section>

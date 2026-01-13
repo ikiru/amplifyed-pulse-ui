@@ -35,7 +35,7 @@ const createSocket = (serverUrl, accessCode) =>
     this.emit("session:join", { accessCode, role: 'audience' });
   });
 
-export async function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
+export async function runScenario({ scenario = {}, serverUrl } = {}) {
   console.log('[HISTE-DEBUG] runScenario called with:', { 
     participantCount: scenario.participants?.length,
     messageCount: scenario.messages?.length,
@@ -159,13 +159,6 @@ export async function runScenario({ scenario = {}, serverUrl, getAdjustments } =
       );
     }
   }
-
-  const getLatestAdjustments = () => {
-    if (typeof getAdjustments === "function") {
-      return getAdjustments();
-    }
-    return {};
-  };
 
   /**
    * Schedule focus events from scenario
