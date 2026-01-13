@@ -1,6 +1,10 @@
 {
   "id": "real-world-multi-thread-100",
   "name": "Real World Multi-Threaded Discussion (100 messages)",
+  "participantsRange": "6",
+  "tempo": "Workshop",
+  "flow": "Multi-threaded with consolidation",
+  "surfacing": "Progressive",
   "participants": [
     { "id": "p1" },
     { "id": "p2" },
@@ -8,6 +12,9 @@
     { "id": "p4" },
     { "id": "p5" },
     { "id": "p6" }
+  ],
+  "focusEvents": [
+    { "delayMs": 0, "action": "set", "text": "Establishing ground rules for respectful disagreement" }
   ],
   "messages": [
     { "id": "m1", "from": "p1", "delayMs": 0, "text": "Let’s ground ourselves. What norms matter most when discussions get heated?", "threadId": null },
@@ -40,20 +47,20 @@
     { "id": "m22", "from": "p4", "delayMs": 7100, "text": "Same. Maybe we should consolidate.", "threadId": "m21" },
     { "id": "m23", "from": "p2", "delayMs": 7200, "text": "This is a good example of drift.", "threadId": "m21" },
 
-    { "id": "m24", "from": "p1", "delayMs": 8000, "text": "Let’s pause and name the main threads we have.", "threadId": null },
+    { "id": "m24", "from": "p1", "delayMs": 8000, "text": "Let's pause and name the main threads we have.", "threadId": "m22" },
     { "id": "m25", "from": "p5", "delayMs": 8200, "text": "Norms for pace", "threadId": "m24" },
     { "id": "m26", "from": "p6", "delayMs": 8300, "text": "Norms for disagreement", "threadId": "m25" },
     { "id": "m27", "from": "p3", "delayMs": 8400, "text": "Norms for silence", "threadId": "m26" },
 
-    { "id": "m28", "from": "p4", "delayMs": 9000, "text": "I want to return to silence norms.", "threadId": null },
-    { "id": "m29", "from": "p2", "delayMs": 9200, "text": "Same. Silence is often misread.", "threadId": "m28" },
-    { "id": "m30", "from": "p5", "delayMs": 9400, "text": "Especially for neurodivergent participants.", "threadId": "m28" },
+    { "id": "m28", "from": "p4", "delayMs": 9000, "text": "I want to return to silence norms.", "threadId": "m27" },
+    { "id": "m29", "from": "p2", "delayMs": 9200, "text": "Same. Silence is often misread.", "threadId": "m6" },
+    { "id": "m30", "from": "p5", "delayMs": 9400, "text": "Especially for neurodivergent participants.", "threadId": "m29" },
 
     { "id": "m31", "from": "p6", "delayMs": 10000, "text": "Is anyone else feeling a bit overloaded?", "threadId": null },
     { "id": "m32", "from": "p3", "delayMs": 10100, "text": "Yes.", "threadId": "m31" },
     { "id": "m33", "from": "p4", "delayMs": 10150, "text": "Same here.", "threadId": "m31" },
 
-    { "id": "m34", "from": "p1", "delayMs": 11000, "text": "That’s useful feedback. Let’s slow the pace.", "threadId": null },
+    { "id": "m34", "from": "p1", "delayMs": 11000, "text": "That's useful feedback. Let's slow the pace.", "threadId": "m32" },
 
     { "id": "m35", "from": "p2", "delayMs": 12000, "text": "Thanks for naming that.", "threadId": "m34" },
     { "id": "m36", "from": "p5", "delayMs": 12100, "text": "Appreciated.", "threadId": "m34" },
@@ -61,16 +68,16 @@
     { "id": "m37", "from": "p3", "delayMs": 13000, "text": "Can we capture these norms explicitly?", "threadId": null },
     { "id": "m38", "from": "p6", "delayMs": 13200, "text": "Yes, otherwise we lose them.", "threadId": "m37" },
 
-    { "id": "m39", "from": "p4", "delayMs": 14000, "text": "I’ll draft a quick summary.", "threadId": null },
+    { "id": "m39", "from": "p4", "delayMs": 14000, "text": "I'll draft a quick summary.", "threadId": "m38" },
 
     { "id": "m40", "from": "p1", "delayMs": 15000, "text": "Before that—any last disagreements?", "threadId": null },
 
-    { "id": "m41", "from": "p2", "delayMs": 16000, "text": "I still think too many norms can constrain.", "threadId": "m40" },
-    { "id": "m42", "from": "p5", "delayMs": 16200, "text": "But absence of norms can exclude.", "threadId": "m40" },
+    { "id": "m41", "from": "p2", "delayMs": 16000, "text": "I still think too many norms can constrain.", "threadId": "m17" },
+    { "id": "m42", "from": "p5", "delayMs": 16200, "text": "But absence of norms can exclude.", "threadId": "m41" },
 
-    { "id": "m43", "from": "p3", "delayMs": 17000, "text": "This feels like a productive tension.", "threadId": "m40" },
+    { "id": "m43", "from": "p3", "delayMs": 17000, "text": "This feels like a productive tension.", "threadId": "m42" },
 
-    { "id": "m44", "from": "p6", "delayMs": 18000, "text": "Agreed.", "threadId": "m40" },
+    { "id": "m44", "from": "p6", "delayMs": 18000, "text": "Agreed.", "threadId": "m43" },
 
     { "id": "m45", "from": "p4", "delayMs": 19000, "text": "Draft summary coming next.", "threadId": null },
 
@@ -98,17 +105,17 @@
 
     { "id": "m57", "from": "p3", "delayMs": 26000, "text": "Ready to move on.", "threadId": "m52" },
 
-    { "id": "m58", "from": "p1", "delayMs": 27000, "text": "We’ll transition in a moment.", "threadId": null },
+    { "id": "m58", "from": "p1", "delayMs": 27000, "text": "We'll transition in a moment.", "threadId": null },
 
     { "id": "m59", "from": "p2", "delayMs": 28000, "text": "Before we do—can we save that summary?", "threadId": "m58" },
 
-    { "id": "m60", "from": "p4", "delayMs": 28100, "text": "Already captured.", "threadId": "m58" },
+    { "id": "m60", "from": "p4", "delayMs": 28100, "text": "Already captured.", "threadId": "m59" },
 
-    { "id": "m61", "from": "p5", "delayMs": 29000, "text": "Nice.", "threadId": "m58" },
+    { "id": "m61", "from": "p5", "delayMs": 29000, "text": "Nice.", "threadId": "m60" },
 
-    { "id": "m62", "from": "p6", "delayMs": 30000, "text": "Thanks.", "threadId": "m58" },
+    { "id": "m62", "from": "p6", "delayMs": 30000, "text": "Thanks.", "threadId": "m60" },
 
-    { "id": "m63", "from": "p3", "delayMs": 31000, "text": "Okay, ready.", "threadId": "m58" },
+    { "id": "m63", "from": "p3", "delayMs": 31000, "text": "Okay, ready.", "threadId": "m62" },
 
     { "id": "m64", "from": "p1", "delayMs": 32000, "text": "Transitioning now.", "threadId": null },
 
@@ -186,21 +193,102 @@
   ],
   "threads": [
     { "threadId": "m1", "topic": "Discussion norms opening", "messages": ["m2", "m3", "m4"] },
-    { "threadId": "m2", "topic": "Acknowledging before disagreeing", "messages": ["m15"] },
-    { "threadId": "m15", "topic": "Deepening the acknowledgement thread", "messages": ["m16"] },
-    { "threadId": "m16", "topic": "Avoiding scripted acknowledgements", "messages": ["m17"] },
+    
+    { "threadId": "m2", "topic": "Time limits and voice distribution", "messages": ["m15"] },
+    { "threadId": "m15", "topic": "Acknowledging before disagreeing", "messages": ["m16"] },
+    { "threadId": "m16", "topic": "Reducing defensiveness", "messages": ["m17"] },
+    { "threadId": "m17", "topic": "Authenticity vs scripting concern", "messages": ["m41"] },
+    { "threadId": "m41", "topic": "Too many norms can constrain", "messages": ["m42"] },
+    { "threadId": "m42", "topic": "Absence of norms can exclude", "messages": ["m43"] },
+    { "threadId": "m43", "topic": "Productive tension recognition", "messages": ["m44"] },
+    
+    { "threadId": "m3", "topic": "Clarifying intent prevents spirals", "messages": [] },
+    
+    { "threadId": "m4", "topic": "Chat vs facilitation scope", "messages": [] },
+    
     { "threadId": "m5", "topic": "Silence and processing time", "messages": ["m6", "m7", "m8"] },
+    { "threadId": "m6", "topic": "Silence doesn't mean disengaged", "messages": ["m29"] },
+    { "threadId": "m29", "topic": "Silence is often misread", "messages": ["m30"] },
+    
+    { "threadId": "m7", "topic": "Long silence can stall momentum", "messages": [] },
+    
+    { "threadId": "m8", "topic": "Gentle nudging matters", "messages": [] },
+    
     { "threadId": "m9", "topic": "Defining heated discussion", "messages": ["m10", "m11"] },
+    { "threadId": "m10", "topic": "Emotionally charged or fast-paced", "messages": [] },
+    { "threadId": "m11", "topic": "Fast-paced can be respectful", "messages": [] },
+    
     { "threadId": "m12", "topic": "Meta overlap awareness", "messages": ["m13", "m14"] },
+    { "threadId": "m13", "topic": "Meta observation", "messages": [] },
+    { "threadId": "m14", "topic": "Allowing overlap intentionally", "messages": [] },
+    
     { "threadId": "m18", "topic": "Turn-taking mechanics", "messages": ["m19", "m20"] },
+    { "threadId": "m19", "topic": "Rarely used, slows things down", "messages": [] },
+    { "threadId": "m20", "topic": "Useful in conflict moments", "messages": [] },
+    
     { "threadId": "m21", "topic": "Confusion and drift", "messages": ["m22", "m23"] },
-    { "threadId": "m24", "topic": "Thread consolidation", "messages": ["m25"] },
-    { "threadId": "m25", "topic": "Pace norms branching", "messages": ["m26"] },
-    { "threadId": "m26", "topic": "Disagreement norms branching", "messages": ["m27"] },
-    { "threadId": "m28", "topic": "Silence norms deep dive", "messages": ["m29", "m30"] },
+    { "threadId": "m22", "topic": "Maybe we should consolidate", "messages": ["m24"] },
+    { "threadId": "m24", "topic": "Pause and name main threads", "messages": ["m25"] },
+    { "threadId": "m25", "topic": "Norms for pace", "messages": ["m26"] },
+    { "threadId": "m26", "topic": "Norms for disagreement", "messages": ["m27"] },
+    { "threadId": "m27", "topic": "Norms for silence", "messages": ["m28"] },
+    
+    { "threadId": "m23", "topic": "Good example of drift", "messages": [] },
+    
+    { "threadId": "m28", "topic": "Returning to silence norms deep dive", "messages": [] },
+    
+    { "threadId": "m30", "topic": "Neurodivergent participants and silence", "messages": [] },
+    
     { "threadId": "m31", "topic": "Cognitive overload check", "messages": ["m32", "m33"] },
-    { "threadId": "m45", "topic": "Norms summary and agreement", "messages": ["m46", "m47", "m48"] },
-    { "threadId": "m47", "topic": "Room reflection follow-up", "messages": ["m49"] },
-    { "threadId": "m49", "topic": "Check-ins thread", "messages": ["m50", "m51"] }
+    { "threadId": "m32", "topic": "Yes (overload confirmation)", "messages": ["m34"] },
+    { "threadId": "m34", "topic": "Slowing the pace intervention", "messages": ["m35", "m36"] },
+    { "threadId": "m35", "topic": "Thanks for naming that", "messages": [] },
+    { "threadId": "m36", "topic": "Appreciated", "messages": [] },
+    
+    { "threadId": "m33", "topic": "Same here (overload)", "messages": [] },
+    
+    { "threadId": "m37", "topic": "Capturing norms explicitly", "messages": ["m38"] },
+    { "threadId": "m38", "topic": "Otherwise we lose them", "messages": ["m39"] },
+    { "threadId": "m39", "topic": "I'll draft a summary", "messages": ["m45"] },
+    { "threadId": "m45", "topic": "Draft summary incoming", "messages": ["m46", "m47"] },
+    { "threadId": "m46", "topic": "Summary: pace awareness, acknowledge, silence", "messages": [] },
+    { "threadId": "m47", "topic": "Does this reflect the room?", "messages": ["m48", "m49"] },
+    { "threadId": "m48", "topic": "Mostly yes", "messages": [] },
+    { "threadId": "m49", "topic": "Add explicit check-ins", "messages": ["m50", "m51"] },
+    { "threadId": "m50", "topic": "Seconded", "messages": [] },
+    { "threadId": "m51", "topic": "This feels solid", "messages": [] },
+    
+    { "threadId": "m40", "topic": "Any last disagreements?", "messages": [] },
+    
+    { "threadId": "m52", "topic": "Closing this loop", "messages": ["m53", "m54", "m55", "m56", "m57"] },
+    { "threadId": "m53", "topic": "Thanks everyone", "messages": [] },
+    { "threadId": "m54", "topic": "Appreciate the space", "messages": [] },
+    { "threadId": "m55", "topic": "Same", "messages": [] },
+    { "threadId": "m56", "topic": "Helpful discussion", "messages": [] },
+    { "threadId": "m57", "topic": "Ready to move on", "messages": [] },
+    
+    { "threadId": "m58", "topic": "Transition in a moment", "messages": ["m59"] },
+    { "threadId": "m59", "topic": "Can we save that summary?", "messages": ["m60"] },
+    { "threadId": "m60", "topic": "Already captured", "messages": ["m61", "m62"] },
+    { "threadId": "m61", "topic": "Nice", "messages": [] },
+    { "threadId": "m62", "topic": "Thanks", "messages": ["m63"] },
+    { "threadId": "m63", "topic": "Okay ready", "messages": [] },
+    
+    { "threadId": "m64", "topic": "Transitioning now", "messages": ["m65", "m66", "m67", "m68", "m69"] },
+    
+    { "threadId": "m70", "topic": "Thanks and appreciation", "messages": ["m71", "m72", "m73", "m74", "m75"] },
+    { "threadId": "m71", "topic": "Good facilitation", "messages": [] },
+    { "threadId": "m72", "topic": "Agreed", "messages": [] },
+    { "threadId": "m73", "topic": "Felt balanced", "messages": [] },
+    { "threadId": "m74", "topic": "Yes", "messages": [] },
+    { "threadId": "m75", "topic": "Nice close", "messages": [] },
+    
+    { "threadId": "m76", "topic": "Short break", "messages": ["m77", "m78", "m79", "m80", "m81"] },
+    
+    { "threadId": "m82", "topic": "Welcome back", "messages": ["m83", "m84", "m85", "m86", "m87"] },
+    
+    { "threadId": "m88", "topic": "New topic coming", "messages": ["m89", "m90", "m91", "m92", "m93"] },
+    
+    { "threadId": "m94", "topic": "Stopping here for now", "messages": ["m95", "m96", "m97", "m98", "m99"] }
   ]
 }

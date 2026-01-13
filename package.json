@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "server": "node server/server.js",
-    "prestart": "sh -c '# Ensure port 3000 is explicitly freed (pkill -f node is unreliable and kills unrelated dev nodes); lsof -ti :3000 | xargs -r kill -9 || true'",
+    "prestart": "lsof -ti :3000 | xargs kill -9 2>/dev/null || lsof -ti :5173 | xargs kill -9 2>/dev/null || true",
     "start": "npm-run-all --parallel dev server",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

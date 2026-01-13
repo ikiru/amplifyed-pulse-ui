@@ -19,20 +19,27 @@ const startMultiHuman = (serverUrl, getAdjustments) => {
 };
 
 export async function start({ scenario, serverUrl, getAdjustments } = {}) {
-  if (isRunning) return;
+  console.log('[HISTE-RUNNER-DEBUG] start() called with scenario:', !!scenario, 'serverUrl:', serverUrl);
+  if (isRunning) {
+    console.log('[HISTE-RUNNER-DEBUG] Already running, returning');
+    return;
+  }
   isRunning = true;
 
   clearClock();
 
   try {
+    console.log('[HISTE-RUNNER-DEBUG] About to call runScenario or startMultiHuman');
     clockInstance = scenario
       ? await runScenario({ scenario, serverUrl, getAdjustments })
       : await startMultiHuman(serverUrl, getAdjustments);
 
+    console.log('[HISTE-RUNNER-DEBUG] Clock instance created:', !!clockInstance);
     if (!clockInstance) {
       isRunning = false;
     }
   } catch (error) {
+    console.error('[HISTE-RUNNER-DEBUG] Error in start():', error);
     isRunning = false;
     throw error;
   }

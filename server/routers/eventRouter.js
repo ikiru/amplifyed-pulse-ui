@@ -154,6 +154,7 @@ socket.on("audience:pulse", (payload = {}) => {
     const result = sessionPipeline.handleJoin({
       socketId: socket.id,
       payload,
+      pulsePipeline, // Pass pulse pipeline for broadcasting participant count updates
     });
 
     // Handle error
@@ -171,6 +172,11 @@ socket.on("audience:pulse", (payload = {}) => {
     
     // Assign socket to session room
     assignSessionId(sessionId);
+
+    // NOW broadcast participant count - socket has joined the room and will receive it
+    if (sessionPipeline?.broadcastParticipantCount) {
+      sessionPipeline.broadcastParticipantCount(sessionId);
+    }
 
     // Sync state from all pipelines
     if (messagePipeline?.syncSessionState) {

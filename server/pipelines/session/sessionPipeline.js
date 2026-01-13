@@ -29,7 +29,7 @@ export function createSessionPipeline(io) {
    * @param {string} params.payload.name - Optional display name
    * @returns {Object} Join result with status and session info
    */
-  function handleJoin({ socketId, payload = {} }) {
+  function handleJoin({ socketId, payload = {}, pulsePipeline }) {
     const { accessCode, sessionId: requestedSessionId, role, name, metadata } = payload;
 
     let sessionId = null;
@@ -77,7 +77,7 @@ export function createSessionPipeline(io) {
 
     // Add participant to session
     const participant = SessionState.addParticipant(sessionId, socketId, {
-      role: role || 'audience',
+      actorRole: role || 'audience',
       name: name || null,
       metadata: metadata || {},
       joinedAt: Date.now(),
@@ -91,10 +91,15 @@ export function createSessionPipeline(io) {
       };
     }
 
-    // Broadcast participant count update
-    broadcastParticipantCount(sessionId);
-
+    // Note: participant count broadcast moved to eventRouter (after socket joins room)
     console.log(`[sessionPipeline] Participant joined: ${socketId} → ${sessionId} (${session.accessCode})`);
+
+    // Broadcast pulse update with updated participant count (for graph scaling)
+    if (pulsePipeline?.broadcastPulseUpdate) {
+      const participants = SessionState.getParticipants(sessionId);
+      console.log(`[sessionPipeline] Broadcasting pulse update after join: ${Object.keys(participants).length} participants`);
+      pulsePipeline.broadcastPulseUpdate(participants);
+    }
 
     return {
       status: 'ok',
@@ -180,6 +185,8 @@ export function createSessionPipeline(io) {
   function broadcastParticipantCount(sessionId) {
     const count = SessionState.getParticipantCount(sessionId);
     const accessCode = SessionState.getAccessCode(sessionId);
+    
+    console.log(`[sessionPipeline] Broadcasting participant count: ${count} for session: ${sessionId}`);
     
     io.to(sessionId).emit('session:participant_count', {
       sessionId,
@@ -275,5 +282,6 @@ export function createSessionPipeline(io) {
     getAccessCode,
     getParticipantCount,
     getSessionByCode,
+    broadcastParticipantCount, // Export for eventRouter to call after socket joins room
   };
 }

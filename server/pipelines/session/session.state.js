@@ -24,7 +24,7 @@ const socketToSession = new Map(); // socketId → sessionId (for fast lookup)
 /**
  * Participant Data Structure
  * @typedef {Object} ParticipantData
- * @property {string} role - "audience" or "trainer"
+ * @property {string} actorRole - "audience" or "trainer"
  * @property {string|null} name - Optional display name
  * @property {Object} metadata - Additional metadata
  * @property {number} joinedAt - Timestamp when participant joined
@@ -116,7 +116,7 @@ export function addParticipant(sessionId, socketId, participantData) {
   }
 
   session.participants[socketId] = {
-    role: participantData.role || 'audience',
+    actorRole: participantData.actorRole || participantData.role || 'audience',
     name: participantData.name || null,
     metadata: participantData.metadata || {},
     joinedAt: participantData.joinedAt || Date.now(),

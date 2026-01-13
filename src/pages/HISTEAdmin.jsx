@@ -65,13 +65,19 @@ export default function HISTEAdmin() {
   };
 
   const handleStart = async (getAdjustments) => {
-    if (isRunning) return;
+    console.log('[HISTE-ADMIN-DEBUG] handleStart called, isRunning:', isRunning, 'selectedScenario:', selectedScenario?.id);
+    if (isRunning) {
+      console.log('[HISTE-ADMIN-DEBUG] Already running, returning');
+      return;
+    }
     try {
+      console.log('[HISTE-ADMIN-DEBUG] Calling start() with serverUrl:', SERVER_URL, 'scenario:', selectedScenario?.json ? 'present' : 'undefined');
       await start({
         serverUrl: SERVER_URL,
         scenario: selectedScenario?.json ?? undefined,
         getAdjustments,
       });
+      console.log('[HISTE-ADMIN-DEBUG] start() completed successfully');
       setIsRunning(true);
       return true;
     } catch (error) {
@@ -177,20 +183,12 @@ export default function HISTEAdmin() {
     const handleMessageStateUpdate = ({ messages: canonicalMessages }) => {
       if (!Array.isArray(canonicalMessages)) return;
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HISTEAdmin.jsx:177',message:'received message.state.update',data:{messageCount:canonicalMessages.length,firstMessage:canonicalMessages[0]?.from,lastMessage:canonicalMessages[canonicalMessages.length-1]?.from},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+
       const now = Date.now();
       const timestamps = canonicalMessages
-        .map(adaptMessage)
-        .filter(Boolean)
-        .map((message) => new Date(message.createdAt).getTime())
-        .filter((ts) => Number.isFinite(ts));
-
-      const trimmed = timestamps
-        .filter((ts) => now - ts <= OBSERVATION_WINDOW_MS)
-        .sort((a, b) => a - b);
-
-      messageWindowRef.current = trimmed;
-
-      setFlowDensity(trimmed.length);
 
       let overlaps = 0;
       for (let i = 1; i < trimmed.length; i += 1) {
@@ -377,8 +375,13 @@ export default function HISTEAdmin() {
   };
 
   const handleStartClick = async () => {
-    if (histeState !== STATE_SCENARIO_ARMED) return;
+    console.log('[HISTE-ADMIN-DEBUG] handleStartClick called, histeState:', histeState, 'selectedScenario:', !!selectedScenario);
+    if (histeState !== STATE_SCENARIO_ARMED) {
+      console.log('[HISTE-ADMIN-DEBUG] Not armed, returning');
+      return;
+    }
     const started = await handleStart(getCurrentAdjustments);
+    console.log('[HISTE-ADMIN-DEBUG] handleStart returned:', started);
     if (started) {
       setHisteState(STATE_SIMULATION_RUNNING);
     }

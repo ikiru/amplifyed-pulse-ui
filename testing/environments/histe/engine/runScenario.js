@@ -6,23 +6,57 @@
 import { io } from "socket.io-client";
 import SimulationClock from "./SimulationClock.js";
 import { SimulatedTrainer } from "../actors/SimulatedTrainer.js";
+import { getTrainerSessionCode } from "./sessionDiscovery.js";
 
 const DEFAULT_SERVER_URL = "http://localhost:3000";
 const DEFAULT_SESSION_ID = "session:default";
 
-const createSocket = (serverUrl, sessionId) =>
+const createSocket = (serverUrl, accessCode) =>
   io(serverUrl, {
     transports: ["websocket"],
     reconnection: false,
   }).on("connect", function handleConnect() {
-    this.emit("session:join", { sessionId });
+    console.log('[HISTE-DEBUG] createSocket connected, emitting session:join with accessCode:', accessCode, 'socketId:', this.id);
+    console.log('[HISTE-DIAG] Socket connected, joining with accessCode:', accessCode, 'socketId:', this.id);
+    
+    // Listen for join success
+    this.once("session:joined", (payload) => {
+      console.log('[HISTE-DIAG] ✅ Participant joined successfully:', payload);
+    });
+    
+    // Listen for join failure
+    this.once("session:error", (error) => {
+      console.error('[HISTE-DIAG] ❌ Participant join FAILED:', error);
+    });
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'runScenario.js:18',message:'createSocket emitting session:join',data:{accessCode,socketId:this.id,role:'audience'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    this.emit("session:join", { accessCode, role: 'audience' });
   });
 
-export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
+export async function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
+  console.log('[HISTE-DEBUG] runScenario called with:', { 
+    participantCount: scenario.participants?.length,
+    messageCount: scenario.messages?.length,
+    hasFocusEvents: !!scenario.focusEvents
+  });
   const clock = new SimulationClock();
   const resolvedServerUrl = serverUrl ?? DEFAULT_SERVER_URL;
   const sessionId =
     typeof scenario.sessionId === "string" ? scenario.sessionId : DEFAULT_SESSION_ID;
+
+  // Get the access code from the active trainer session
+  console.log('[HISTE] Getting access code from session:', sessionId);
+  let accessCode;
+  try {
+    accessCode = await getTrainerSessionCode(resolvedServerUrl, sessionId);
+    console.log('[HISTE] Successfully got access code:', accessCode);
+    console.log('[HISTE-DIAG] Access code retrieved:', accessCode);
+  } catch (error) {
+    console.error('[HISTE] Failed to get access code:', error.message);
+    throw new Error(`HISTE requires an active trainer session. Please open TrainerView first. Error: ${error.message}`);
+  }
 
   const participants = Array.isArray(scenario.participants)
     ? scenario.participants.filter((entry) => entry?.id)
@@ -80,7 +114,10 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
 
   const connectParticipant = (participant) =>
     new Promise((resolve) => {
-      const socket = createSocket(resolvedServerUrl, sessionId);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'runScenario.js:81',message:'connectParticipant called',data:{participantId:participant.id,accessCode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      const socket = createSocket(resolvedServerUrl, accessCode);
 
       const cleanup = () => {
         socket.off("connect_error", handleError);
@@ -88,12 +125,19 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
       };
 
       const handleConnect = () => {
+        console.log('[HISTE-DEBUG] participant socket connected:', participant.id, 'socketId:', socket.id);
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'runScenario.js:90',message:'participant socket connected',data:{participantId:participant.id,socketId:socket.id,sessionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         cleanup();
         sockets.set(participant.id, socket);
         resolve();
       };
 
-      const handleError = () => {
+      const handleError = (err) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'runScenario.js:96',message:'participant socket connection error',data:{participantId:participant.id,error:String(err),sessionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
         cleanup();
         resolve();
       };
@@ -130,6 +174,9 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
   const scheduleFocusEvents = () => {
     const focusEvents = Array.isArray(scenario.focusEvents) ? scenario.focusEvents : [];
     
+    console.log('[HISTE-DIAG] Scheduling', focusEvents.length, 'focus events');
+    console.log('[HISTE-DIAG] Focus events:', focusEvents);
+    
     if (focusEvents.length === 0) {
       return; // No focus events to schedule
     }
@@ -150,12 +197,20 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
         
         if (event.action === "set" && event.text) {
           console.log(`[HISTE] Setting focus: "${event.text}"`);
+          console.log('[HISTE-DIAG] Emitting focus at', delay, 'ms:', event);
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'runScenario.js:152',message:'emitting focus:set',data:{text:event.text,sessionId,socketId:trainerSocket?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          // #endregion
           trainerSocket.emit("focus:set", { 
             sessionId,
             text: event.text 
           });
         } else if (event.action === "clear") {
           console.log(`[HISTE] Clearing focus`);
+          console.log('[HISTE-DIAG] Emitting focus clear at', delay, 'ms:', event);
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'runScenario.js:158',message:'emitting focus:clear',data:{sessionId,socketId:trainerSocket?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          // #endregion
           trainerSocket.emit("focus:clear", { sessionId });
         } else {
           console.warn("[HISTE] Invalid focus event:", event);
@@ -172,6 +227,9 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
         const participantId = message.from;
         const socket = sockets.get(participantId);
         if (!socket) {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'runScenario.js:174',message:'socket missing for participant',data:{participantId,messageId:message.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+          // #endregion
           throw new Error(`HISTE socket missing for participant ${participantId}.`);
         }
 
@@ -179,6 +237,9 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
         console.log(
           `[HISTE] Emitting message from ${participantId}: "${text}"`
         );
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'runScenario.js:182',message:'emitting message:audience',data:{participantId,messageId:message.id,text:text.substring(0,50),socketId:socket.id,threadId:message.threadId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         socket.emit("message:audience", {
           messageId: message.id,
           text,
@@ -192,11 +253,20 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
   };
 
   // Connect trainer first, then participants
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'runScenario.js:195',message:'starting connections',data:{participantCount:participants.length,sessionId,hasFocusEvents:Array.isArray(scenario.focusEvents)&&scenario.focusEvents.length>0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
   const initPromise = Promise.all([
     trainer.connect().then(() => {
       trainerSocket = trainer.getSocket();
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'runScenario.js:197',message:'trainer connected',data:{sessionId,socketId:trainerSocket?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       console.log("[HISTE] Trainer connected successfully");
     }).catch((err) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'runScenario.js:200',message:'trainer connection failed',data:{error:String(err),sessionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       console.error("[HISTE] Failed to connect trainer:", err);
       // Continue without trainer - focus events will be skipped
     }),
@@ -205,6 +275,14 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
 
   // After all connections, schedule events
   initPromise.then(() => {
+    console.log('[HISTE-DEBUG] All connections complete. Sockets:', sockets.size, 'Has trainer:', !!trainerSocket);
+    console.log('[HISTE-DIAG] All sockets connected. Map size:', sockets.size);
+    console.log('[HISTE-DIAG] Socket IDs:', Array.from(sockets.keys()));
+    console.log('[HISTE-DIAG] Trainer socket exists:', !!trainerSocket);
+    console.log('[HISTE-DIAG] Trainer socket ID:', trainerSocket?.id);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'runScenario.js:207',message:'all connections complete',data:{socketsCount:sockets.size,hasTrainerSocket:!!trainerSocket,sessionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     scheduleFocusEvents(); // Schedule focus events first
     scheduleMessages();     // Then schedule messages
   });
