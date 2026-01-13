@@ -153,12 +153,6 @@ export default function LiveView() {
                   replyDrafts={{}}
                   setReplyDrafts={() => {}}
                   handleReplySubmit={() => {}}
-                  actorRole="trainer"
-                  emitVoteIntent={() => {}}
-                  onConfusionSignal={() => {}}
-                  onOffFocusSignal={() => {}}
-                  voteSelectionMap={{}}
-                  registerMessageRef={() => {}}
                 />
               ))}
             </div>
