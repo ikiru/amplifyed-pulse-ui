@@ -119,14 +119,39 @@
 /* Message container */
 .thread-message {
   padding: 10px 12px;
-  border: 1px solid #e5e5e5;
-  border-radius: 6px;
+  border: 2px solid var(--thread-color, #e63946);
+  border-radius: 18px;
   background: #ffffff;
+  transition: border-radius 0.2s ease;
 }
 
 .thread-message.trainer-message {
-  border-color: #5a9cff;
-  background: #f1f6ff;
+  /* Trainer messages use same style now - unified design */
+  border-color: var(--thread-color, #5a9cff);
+  background: #ffffff;
+}
+
+/* iOS-style message bubble corner roundness based on position */
+/* Reply messages (depth > 0) get dynamic corner styling */
+
+/* Standalone reply - bottom-left less rounded */
+.thread-message-reply.thread-message-standalone {
+  border-radius: 18px 18px 18px 4px;
+}
+
+/* First in stack (top) - bottom-left less rounded (connects to message below) */
+.thread-message-reply.thread-message-first {
+  border-radius: 18px 18px 18px 4px;
+}
+
+/* Middle of stack - both left corners less rounded */
+.thread-message-reply.thread-message-middle {
+  border-radius: 4px 18px 18px 4px;
+}
+
+/* Last in stack (bottom) - top-left less rounded (connects to message above) */
+.thread-message-reply.thread-message-last {
+  border-radius: 4px 18px 18px 18px;
 }
 
 .thread-message-trainer-badge {
@@ -440,7 +465,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: 2;
 }
 
 .thread-connector-layer svg {

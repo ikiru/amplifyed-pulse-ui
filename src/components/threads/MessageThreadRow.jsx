@@ -29,6 +29,11 @@ export function MessageThreadRow({
   setReplyDrafts,
   handleReplySubmit,
   threadColor,
+  actorRole = "trainer",
+  emitVoteIntent,
+  onConfusionSignal,
+  onOffFocusSignal,
+  voteSelectionMap,
 }) {
   const rowRef = useRef(null);
   const messageRefs = useRef(new Map());
@@ -63,12 +68,17 @@ export function MessageThreadRow({
         return;
       }
       const parentRect = parentEntry.node.getBoundingClientRect();
+      const replyRect = node.getBoundingClientRect();
+      
+      // Connect at the outer border edge for perfect visual contact
+      // With 2px stroke and round linecap, position at exact border edge
       const parentX = parentRect.left - rowRect.left;
       const parentY = parentRect.bottom - rowRect.top;
-      const replyRect = node.getBoundingClientRect();
+      
+      // Child connection point at left border edge, centered vertically
       const childX = replyRect.left - rowRect.left;
-      const childY =
-        replyRect.top + replyRect.height / 2 - rowRect.top;
+      const childY = replyRect.top + replyRect.height / 2 - rowRect.top;
+      
       newPaths.push({
         key: messageId,
         d: `M ${parentX} ${parentY} L ${parentX} ${childY} L ${childX} ${childY}`,
@@ -168,23 +178,28 @@ export function MessageThreadRow({
         <ThreadItem
           node={root}
           depth={0}
-        replyToId={replyToId}
-        setReplyToId={setReplyToId}
-        replyDrafts={replyDrafts}
-        setReplyDrafts={setReplyDrafts}
-        handleSubmitReply={handleReplySubmit}
+          replyToId={replyToId}
+          setReplyToId={setReplyToId}
+          replyDrafts={replyDrafts}
+          setReplyDrafts={setReplyDrafts}
+          handleSubmitReply={handleReplySubmit}
           voteTotals={voteTotals}
           voteTotalsMap={voteTotalsMap}
           confusionByRootId={confusionByRootId}
-          actorRole="trainer"
+          actorRole={actorRole}
           showVoteControls={true}
-          showVoteReadOnly={true}
-          allowConfusionAnchors={false}
+          showVoteReadOnly={actorRole === "trainer"}
+          showVoteTotals={false}
+          allowConfusionAnchors={actorRole === "audience"}
           allowConfusionRow={true}
           showConfusionRow={confusion.showConfusionRow}
           confusionScore={confusion.confusionScore}
           resolutionType={confusion.resolutionType}
           registerMessageRef={registerMessageRef}
+          emitVoteIntent={emitVoteIntent}
+          onConfusionSignal={onConfusionSignal}
+          onOffFocusSignal={onOffFocusSignal}
+          voteSelectionMap={voteSelectionMap}
         />
       </div>
     </div>

@@ -97,6 +97,28 @@ function ThreadItemContent({
   if (hasReplies) {
     threadMessageClassNames.push("thread-message-has-replies");
   }
+  
+  // Message bubble position for dynamic corner roundness
+  // This creates iOS-style message bubbles
+  const hasPreviousSibling = depth > 0 && node?.hasPreviousSibling;
+  const hasNextSibling = depth > 0 && node?.hasNextSibling;
+  
+  if (depth > 0) {
+    // Reply messages get dynamic corners based on stack position
+    if (hasPreviousSibling && hasNextSibling) {
+      // Middle of stack - both top and bottom corners on spine side are less rounded
+      threadMessageClassNames.push("thread-message-middle");
+    } else if (hasPreviousSibling) {
+      // Last in stack - only bottom corner on spine side is less rounded
+      threadMessageClassNames.push("thread-message-last");
+    } else if (hasNextSibling) {
+      // First in stack - only top corner on spine side is less rounded
+      threadMessageClassNames.push("thread-message-first");
+    } else {
+      // Standalone - only bottom corner on spine side is less rounded
+      threadMessageClassNames.push("thread-message-standalone");
+    }
+  }
   const normalizedLabel =
     typeof node?.label === "string" ? node.label.toLowerCase() : "";
   const normalizedLabelDisplay =

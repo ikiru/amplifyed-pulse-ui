@@ -4,18 +4,11 @@
   padding-right: 48px;
   z-index: 1;
   overflow: visible;
-  /* §1.1 Primary Unit: The Thread (Path of Thought); §1.2 Secondary Unit: The Message (Node);
-     §3.1 Color Is Idea-Bound; §3.4 Color Presence vs Emphasis; §7 Prohibited Visual Signals — a continuous gradient border keeps the thread hue imperceptibly connected to the card without expressive extras. */
-  border: 1px solid transparent;
-  border-image: linear-gradient(
-      135deg,
-      var(--thread-color) 0%,
-      var(--thread-color) 20%,
-      #000 20%,
-      #000 100%
-    )
-    1;
-  border-image-slice: 1;
+  /* Solid thread-color border for clean, modern iOS-style bubbles */
+  border: 2px solid var(--thread-color, #e63946);
+  border-radius: 18px;
+  background: #ffffff;
+  transition: border-radius 0.2s ease;
 }
 
 .trainer-message-stream-row {
@@ -27,12 +20,31 @@
   width: 100%;
 }
 
+/* iOS-style message bubble corner roundness for trainer view */
+/* Reply messages (depth > 0) get dynamic corner styling based on stack position */
+
+.trainer-message-stream .thread-message-reply.thread-message-standalone {
+  border-radius: 18px 18px 18px 4px;
+}
+
+.trainer-message-stream .thread-message-reply.thread-message-first {
+  border-radius: 18px 18px 18px 4px;
+}
+
+.trainer-message-stream .thread-message-reply.thread-message-middle {
+  border-radius: 4px 18px 18px 4px;
+}
+
+.trainer-message-stream .thread-message-reply.thread-message-last {
+  border-radius: 4px 18px 18px 18px;
+}
+
 /* §2.1 Left-Side Lineage Bar; §2.2 Elbow Geometry (Depth Transitions) — these gutters and connectors reuse the thread hue. */
 .thread-connector-layer {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: 2;
 }
 
 .thread-connector-layer svg {

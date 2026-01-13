@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
 import { adaptMessage } from "./messageHelpers.js";
 import { buildMessageTree } from "../utils/messageUtils.js";
-import { ThreadItem } from "../components/messages/ThreadItem.jsx";
+import { MessageThreadRow } from "../components/threads/MessageThreadRow.jsx";
 import { MessageInputBar } from "../components/messages/MessageInputBar.jsx";
+import { assignThreadColors } from "../utils/threadUtils.js";
+import { summarizeThreadConfusion } from "../utils/confusionUtils.js";
 import "./AudienceInput.css";
 
 const pulseOptions = [
@@ -147,6 +149,12 @@ export default function AudienceInput() {
 
   const sessionIdLabel = socket?.sessionId ?? "session:default";
   const roots = buildMessageTree(messages);
+  const rootColorAssignments = assignThreadColors(roots);
+  const threadConfusions = roots.map((root) => ({
+    root,
+    confusion: summarizeThreadConfusion(root, null),
+    threadColor: rootColorAssignments.get(root.messageId),
+  }));
 
   return (
     <div className="audience-input-page">
@@ -171,22 +179,24 @@ export default function AudienceInput() {
         {messages.length === 0 ? (
           <div className="message-empty">No messages yet</div>
         ) : (
-          roots.map((root) => (
-            <ThreadItem
+          threadConfusions.map(({ root, confusion, threadColor }) => (
+            <MessageThreadRow
               key={root.messageId}
-              node={root}
-              depth={0}
+              root={root}
+              threadColor={threadColor}
+              confusion={confusion}
+              confusionByRootId={null}
+              voteTotals={voteTotals[root.messageId]}
+              voteTotalsMap={voteTotals}
               replyToId={replyToId}
               setReplyToId={setReplyToId}
               replyDrafts={replyDrafts}
               setReplyDrafts={setReplyDrafts}
-              handleSubmitReply={handleSubmitReply}
-              voteTotals={voteTotals[root.messageId]}
-              voteTotalsMap={voteTotals}
+              handleReplySubmit={handleSubmitReply}
+              actorRole="audience"
               emitVoteIntent={emitVoteIntent}
               onConfusionSignal={emitConfusionSignal}
               onOffFocusSignal={emitOffFocusSignal}
-              showVoteTotals={false}
               voteSelectionMap={selectedVotes}
             />
           ))
