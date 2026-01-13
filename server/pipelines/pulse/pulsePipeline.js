@@ -121,6 +121,29 @@ export function createPulsePipeline(
     return result;
   }
 
+  /**
+   * Sync pulse state to a specific socket (for join/rejoin)
+   * 
+   * @param {Object} socket - Socket.IO socket instance
+   * @param {string} sessionId - Session identifier
+   */
+  function syncPulseState(socket, sessionId) {
+    if (!socket) {
+      return;
+    }
+
+    const participants = getParticipants?.();
+    
+    // Build pulse update payload
+    const payload = {
+      participants: participants || {},
+      votes: roomState.votes || {},
+      eventLog: roomState.eventLog || [],
+    };
+
+    socket.emit('pulse:update', payload);
+  }
+
   // Make helpers available to other pipelines
   return {
     roomState,
@@ -128,5 +151,6 @@ export function createPulsePipeline(
     broadcastPulseUpdate,
     handlePulseSubmit,
     handlePulseRevoke,
+    syncPulseState,
   };
 }

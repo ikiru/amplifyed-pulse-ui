@@ -16,7 +16,7 @@ export function SessionHeader({
   return (
     <header className="trainer-session-header">
       <div className="trainer-session-copy">
-        <h1 className="trainer-session-title">Session View</h1>
+        <h1 className="trainer-session-title">Trainer View</h1>
         <p className="trainer-session-status">Socket: {connectionStatus}</p>
         <p className="session-label trainer-session-meta">
           Session: {sessionIdLabel}

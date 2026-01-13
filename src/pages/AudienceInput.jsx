@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
+import { useSessionJoin } from "../hooks/useSessionJoin.js";
+import { SessionEntry } from "../components/session/SessionEntry.jsx";
 import { adaptMessage } from "./messageHelpers.js";
 import { buildMessageTree } from "../utils/messageUtils.js";
 import { MessageThreadRow } from "../components/threads/MessageThreadRow.jsx";
@@ -16,6 +18,15 @@ const pulseOptions = [
 
 export default function AudienceInput() {
   const { emit, onEvent, offEvent, socket } = useSocket();
+  
+  // Session join state
+  const { isJoined, isJoining, error, joinSession, clearError } = useSessionJoin({
+    emit,
+    socket,
+    onEvent,
+    offEvent,
+  });
+
   const [selectedPulse, setSelectedPulse] = useState("neutral");
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -156,6 +167,19 @@ export default function AudienceInput() {
     threadColor: rootColorAssignments.get(root.messageId),
   }));
 
+  // Show entry form if not joined
+  if (!isJoined) {
+    return (
+      <SessionEntry
+        onJoin={joinSession}
+        isJoining={isJoining}
+        error={error}
+        onClearError={clearError}
+      />
+    );
+  }
+
+  // Show full interface when joined
   return (
     <div className="audience-input-page">
       <p className="session-label">Session: {sessionIdLabel}</p>
