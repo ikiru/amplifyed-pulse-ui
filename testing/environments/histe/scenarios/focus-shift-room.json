@@ -1,0 +1,33 @@
+{
+  "name": "Focus Shift Room",
+  "participantsRange": "3",
+  "tempo": "Workshop",
+  "flow": "Steady with focus shifts",
+  "surfacing": "Medium",
+  "participants": [
+    { "id": "participant-a" },
+    { "id": "participant-b" },
+    { "id": "participant-c" }
+  ],
+  "focusEvents": [
+    { "delayMs": 0, "action": "set", "text": "Opening: Introductions and context" },
+    { "delayMs": 3000, "action": "set", "text": "Discussion: Core concepts" },
+    { "delayMs": 7000, "action": "set", "text": "Deep dive: Implementation strategies" },
+    { "delayMs": 11000, "action": "clear" }
+  ],
+  "messages": [
+    { "id": "msg-1", "from": "participant-a", "delayMs": 500, "text": "Hi everyone, glad to be here." },
+    { "id": "msg-2", "from": "participant-b", "delayMs": 1200, "text": "Looking forward to this discussion." },
+    { "id": "msg-3", "from": "participant-c", "delayMs": 2000, "text": "Let's dive in." },
+    { "id": "msg-4", "from": "participant-a", "delayMs": 3500, "text": "Can we clarify the core concept?" },
+    { "id": "msg-5", "from": "participant-b", "delayMs": 4500, "text": "I think it's about alignment and clarity." },
+    { "id": "msg-6", "from": "participant-c", "delayMs": 5500, "text": "That resonates with me." },
+    { "id": "msg-7", "from": "participant-a", "delayMs": 6000, "text": "The framing makes sense now." },
+    { "id": "msg-8", "from": "participant-b", "delayMs": 7500, "text": "How do we implement this in practice?" },
+    { "id": "msg-9", "from": "participant-c", "delayMs": 8500, "text": "We could start with a prototype." },
+    { "id": "msg-10", "from": "participant-a", "delayMs": 9500, "text": "I can draft initial specifications." },
+    { "id": "msg-11", "from": "participant-b", "delayMs": 10200, "text": "Let's schedule a follow-up." },
+    { "id": "msg-12", "from": "participant-c", "delayMs": 11500, "text": "Great session, thanks all." },
+    { "id": "msg-13", "from": "participant-a", "delayMs": 12000, "text": "Looking forward to next time." }
+  ]
+}

@@ -3,6 +3,7 @@ import fastRoom from "./fast-room.json";
 import normalRoom from "./normal-room.json";
 import overlappingQuestions from "./overlapping-questions.json";
 import slowRoom from "./slow-room.json";
+import focusShiftRoom from "./focus-shift-room.json";
 
 const normalize = (json, source) => ({
   id: json.id ?? json.name ?? `${source}-${Math.random().toString(36).slice(2, 8)}`,
@@ -21,5 +22,5 @@ export const OFFICIAL_SCENARIOS = [
   normalRoom,
   overlappingQuestions,
   slowRoom,
-  overlappingQuestions,
+  focusShiftRoom,
 ].map((json) => normalize(json, "official"));
