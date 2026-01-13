@@ -5,6 +5,7 @@
 
 import { io } from "socket.io-client";
 import SimulationClock from "./SimulationClock.js";
+import { SimulatedTrainer } from "../actors/SimulatedTrainer.js";
 
 const DEFAULT_SERVER_URL = "http://localhost:3000";
 const DEFAULT_SESSION_ID = "session:default";
@@ -37,6 +38,13 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
     participantIds.add(participant.id);
   }
   const sockets = new Map();
+  
+  // Create trainer socket for focus events
+  let trainerSocket = null;
+  const trainer = new SimulatedTrainer({
+    serverUrl: resolvedServerUrl,
+    sessionId,
+  });
 
   const disconnectAll = () => {
     sockets.forEach((socket) => {
@@ -45,6 +53,12 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
       }
     });
     sockets.clear();
+    
+    // Disconnect trainer socket
+    if (trainer) {
+      trainer.disconnect();
+      trainerSocket = null;
+    }
   };
 
   const validateScenarioTopology = (messages) => {
@@ -109,6 +123,47 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
     return {};
   };
 
+  /**
+   * Schedule focus events from scenario
+   * Focus events are emitted by the trainer socket
+   */
+  const scheduleFocusEvents = () => {
+    const focusEvents = Array.isArray(scenario.focusEvents) ? scenario.focusEvents : [];
+    
+    if (focusEvents.length === 0) {
+      return; // No focus events to schedule
+    }
+
+    if (!trainerSocket) {
+      console.warn("[HISTE] No trainer socket available for focus events");
+      return;
+    }
+    
+    focusEvents.forEach((event) => {
+      const delay = Math.max(0, typeof event.delayMs === "number" ? event.delayMs : 0);
+      
+      clock.schedule(() => {
+        if (!trainerSocket) {
+          console.warn("[HISTE] Trainer socket unavailable at scheduled focus event time");
+          return;
+        }
+        
+        if (event.action === "set" && event.text) {
+          console.log(`[HISTE] Setting focus: "${event.text}"`);
+          trainerSocket.emit("focus:set", { 
+            sessionId,
+            text: event.text 
+          });
+        } else if (event.action === "clear") {
+          console.log(`[HISTE] Clearing focus`);
+          trainerSocket.emit("focus:clear", { sessionId });
+        } else {
+          console.warn("[HISTE] Invalid focus event:", event);
+        }
+      }, delay);
+    });
+  };
+
   const scheduleMessages = () => {
     messages.forEach((message) => {
       const delay = Math.max(0, typeof message.delayMs === "number" ? message.delayMs : 0);
@@ -120,18 +175,13 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
           throw new Error(`HISTE socket missing for participant ${participantId}.`);
         }
 
-        const adjustments = getLatestAdjustments();
-        const surfacingSpeed =
-          typeof adjustments.surfacingSpeed === "number" ? adjustments.surfacingSpeed : 0.5;
-        const focus = surfacingSpeed >= 0.6 ? "heated" : null;
         const text = String(message.text ?? "");
         console.log(
-          `[HISTE] Emitting message from ${participantId}: "${text}" (surfacing=${surfacingSpeed})`
+          `[HISTE] Emitting message from ${participantId}: "${text}"`
         );
         socket.emit("message:audience", {
           messageId: message.id,
           text,
-          focus,
           parentMessageId:
             typeof message.threadId === "string" && message.threadId.trim() !== ""
               ? message.threadId
@@ -141,8 +191,23 @@ export function runScenario({ scenario = {}, serverUrl, getAdjustments } = {}) {
     });
   };
 
-  const connectPromise = connectParticipantPromises(participants, connectParticipant);
-  connectPromise.then(scheduleMessages);
+  // Connect trainer first, then participants
+  const initPromise = Promise.all([
+    trainer.connect().then(() => {
+      trainerSocket = trainer.getSocket();
+      console.log("[HISTE] Trainer connected successfully");
+    }).catch((err) => {
+      console.error("[HISTE] Failed to connect trainer:", err);
+      // Continue without trainer - focus events will be skipped
+    }),
+    ...participants.map((p) => connectParticipant(p))
+  ]);
+
+  // After all connections, schedule events
+  initPromise.then(() => {
+    scheduleFocusEvents(); // Schedule focus events first
+    scheduleMessages();     // Then schedule messages
+  });
 
   return {
     clear() {
