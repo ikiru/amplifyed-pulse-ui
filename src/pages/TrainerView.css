@@ -201,9 +201,31 @@
   margin-top: -1px;
 }
 
+.thread-resolution-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .thread-resolution-label {
   color: #0b5fff;
   line-height: 1;
+}
+
+.thread-resolution-reopen {
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #0b5fff;
+  background: transparent;
+  color: #0b5fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.thread-resolution-reopen:hover {
+  background: #0b5fff;
+  color: #fff;
 }
 
 .thread-resolution-label,
@@ -220,6 +242,37 @@
   border: 1px solid rgba(0, 0, 0, 0.15);
   background: rgba(255, 255, 255, 0.9);
   color: #333;
+}
+
+.thread-confusion-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.confusion-anchor {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #f9f9f9;
+  font-size: 0.75rem;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.confusion-anchor:hover {
+  background: #e9e9e9;
+  border-color: #999;
+}
+
+.confusion-anchor.active {
+  background: #4b5563;
+  border-color: #4b5563;
+  color: #fff;
+  font-weight: 600;
 }
 
 .thread-off-focus-row {
