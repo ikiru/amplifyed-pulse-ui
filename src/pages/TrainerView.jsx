@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useSocket } from "../socket/SocketContext.jsx";
 import AudienceDriftMeter, {
   createNeutralAudienceDriftProjection,
@@ -29,6 +29,9 @@ const TRACE_ENABLED = false;
 
 export default function TrainerView() {
   const { socket, emit, onEvent, offEvent, connectionStatus } = useSocket();
+  
+  // Reference to LiveView window to prevent multiple instances
+  const liveViewWindowRef = useRef(null);
   
   // Local state for UI toggles and insights
   const [showInsights, setShowInsights] = useState(false);
@@ -219,6 +222,41 @@ export default function TrainerView() {
     });
   }, [emit]);
 
+  // Handle opening LiveView window with single-instance enforcement
+  const handleOpenLiveView = useCallback(() => {
+    if (!accessCode) return;
+    
+    const liveViewUrl = `/live/${accessCode}`;
+    
+    // Check if LiveView window already exists and is still open
+    if (liveViewWindowRef.current && !liveViewWindowRef.current.closed) {
+      // Window exists and is open - focus it instead of opening a new one
+      liveViewWindowRef.current.focus();
+    } else {
+      // No window or window was closed - open a new one
+      liveViewWindowRef.current = window.open(
+        liveViewUrl,
+        'liveViewWindow',
+        'width=1920,height=1080'
+      );
+    }
+  }, [accessCode]);
+
+  // Clean up window reference when window is closed or component unmounts
+  useEffect(() => {
+    const checkWindowClosed = setInterval(() => {
+      if (liveViewWindowRef.current?.closed) {
+        liveViewWindowRef.current = null;
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(checkWindowClosed);
+      // Clear reference on unmount (window can stay open, just forget the reference)
+      liveViewWindowRef.current = null;
+    };
+  }, []);
+
   return (
     <div className="trainer-view-shell">
       <div className="trainer-view-grid">
@@ -313,12 +351,7 @@ export default function TrainerView() {
             {/* Open LiveView Button */}
             <button
               className="trainer-liveview-button"
-              onClick={() => {
-                if (accessCode) {
-                  const liveViewUrl = `/live/${accessCode}`;
-                  window.open(liveViewUrl, '_blank', 'width=1920,height=1080');
-                }
-              }}
+              onClick={handleOpenLiveView}
               disabled={!accessCode || connectionStatus !== 'connected'}
               title="Open projection display for in-room audience"
             >
