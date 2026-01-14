@@ -214,22 +214,12 @@ function ThreadItemContent({
   };
 
   const handleConfusionIndicatorClick = () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ThreadItem.jsx:216',message:'confusion indicator clicked',data:{viewerRole,messageId:node.messageId,hasOnScrollToThread:!!onScrollToThread},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     if (viewerRole === "trainer") {
       // Scroll locally (TrainerView)
       scrollToThreadRoot(node.messageId);
       // If callback provided, emit socket event (to scroll LiveView)
       if (onScrollToThread) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ThreadItem.jsx:221',message:'calling onScrollToThread',data:{messageId:node.messageId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         onScrollToThread(node.messageId);
-      } else {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ThreadItem.jsx:225',message:'onScrollToThread not provided',data:{messageId:node.messageId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
       }
     }
   };

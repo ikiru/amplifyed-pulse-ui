@@ -210,16 +210,10 @@ export default function TrainerView() {
   }, []);
 
   const handleScrollToThread = useCallback((rootMessageId) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TrainerView.jsx:212',message:'handleScrollToThread called',data:{rootMessageId,hasEmit:!!emit},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     if (!rootMessageId) return;
     // Scroll locally in TrainerView
     scrollToThreadRoot(rootMessageId);
     // Emit socket event to scroll LiveView
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TrainerView.jsx:217',message:'emitting trainer:scroll:to:thread',data:{rootMessageId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     emit("trainer:scroll:to:thread", {
       rootMessageId,
     });

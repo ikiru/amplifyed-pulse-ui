@@ -47,15 +47,9 @@ export default function LiveView() {
   // Subscribe to trainer scroll events
   useEffect(() => {
     const handleScrollToThread = (payload) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LiveView.jsx:49',message:'scroll event received',data:{payload,hasRootMessageId:!!payload?.rootMessageId,rootMessageId:payload?.rootMessageId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       if (!payload?.rootMessageId) {
         return;
       }
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LiveView.jsx:53',message:'calling scrollToThreadRoot',data:{rootMessageId:payload.rootMessageId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-      // #endregion
       scrollToThreadRoot(payload.rootMessageId, ".liveview-message-list");
     };
 
@@ -148,7 +142,7 @@ export default function LiveView() {
           {/* Session Access Info */}
           <div className="liveview-session-access">
             <div className="liveview-session-access-label">JOIN THIS SESSION</div>
-            <QRCodeDisplay accessCode={sessionCode} size={200} />
+            <QRCodeDisplay accessCode={sessionCode} size={160} />
             <div className="liveview-session-access-code">
               {sessionCode}
             </div>

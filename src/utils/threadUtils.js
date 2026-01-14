@@ -55,39 +55,51 @@ export function assignThreadColors(roots = []) {
  * Scrolls to a thread root element in the DOM
  * Tries to scroll within the scrollable container first, otherwise scrolls the viewport
  * @param {string} rootMessageId - The message ID of the thread root
+ * @param {string} containerSelector - Optional CSS selector for the scrollable container
  */
-export function scrollToThreadRoot(rootMessageId) {
-  // #region agent log
-  if(typeof window!=='undefined'&&typeof fetch!=='undefined'){fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'threadUtils.js:58',message:'scrollToThreadRoot called',data:{rootMessageId,hasDocument:typeof document!=='undefined'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});}
-  // #endregion
+export function scrollToThreadRoot(rootMessageId, containerSelector = null) {
   if (!rootMessageId) return;
   if (typeof document === "undefined") return;
   const targetId = `thread-root-${rootMessageId}`;
   const target = document.getElementById(targetId);
-  // #region agent log
-  if(typeof window!=='undefined'&&typeof fetch!=='undefined'){fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'threadUtils.js:62',message:'target element lookup',data:{targetId,found:!!target},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});}
-  // #endregion
   if (!target) return;
 
-  // Find the scrollable container (either .liveview-message-list or .trainer-message-scroller)
-  let scrollableContainer = target.closest('.liveview-message-list') || target.closest('.trainer-message-scroller');
+  // Find the scrollable container
+  let scrollableContainer = null;
+  if (containerSelector) {
+    scrollableContainer = document.querySelector(containerSelector);
+    if (scrollableContainer && !scrollableContainer.contains(target)) {
+      scrollableContainer = target.closest(containerSelector);
+    }
+  }
+  
+  // Fallback to automatic detection
+  if (!scrollableContainer) {
+    scrollableContainer = target.closest('.liveview-message-list') || target.closest('.trainer-message-scroller');
+  }
   
   if (scrollableContainer) {
-    // Scroll within the container
-    const containerRect = scrollableContainer.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
+    // Check if container can actually scroll
+    const canScroll = scrollableContainer.scrollHeight > scrollableContainer.clientHeight;
     
-    // Calculate the scroll position: target's position relative to container + current scroll
-    const scrollTop = scrollableContainer.scrollTop + (targetRect.top - containerRect.top) - 20; // 20px offset from top
-    
-    // #region agent log
-    if(typeof window!=='undefined'&&typeof fetch!=='undefined'){fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'threadUtils.js:74',message:'scrolling within container',data:{containerClass:scrollableContainer.className,scrollTop,hasContainer:!!scrollableContainer},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});}
-    // #endregion
-    
-    scrollableContainer.scrollTo({
-      top: Math.max(0, scrollTop),
-      behavior: 'smooth'
-    });
+    if (canScroll) {
+      // Scroll within the container
+      const containerRect = scrollableContainer.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      
+      // Calculate the scroll position: target's position relative to container + current scroll
+      const scrollTop = scrollableContainer.scrollTop + (targetRect.top - containerRect.top) - 20; // 20px offset from top
+      
+      scrollableContainer.scrollTo({
+        top: Math.max(0, scrollTop),
+        behavior: 'smooth'
+      });
+    } else {
+      // Container found but not scrollable - use scrollIntoView which will scroll the viewport
+      if (typeof target.scrollIntoView === "function") {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
   } else {
     // Fallback: scroll the viewport (for TrainerView when no container found)
     if (typeof target.scrollIntoView === "function") {

@@ -11,7 +11,7 @@ export function ConfusionMeter({ confusionScore }) {
   const filled = Math.max(0, Math.min(normalizedScore, MAX_BARS));
 
   return (
-    <div className="confusion-meter" aria-hidden="true">
+    <div className="confusion-meter" aria-hidden="true" style={{ pointerEvents: 'none' }}>
       <div className="confusion-bars">
         {Array.from({ length: MAX_BARS }).map((_, i) => (
           <span

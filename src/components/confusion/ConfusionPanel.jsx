@@ -13,7 +13,10 @@ import { scrollToThreadRoot } from "../../utils/threadUtils.js";
  * @param {function} props.onScrollToThread - Callback to scroll to thread (emits socket event)
  */
 export function ConfusionPanel({ confusionThreads, onScrollToThread }) {
-  const handleClick = (rootMessageId) => {
+  const handleClick = (rootMessageId, event) => {
+    if (!rootMessageId) {
+      return;
+    }
     // Scroll locally
     scrollToThreadRoot(rootMessageId);
     // Emit socket event if callback provided (to scroll LiveView)
@@ -32,17 +35,17 @@ export function ConfusionPanel({ confusionThreads, onScrollToThread }) {
           confusionThreads.map(({ root, confusion }) => (
             <div
               key={root.messageId}
-              onClick={() => handleClick(root.messageId)}
+              onClick={(e) => handleClick(root.messageId, e)}
               className="trainer-confusion-thread"
             >
-              <div className="trainer-confusion-thread-heading">
-                <span className="trainer-confusion-thread-title">
-                  {root.text ?? root.messageId}
-                </span>
+                <div className="trainer-confusion-thread-heading" style={{ pointerEvents: 'none' }}>
+                  <span className="trainer-confusion-thread-title">
+                    {root.text ?? root.messageId}
+                  </span>
+                </div>
+                <ConfusionMeter confusionScore={confusion.confusionScore} />
               </div>
-              <ConfusionMeter confusionScore={confusion.confusionScore} />
-            </div>
-          ))
+            ))
         ) : (
           <div className="trainer-confusion-empty">
             No threads currently surfaced
