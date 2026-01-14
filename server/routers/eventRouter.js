@@ -410,6 +410,24 @@ socket.on("audience:pulse", (payload = {}) => {
     });
   });
 
+  // ----------------------------------------------------
+  // TRAINER SCROLL TO THREAD
+  // Broadcasts scroll command to all clients in session (including LiveView)
+  // ----------------------------------------------------
+  socket.on("trainer:scroll:to:thread", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    const { rootMessageId } = payload;
+    if (!rootMessageId) {
+      return;
+    }
+
+    // Broadcast to all clients in the session
+    io.to(sessionId).emit("trainer:scroll:to:thread", {
+      sessionId,
+      rootMessageId,
+    });
+  });
+
   /**
    * --------------------------------------------------
     * Future event types (emotion, focus, camera, etc.)

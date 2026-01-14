@@ -10,8 +10,18 @@ import { scrollToThreadRoot } from "../../utils/threadUtils.js";
  * 
  * @param {object} props
  * @param {Array} props.confusionThreads - Array of {root, confusion} objects
+ * @param {function} props.onScrollToThread - Callback to scroll to thread (emits socket event)
  */
-export function ConfusionPanel({ confusionThreads }) {
+export function ConfusionPanel({ confusionThreads, onScrollToThread }) {
+  const handleClick = (rootMessageId) => {
+    // Scroll locally
+    scrollToThreadRoot(rootMessageId);
+    // Emit socket event if callback provided (to scroll LiveView)
+    if (onScrollToThread) {
+      onScrollToThread(rootMessageId);
+    }
+  };
+
   return (
     <div className="trainer-confusion-panel">
       <h3 className="trainer-section-heading trainer-confusion-heading">
@@ -22,7 +32,7 @@ export function ConfusionPanel({ confusionThreads }) {
           confusionThreads.map(({ root, confusion }) => (
             <div
               key={root.messageId}
-              onClick={() => scrollToThreadRoot(root.messageId)}
+              onClick={() => handleClick(root.messageId)}
               className="trainer-confusion-thread"
             >
               <div className="trainer-confusion-thread-heading">

@@ -85,6 +85,7 @@
   flex: 1;
   gap: 0;
   min-height: 0;
+  overflow: hidden; /* Prevent content from overflowing grid */
 }
 
 /* Pulse Zone (left) */
@@ -102,6 +103,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0; /* Allow flex shrinking for scrolling */
+  height: 100%; /* Ensure grid cell takes full height */
 }
 
 .liveview-section-heading {
@@ -109,15 +112,26 @@
   font-weight: 600;
   margin: 0 0 24px 0;
   color: #1a1a1a;
+  flex-shrink: 0; /* Prevent heading from shrinking */
 }
 
 .liveview-message-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  overflow: hidden; /* No scrolling on projection */
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  max-height: 60vh; /* Constrains height to enable scrolling, matching TrainerView */
+}
+
+.liveview-message-list .message-stream {
   flex: 1;
-  justify-content: flex-end; /* New messages appear at bottom */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  font-size: 0.85rem;
 }
 
 .liveview-empty-state {
@@ -240,7 +254,7 @@
   }
 }
 
-/* No scrollbar needed - messages fit on screen for projection */
+/* Scrollbar enabled for trainer navigation - messages can overflow */
 
 /* Responsive adjustments for 4:3 aspect ratio */
 @media (max-aspect-ratio: 4/3) {

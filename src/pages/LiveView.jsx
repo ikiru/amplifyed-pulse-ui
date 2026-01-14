@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useSocket } from "../socket/SocketContext.jsx";
 import { useLiveViewSocket } from "../hooks/useLiveViewSocket.js";
@@ -6,7 +6,7 @@ import { PulseTimeline } from "../components/pulse/PulseTimeline.jsx";
 import { MessageThreadRow } from "../components/threads/MessageThreadRow.jsx";
 import { QRCodeDisplay } from "../components/session/QRCodeDisplay.jsx";
 import { buildMessageTree } from "../utils/messageUtils.js";
-import { assignThreadColors } from "../utils/threadUtils.js";
+import { assignThreadColors, scrollToThreadRoot } from "../utils/threadUtils.js";
 import { summarizeThreadConfusion } from "../utils/confusionUtils.js";
 import "./LiveView.css";
 
@@ -43,6 +43,25 @@ export default function LiveView() {
     setConfusionAdvisory,
     setFocus,
   });
+
+  // Subscribe to trainer scroll events
+  useEffect(() => {
+    const handleScrollToThread = (payload) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LiveView.jsx:49',message:'scroll event received',data:{payload,hasRootMessageId:!!payload?.rootMessageId,rootMessageId:payload?.rootMessageId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      if (!payload?.rootMessageId) {
+        return;
+      }
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LiveView.jsx:53',message:'calling scrollToThreadRoot',data:{rootMessageId:payload.rootMessageId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
+      scrollToThreadRoot(payload.rootMessageId, ".liveview-message-list");
+    };
+
+    onEvent("trainer:scroll:to:thread", handleScrollToThread);
+    return () => offEvent("trainer:scroll:to:thread", handleScrollToThread);
+  }, [onEvent, offEvent]);
 
   // Build message tree and confusion map (same as TrainerView)
   const messageRoots = useMemo(() => buildMessageTree(messages), [messages]);
@@ -143,23 +162,25 @@ export default function LiveView() {
         <div className="liveview-message-zone">
           <h2 className="liveview-section-heading">Messages</h2>
           {displayMessages.length > 0 ? (
-            <div className="liveview-message-list message-stream trainer-message-stream">
-              {displayMessages.map(({ root, confusion, threadColor }) => (
-                <MessageThreadRow
-                  key={root.messageId}
-                  root={root}
-                  threadColor={threadColor}
-                  confusion={confusion}
-                  confusionByRootId={confusionByRootId}
-                  voteTotals={voteTotals[root.messageId]}
-                  voteTotalsMap={voteTotals}
-                  replyToId={null}
-                  setReplyToId={noop}
-                  replyDrafts={{}}
-                  setReplyDrafts={noop}
-                  handleReplySubmit={noop}
-                />
-              ))}
+            <div className="liveview-message-list">
+              <div className="message-stream trainer-message-stream">
+                {displayMessages.map(({ root, confusion, threadColor }) => (
+                  <MessageThreadRow
+                    key={root.messageId}
+                    root={root}
+                    threadColor={threadColor}
+                    confusion={confusion}
+                    confusionByRootId={confusionByRootId}
+                    voteTotals={voteTotals[root.messageId]}
+                    voteTotalsMap={voteTotals}
+                    replyToId={null}
+                    setReplyToId={noop}
+                    replyDrafts={{}}
+                    setReplyDrafts={noop}
+                    handleReplySubmit={noop}
+                  />
+                ))}
+              </div>
             </div>
           ) : (
             <p className="liveview-empty-state">

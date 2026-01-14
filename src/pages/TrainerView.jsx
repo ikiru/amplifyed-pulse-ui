@@ -13,7 +13,7 @@ import { ConfusionPanel } from "../components/confusion/ConfusionPanel.jsx";
 import { SessionHeader } from "../components/session/SessionHeader.jsx";
 import { FocusControls } from "../components/focus/FocusControls.jsx";
 import { FocusDisplay } from "../components/focus/FocusDisplay.jsx";
-import { assignThreadColors } from "../utils/threadUtils.js";
+import { assignThreadColors, scrollToThreadRoot } from "../utils/threadUtils.js";
 import { summarizeThreadConfusion } from "../utils/confusionUtils.js";
 import { computePulseSummaryCounts } from "../utils/pulseUtils.js";
 import { useTrainerSocket } from "../hooks/useTrainerSocket.js";
@@ -209,6 +209,22 @@ export default function TrainerView() {
     setMessageInput(event.target.value);
   }, []);
 
+  const handleScrollToThread = useCallback((rootMessageId) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TrainerView.jsx:212',message:'handleScrollToThread called',data:{rootMessageId,hasEmit:!!emit},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    if (!rootMessageId) return;
+    // Scroll locally in TrainerView
+    scrollToThreadRoot(rootMessageId);
+    // Emit socket event to scroll LiveView
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'TrainerView.jsx:217',message:'emitting trainer:scroll:to:thread',data:{rootMessageId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    emit("trainer:scroll:to:thread", {
+      rootMessageId,
+    });
+  }, [emit]);
+
   return (
     <div className="trainer-view-shell">
       <div className="trainer-view-grid">
@@ -225,7 +241,7 @@ export default function TrainerView() {
 
             <AudienceDriftMeter projection={driftProjection} />
 
-            <ConfusionPanel confusionThreads={confusionThreads} />
+            <ConfusionPanel confusionThreads={confusionThreads} onScrollToThread={handleScrollToThread} />
           </div>
         </div>
 
@@ -265,6 +281,7 @@ export default function TrainerView() {
                       replyDrafts={replyDrafts}
                       setReplyDrafts={setReplyDrafts}
                       handleReplySubmit={handleReplySubmit}
+                      onScrollToThread={handleScrollToThread}
                     />
                   ))}
                 </div>

@@ -34,6 +34,7 @@ function MessageThreadRowComponent({
   onConfusionSignal,
   onOffFocusSignal,
   voteSelectionMap,
+  onScrollToThread,
 }) {
   const rowRef = useRef(null);
   const messageRefs = useRef(new Map());
@@ -200,6 +201,7 @@ function MessageThreadRowComponent({
           onConfusionSignal={onConfusionSignal}
           onOffFocusSignal={onOffFocusSignal}
           voteSelectionMap={voteSelectionMap}
+          onScrollToThread={onScrollToThread}
         />
       </div>
     </div>
