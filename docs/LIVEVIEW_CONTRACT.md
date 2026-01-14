@@ -55,10 +55,13 @@ Like a medical monitor, LiveView:
 │                          │                                    │
 │   [PULSE TIMELINE]       │     [MESSAGE STREAM]               │
 │                          │                                    │
-│   Timeline graph         │   Recent messages (8-10)           │
+│   Timeline graph         │   All messages                     │
 │   Shows room mood        │   Threading visible                │
 │   over time              │   Large readable text              │
 │   (like TrainerView)     │   Auto-updating                    │
+│                          │                                    │
+│   [SESSION ACCESS]       │                                    │
+│   QR Code / Join Code    │                                    │
 │                          │                                    │
 │   30-35% width           │   65-70% width                     │
 │   Full height below      │   Full height below focus          │
@@ -87,11 +90,11 @@ Like a medical monitor, LiveView:
 ║  │ -12 ────────────│   ║                                       ║
 ║  └──────────────────┘   ║    ↳ Trainer                          ║
 ║                         ║     "Great point. Let's explore..."   ║
-║  ENGAGED    NEUTRAL     ║                                       ║
-║     5          3        ║  👤 Participant                        ║
-║                         ║  "Speed matters for client response    ║
-║  FRUSTRATED             ║   times though."                      ║
-║     4                   ║                                       ║
+║                         ║                                       ║
+║  [SESSION ACCESS]       ║  👤 Participant                        ║
+║  [QR CODE]              ║  "Speed matters for client response    ║
+║  ABCD-1234              ║   times though."                      ║
+║                         ║                                       ║
 ║                         ║  👤 Participant                        ║
 ║                         ║  "Can we look at examples?"           ║
 ║                         ║                                       ║
@@ -119,11 +122,12 @@ Like a medical monitor, LiveView:
 - **"PULSE" header** with participant count on right
 - **Clean graph area** with Y-axis scale (±participantCount)
 - **Blue sentiment line** showing net pulse over last 60 seconds
-- **Vote counts below:** ENGAGED / NEUTRAL / FRUSTRATED with numbers
-- Identical to TrainerView PulseTimeline + PulseSummary
+- **PulseTimeline component** (identical to TrainerView)
+- **Session Access Panel** (QR code and session code for participants to join)
+- Identical to TrainerView PulseTimeline component
 
 **Message Zone (Right, 65-70% width):**
-- Displays last 8-10 messages
+- Displays all messages (threaded)
 - Threading/indentation preserved
 - Message text: 32-40px
 - Author labels: 24-28px
@@ -157,7 +161,6 @@ Like a medical monitor, LiveView:
 - **Identical to TrainerView PulseTimeline component**
 - Time window: Last 60 seconds (scrolling cardiac monitor style)
 - Y-axis: ±participantCount (e.g., +12 to -12 for 12 participants)
-- Vote counts: "X engaged, Y neutral, Z frustrated"
 - Participant count visible
 
 **Update Behavior:**
@@ -172,6 +175,12 @@ Like a medical monitor, LiveView:
 - Current position marked with filled circle (●)
 - No interactive elements (read-only)
 
+**Session Access:**
+- QR code display for easy participant join
+- Session code displayed prominently
+- Join instructions visible
+- Required for participants to access the session
+
 ### 4.3 Message Display
 
 **Inclusion Rules:**
@@ -179,19 +188,20 @@ Like a medical monitor, LiveView:
 - ✅ Show ALL trainer messages
 - ✅ Show threading/replies (indented)
 - ✅ Show message order (chronological)
+- ✅ Show confusion signals (self-reported by participants)
+- ✅ Show vote totals (up/down counts)
 
 **Exclusion Rules:**
-- ❌ Do NOT show message voting/reactions
-- ❌ Do NOT show confusion signals
 - ❌ Do NOT show message classification labels
 - ❌ Do NOT show edit/delete controls
+- ❌ Do NOT show vote/reaction input controls (read-only display)
 
 **Display Behavior:**
-- Show last 8-10 messages (fits viewport without scroll)
+- Show all messages (no arbitrary limit)
 - New messages appear at bottom with fade-in animation (400ms)
-- Oldest messages fade out and are pushed off top
 - Threading preserved (replies indented)
 - Author role indicated (Trainer vs. Participant icon/label)
+- Confusion indicators visible (when self-reported)
 
 **Text Sizing:**
 - Message content: 32-40px
@@ -201,14 +211,17 @@ Like a medical monitor, LiveView:
 ### 4.4 What Must NOT Appear
 
 LiveView explicitly excludes:
-- ❌ Confusion signals or indicators
 - ❌ Drift meter or scores
 - ❌ Insights panel
 - ❌ Participant names (show role only: "Participant" or "Trainer")
 - ❌ Vote/send controls (read-only display)
-- ❌ Session controls
-- ❌ Connection status warnings
+- ❌ Connection status warnings (except subtle reconnecting indicator)
 - ❌ Individual participant identification
+
+**Required Display:**
+- ✅ QR code and session access code (required for participants to join)
+- ✅ Confusion signals (self-reported by participants)
+- ✅ Vote totals on messages
 
 ---
 
@@ -233,7 +246,7 @@ LiveView explicitly excludes:
 **Connection:**
 - LiveView connects via same Socket.io infrastructure
 - Joins session as observer (read-only participant)
-- Subscribes to: `pulse:update`, `message.state.update`, `focus:update`, `focus:cleared`
+- Subscribes to: `pulse:update`, `message.state.update`, `message.vote.update`, `confusion:update`, `focus:update`, `focus:cleared`
 - Does NOT emit events (pure consumer)
 
 **Session Discovery:**
@@ -270,7 +283,7 @@ LiveView explicitly excludes:
 **If Reconnect Succeeds:**
 - Resume real-time updates
 - Remove "Reconnecting" indicator
-- Catch up on missed messages (show last 10)
+- Catch up on missed messages (fetch current session state)
 
 ---
 
@@ -372,12 +385,13 @@ LiveView explicitly excludes:
 **Subscriptions:**
 - `pulse:update` → updates pulse timeline
 - `message.state.update` → updates message stream
+- `message.vote.update` → updates vote totals
+- `confusion:update` → updates confusion signals (self-reported)
 - `focus:update` → updates focus bar
 - `focus:cleared` → clears focus bar
 - `session:metadata` → session info
 
 **Does NOT Subscribe:**
-- `confusion:advisory` (trainer-only)
 - `audience:drift:update` (trainer-only)
 - `insights:*` (trainer-only)
 
@@ -386,7 +400,9 @@ LiveView explicitly excludes:
 **Local State:**
 - Current focus text (string or null)
 - Pulse data (votes, timeline, participants)
-- Message list (last 10 messages max)
+- Message list (all messages)
+- Vote totals (per message)
+- Confusion advisory data
 - Connection status
 
 **No Persistence:**
@@ -397,7 +413,6 @@ LiveView explicitly excludes:
 ### 7.4 Performance
 
 **Optimization:**
-- Message list capped at 10 (auto-prune older)
 - Pulse timeline windowed (last 60 seconds)
 - Smooth animations via CSS transforms
 - Minimal re-renders
@@ -491,9 +506,9 @@ LiveView must feel:
 ### 9.3 Data Issues
 
 **Message Overflow:**
-- If >10 messages, auto-prune oldest
-- Smooth fade-out transition (300ms)
-- No jarring cuts
+- No arbitrary message limit (all messages displayed)
+- Scroll handled gracefully if needed
+- Smooth animations for new messages
 
 **Pulse Spike:**
 - All participants vote at once
@@ -568,9 +583,7 @@ Explicitly deferred to future versions:
 - ❌ Multi-session display (split screen)
 - ❌ Trainer annotations visible on LiveView
 - ❌ Live captions or transcription
-- ❌ Audience-facing confusion signals
 - ❌ Real-time translation
-- ❌ QR code generation (session access handled separately)
 
 ### 11.2 Intentionally Deferred
 
@@ -621,12 +634,12 @@ LiveView is successful if:
 
 **Shared Components:**
 - `<PulseTimeline />` - Identical cardiac monitor graph
-- `<PulseSummary />` - Vote count display (ENGAGED / NEUTRAL / FRUSTRATED)
 - `<MessageThreadRow />` - Message display with threading
 - `<FocusDisplay />` - Focus bar display
+- `<QRCodeDisplay />` - Session access QR code
 
 **Why This Matters:**
-- Ensures LiveView looks and behaves exactly like TrainerView
+- Ensures LiveView looks and behaves exactly like TrainerView (where applicable)
 - Bug fixes/improvements automatically propagate
 - No visual drift over time
 - Reduces maintenance burden
@@ -778,9 +791,8 @@ LiveView is successful if:
 - Participant count changes: **300ms** fade
 
 **Auto-Scroll Messages:**
-- When 11th message arrives, oldest fades out
-- Fade-out: **300ms**
-- Scroll transition: **400ms**
+- New messages fade in at bottom: **400ms**
+- Smooth scroll behavior as messages are added
 - No jarring jumps
 
 ---
@@ -799,12 +811,12 @@ LiveView is successful if:
 
 **Capacity:**
 - Handles **100+ participants** without degradation
-- Handles **500+ messages** in session (displays last 10)
+- Handles **500+ messages** in session (displays all)
 - Handles **1000+ pulse events** in timeline (shows last 60s)
 
 **Memory:**
 - Does not accumulate unbounded state
-- Auto-prunes old messages (keeps last 100 in memory)
+- Messages stored for display (no arbitrary limit)
 - Auto-prunes old pulse events (keeps last 5 minutes)
 
 ---
