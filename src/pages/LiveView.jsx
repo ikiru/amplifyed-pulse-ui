@@ -154,7 +154,6 @@ export default function LiveView() {
 
         {/* Right: Messages */}
         <div className="liveview-message-zone">
-          <h2 className="liveview-section-heading">Messages</h2>
           {displayMessages.length > 0 ? (
             <div className="liveview-message-list">
               <div className="message-stream trainer-message-stream">
@@ -172,6 +171,7 @@ export default function LiveView() {
                     replyDrafts={{}}
                     setReplyDrafts={noop}
                     handleReplySubmit={noop}
+                    showReplyControls={false}
                   />
                 ))}
               </div>

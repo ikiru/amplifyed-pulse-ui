@@ -35,6 +35,7 @@ function MessageThreadRowComponent({
   onOffFocusSignal,
   voteSelectionMap,
   onScrollToThread,
+  showReplyControls = true,
 }) {
   const rowRef = useRef(null);
   const messageRefs = useRef(new Map());
@@ -193,15 +194,16 @@ function MessageThreadRowComponent({
           showVoteTotals={false}
           allowConfusionAnchors={actorRole === "audience"}
           allowConfusionRow={true}
-          showConfusionRow={confusion.showConfusionRow}
-          confusionScore={confusion.confusionScore}
-          resolutionType={confusion.resolutionType}
+          showConfusionRow={confusion?.showConfusionRow}
+          confusionScore={confusion?.confusionScore}
+          resolutionType={confusion?.resolutionType}
           registerMessageRef={registerMessageRef}
           emitVoteIntent={emitVoteIntent}
           onConfusionSignal={onConfusionSignal}
           onOffFocusSignal={onOffFocusSignal}
           voteSelectionMap={voteSelectionMap}
           onScrollToThread={onScrollToThread}
+          showReplyControls={showReplyControls}
         />
       </div>
     </div>
