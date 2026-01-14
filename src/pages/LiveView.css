@@ -2,11 +2,12 @@
 
 /* Shell */
 .liveview-shell {
-  min-height: 100vh;
+  height: 100vh;
   background: #f5f3f0; /* warm cream background */
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
 }
 
 /* Reconnecting indicator */
@@ -104,7 +105,7 @@
 
 /* Message Zone (right) */
 .liveview-message-zone {
-  padding: 32px;
+  padding: 48px 32px 32px 32px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -123,12 +124,11 @@
 .liveview-message-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  flex: 1 1 auto;
+  gap: 20px;
+  flex: 1;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  max-height: 60vh; /* Constrains height to enable scrolling, matching TrainerView */
   scroll-behavior: smooth;
 }
 
@@ -155,7 +155,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 20px;
   min-height: 0;
 }
 
@@ -240,7 +240,7 @@
 .liveview-shell .message-bubble {
   font-size: 32px; /* large for distance readability */
   line-height: 1.4;
-  padding: 16px 20px;
+  padding: 24px 20px;
 }
 
 .liveview-shell .message-content {
