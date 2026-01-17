@@ -12,7 +12,6 @@ import { InsightsPanel } from "../components/insights/InsightsPanel.jsx";
 import { ConfusionPanel } from "../components/confusion/ConfusionPanel.jsx";
 import { SessionHeader } from "../components/session/SessionHeader.jsx";
 import { FocusControls } from "../components/focus/FocusControls.jsx";
-import { FocusDisplay } from "../components/focus/FocusDisplay.jsx";
 import { assignThreadColors, scrollToThreadRoot } from "../utils/threadUtils.js";
 import { summarizeThreadConfusion } from "../utils/confusionUtils.js";
 import { computePulseSummaryCounts } from "../utils/pulseUtils.js";
@@ -21,6 +20,8 @@ import { useMessageState } from "../hooks/useMessageState.js";
 import { useFocusState } from "../hooks/useFocusState.js";
 import { useSessionState } from "../hooks/useSessionState.js";
 import { SessionAccessPanel } from "../components/session/SessionAccessPanel.jsx";
+import { useObsCaptureState } from "../hooks/useObsCaptureState.js";
+import { createObsCaptureClient } from "../obs/obsCaptureClient.js";
 import "./AudienceInput.css";
 import "./TrainerView.css";
 
@@ -32,11 +33,20 @@ export default function TrainerView() {
   
   // Reference to LiveView window to prevent multiple instances
   const liveViewWindowRef = useRef(null);
+  const obsClientRef = useRef(null);
   
   // Local state for UI toggles and insights
   const [showInsights, setShowInsights] = useState(false);
   const [visibleInsights, setVisibleInsights] = useState(null);
   const [hiddenInsights, setHiddenInsights] = useState(null);
+
+  const [obsCapture, setObsCapture] = useState({
+    status: "idle",
+    reason: null,
+    metrics: null,
+    captureSessionId: null,
+    ts: null,
+  });
   
   // Pulse and drift state
   const [livePulse, setLivePulse] = useState(null);
@@ -53,9 +63,17 @@ export default function TrainerView() {
     setFocus,
     focusInput,
     setFocusInput,
-    handleSetFocus,
-    handleClearFocus,
-  } = useFocusState({ emit });
+    entries,
+    activeFocusId,
+    defaultFocusId,
+    activeFocusText,
+    handleAddFocus,
+    handleActivateFocus,
+    handleResetToDefault,
+    handleReorder,
+    handleEditInPlace,
+    handleReviseByNew,
+  } = useFocusState({ emit, onEvent, offEvent });
 
   // Message management hook
   const {
@@ -87,6 +105,17 @@ export default function TrainerView() {
     setFocus,
   });
 
+  useObsCaptureState({
+    onEvent,
+    offEvent,
+    setObsCapture,
+  });
+
+  // Lazy init OBS capture client (browser-only capture; server tracks status)
+  if (!obsClientRef.current) {
+    obsClientRef.current = createObsCaptureClient({ emit });
+  }
+
   // Session state hook
   const { accessCode, participantCount } = useSessionState({
     socket,
@@ -94,6 +123,16 @@ export default function TrainerView() {
     onEvent,
     offEvent,
   });
+
+  // Ensure this client is registered as a trainer (required for trainer-only Focus Box actions)
+  useEffect(() => {
+    if (!socket?.connected) return;
+    emit("session:join", {
+      role: "trainer",
+      name: "Trainer",
+      metadata: { client: "trainer_view" },
+    });
+  }, [socket?.connected, emit]);
   // Memoized confusion lookup
   const confusionByRootId = useMemo(() => {
     const threads = confusionAdvisory?.threads;
@@ -271,6 +310,20 @@ export default function TrainerView() {
               <InsightsPanel insights={visibleInsights} />
             )}
 
+            {/* ===== Pulse ===== */}
+            <section>
+              <PulseTimeline
+                eventLog={livePulse?.eventLog ?? []}
+                participantsCount={canonicalParticipantCount}
+                footer={<PulseSummary summaryVoteTotals={summaryVoteTotals} />}
+              />
+              {connectionStatus !== "connected" && (
+                <div className="pulse-timeline-placeholder">
+                  Waiting for live pulse data before drawing the timeline.
+                </div>
+              )}
+            </section>
+
             <AudienceDriftMeter projection={driftProjection} />
 
             <ConfusionPanel confusionThreads={confusionThreads} onScrollToThread={handleScrollToThread} />
@@ -278,22 +331,6 @@ export default function TrainerView() {
         </div>
 
         <div data-column="center" className="trainer-center-column">
-          {/* ===== Pulse ===== */}
-          <section>
-            <PulseTimeline
-              eventLog={livePulse?.eventLog ?? []}
-              participantsCount={canonicalParticipantCount}
-            />
-            {connectionStatus !== "connected" && (
-              <div className="pulse-timeline-placeholder">
-                Waiting for live pulse data before drawing the timeline.
-              </div>
-            )}
-            <PulseSummary summaryVoteTotals={summaryVoteTotals} />
-          </section>
-
-          <FocusDisplay focus={focus} />
-
           <div className="trainer-message-area">
             <h3 className="trainer-section-heading">Messages</h3>
             <div className="trainer-message-scroller">
@@ -335,8 +372,16 @@ export default function TrainerView() {
           <FocusControls
             focusInput={focusInput}
             setFocusInput={setFocusInput}
-            handleSetFocus={handleSetFocus}
-            handleClearFocus={handleClearFocus}
+            entries={entries}
+            activeFocusId={activeFocusId}
+            defaultFocusId={defaultFocusId}
+            activeFocusText={activeFocusText}
+            handleAddFocus={handleAddFocus}
+            handleActivateFocus={handleActivateFocus}
+            handleResetToDefault={handleResetToDefault}
+            handleReorder={handleReorder}
+            handleEditInPlace={handleEditInPlace}
+            handleReviseByNew={handleReviseByNew}
           />
 
           {/* Session Info with Access */}
@@ -346,6 +391,7 @@ export default function TrainerView() {
             {/* Session Access Code */}
             <SessionAccessPanel
               accessCode={accessCode}
+              showQr={false}
             />
             
             {/* Open LiveView Button */}
@@ -357,6 +403,63 @@ export default function TrainerView() {
             >
               📺 Open LiveView
             </button>
+
+            {/* OBS Capture (Pixels Only) */}
+            <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #e0e0e0" }}>
+              <p style={{ margin: 0, fontSize: "0.75rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                OBS Capture
+              </p>
+              <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                <button
+                  className="trainer-focus-button"
+                  type="button"
+                  onClick={() => obsClientRef.current?.startCapture()}
+                  disabled={obsCapture.status === "capturing" || connectionStatus !== "connected"}
+                  title="Start pixels-only capture (choose a window or tab)"
+                >
+                  Start
+                </button>
+                <button
+                  className="trainer-focus-button trainer-focus-button--secondary"
+                  type="button"
+                  onClick={() => obsClientRef.current?.stopCapture()}
+                  disabled={obsCapture.status !== "capturing"}
+                  title="Stop capture"
+                >
+                  Stop
+                </button>
+              </div>
+
+              <div style={{ marginTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px" }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: "0.75rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    Capture Status
+                  </p>
+                  <p style={{ margin: 0, fontSize: "1.0rem", fontWeight: "600", color: "#222" }}>
+                    {obsCapture.status}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: "0.75rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    Source Metrics
+                  </p>
+                  <p style={{ margin: 0, fontSize: "1.0rem", fontWeight: "600", color: "#222" }}>
+                    {obsCapture.metrics?.width && obsCapture.metrics?.height
+                      ? `${obsCapture.metrics.width}×${obsCapture.metrics.height}`
+                      : "—"}
+                    {typeof obsCapture.metrics?.frameRate === "number"
+                      ? ` @${Math.round(obsCapture.metrics.frameRate)}fps`
+                      : ""}
+                  </p>
+                </div>
+              </div>
+
+              {obsCapture.reason ? (
+                <p className="trainer-text-muted trainer-panel-note" style={{ marginTop: "8px" }}>
+                  {obsCapture.reason}
+                </p>
+              ) : null}
+            </div>
             
             {/* Session Metadata */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e0e0e0' }}>

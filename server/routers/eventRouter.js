@@ -47,6 +47,7 @@ export default function registerEventRouter(io, socket, pipelines = {}) {
     trainerPipeline = null,
     momentPipeline = null, // Added Phase 2.4.2
     confusionPipeline = null,
+    obsPipeline = null,
   } = pipelines;
 
   const assignSessionId = (requestedSessionId) => {
@@ -65,13 +66,14 @@ export default function registerEventRouter(io, socket, pipelines = {}) {
   };
 
   const syncFocusState = (sessionId) => {
-    if (!sessionId || !focusPipeline?.getActiveFocus) {
+    if (!sessionId) return;
+    if (focusPipeline?.syncFocusState) {
+      focusPipeline.syncFocusState(socket, sessionId);
       return;
     }
+    if (!focusPipeline?.getActiveFocus) return;
 
     const focusState = focusPipeline.getActiveFocus(sessionId);
-    if (!focusState) return;
-
     socket.emit("focus:update", {
       sessionId,
       focus: focusState,
@@ -116,9 +118,26 @@ socket.on("audience:pulse", (payload = {}) => {
   // FOCUS PIPELINE (Step 6.2 — Scaffold Only)
   // No activation of behavior. Pure wiring.
   // ----------------------------------------------------
+  const isTrainerSocket = (sessionId) => {
+    if (!sessionPipeline?.getParticipant) return false;
+    const participant = sessionPipeline.getParticipant(socket.id, sessionId);
+    return participant?.actorRole === "trainer";
+  };
+
+  const requireTrainer = (sessionId, action) => {
+    if (isTrainerSocket(sessionId)) return true;
+    console.warn("[FOCUS] denied non-trainer focus action", {
+      action,
+      socketId: socket.id,
+      sessionId,
+    });
+    return false;
+  };
+
   socket.on("focus:set", (payload = {}) => {
     const currentSessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
     console.log("[8.1] focus:set reached router", payload);
+    if (!requireTrainer(currentSessionId, "focus:set")) return;
     if (focusPipeline?.handleSetFocus) {
       focusPipeline.handleSetFocus({
         io,
@@ -131,12 +150,80 @@ socket.on("audience:pulse", (payload = {}) => {
 
   socket.on("focus:clear", () => {
     const currentSessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(currentSessionId, "focus:clear")) return;
     if (focusPipeline?.handleClearFocus) {
       focusPipeline.handleClearFocus({
         socketId: socket.id,
         sessionId: currentSessionId,
       });
     }
+  });
+
+  // Focus Box (trainer-only) events
+  socket.on("focus:entry:add", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "focus:entry:add")) return;
+    focusPipeline?.handleAddEntry?.({
+      io,
+      socketId: socket.id,
+      sessionId,
+      ...payload,
+    });
+  });
+
+  socket.on("focus:activate", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "focus:activate")) return;
+    focusPipeline?.handleActivate?.({
+      io,
+      socketId: socket.id,
+      sessionId,
+      ...payload,
+    });
+  });
+
+  socket.on("focus:reset_default", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "focus:reset_default")) return;
+    focusPipeline?.handleResetDefault?.({
+      io,
+      socketId: socket.id,
+      sessionId,
+      ...payload,
+    });
+  });
+
+  socket.on("focus:edit_in_place", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "focus:edit_in_place")) return;
+    focusPipeline?.handleEditInPlace?.({
+      io,
+      socketId: socket.id,
+      sessionId,
+      ...payload,
+    });
+  });
+
+  socket.on("focus:revise_by_new", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "focus:revise_by_new")) return;
+    focusPipeline?.handleReviseByNew?.({
+      io,
+      socketId: socket.id,
+      sessionId,
+      ...payload,
+    });
+  });
+
+  socket.on("focus:reorder", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "focus:reorder")) return;
+    focusPipeline?.handleReorder?.({
+      io,
+      socketId: socket.id,
+      sessionId,
+      ...payload,
+    });
   });
 
   // ----------------------------------------------------
@@ -195,6 +282,11 @@ socket.on("audience:pulse", (payload = {}) => {
       pulsePipeline.syncPulseState(socket, sessionId);
     }
 
+    // Sync OBS state (if available)
+    if (obsPipeline?.syncState) {
+      obsPipeline.syncState(socket, sessionId);
+    }
+
     // Send success response to client
     socket.emit('session:joined', {
       sessionId,
@@ -229,6 +321,90 @@ socket.on("audience:pulse", (payload = {}) => {
           socket.emit("moment:update", envelope);
         });
       }
+    }
+
+    if (obsPipeline?.syncState) {
+      obsPipeline.syncState(socket, socket.sessionId ?? DEFAULT_SESSION_ID);
+    }
+  });
+
+  // ----------------------------------------------------
+  // OBS PIPELINE (Pixels-only capture lifecycle)
+  // ----------------------------------------------------
+  socket.on("obs:capture:request", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handleCaptureRequest) {
+      obsPipeline.handleCaptureRequest({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
+    }
+  });
+
+  socket.on("obs:capture:started", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handleCaptureStarted) {
+      obsPipeline.handleCaptureStarted({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
+    }
+  });
+
+  socket.on("obs:capture:stopped", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handleCaptureStopped) {
+      obsPipeline.handleCaptureStopped({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
+    }
+  });
+
+  socket.on("obs:capture:interrupted", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handleCaptureInterrupted) {
+      obsPipeline.handleCaptureInterrupted({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
+    }
+  });
+
+  socket.on("obs:capture:permission_denied", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handlePermissionDenied) {
+      obsPipeline.handlePermissionDenied({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
+    }
+  });
+
+  socket.on("obs:capture:not_supported", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handleNotSupported) {
+      obsPipeline.handleNotSupported({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
+    }
+  });
+
+  socket.on("obs:capture:error", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handleError) {
+      obsPipeline.handleError({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
     }
   });
 

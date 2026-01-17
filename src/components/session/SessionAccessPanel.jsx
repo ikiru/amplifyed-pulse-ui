@@ -11,8 +11,9 @@ import { QRCodeDisplay } from './QRCodeDisplay.jsx';
  * 
  * @param {Object} props
  * @param {string} props.accessCode - Session access code (e.g., "ABCD-1234")
+ * @param {boolean} [props.showQr=true] - Whether to render the QR code (useful for LiveView; optional for TrainerView)
  */
-export function SessionAccessPanel({ accessCode }) {
+export function SessionAccessPanel({ accessCode, showQr = true }) {
   const [copySuccess, setCopySuccess] = useState(false);
 
   /**
@@ -60,8 +61,8 @@ export function SessionAccessPanel({ accessCode }) {
           {copySuccess ? '✓ Copied!' : 'Copy Code'}
         </button>
 
-        {/* QR Code */}
-        <QRCodeDisplay accessCode={accessCode} />
+        {/* QR Code (optional) */}
+        {showQr ? <QRCodeDisplay accessCode={accessCode} /> : null}
       </div>
     </div>
   );
