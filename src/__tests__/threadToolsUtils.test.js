@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   TOPIC_STATE,
+  computeActivityPulseUpdates,
   computeTopicState,
   countReplies,
   didChangeValue,
@@ -73,6 +74,21 @@ describe("threadToolsUtils", () => {
     expect(didChangeValue("on_topic", "off_topic")).toBe(true);
     expect(didChangeValue("on_topic", "on_topic")).toBe(false);
     expect(didChangeValue(null, "off_topic")).toBe(false);
+  });
+
+  it("computeActivityPulseUpdates emits an activity timestamp when latestMessageTsMs increases", () => {
+    const prevLatest = { rootA: 100 };
+    const summaries = [
+      { rootMessageId: "rootA", latestMessageTsMs: 200 },
+      { rootMessageId: "rootB", latestMessageTsMs: 50 },
+    ];
+    const { nextPrevLatestTsByRootId, activityAtUpdates, nowMs } =
+      computeActivityPulseUpdates(prevLatest, summaries, 999);
+
+    expect(nowMs).toBe(999);
+    expect(nextPrevLatestTsByRootId.rootA).toBe(200);
+    expect(nextPrevLatestTsByRootId.rootB).toBe(50);
+    expect(activityAtUpdates).toEqual({ rootA: 999 });
   });
 });
 

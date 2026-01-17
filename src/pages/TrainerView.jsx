@@ -16,6 +16,7 @@ import { assignThreadColors, scrollToThreadRoot } from "../utils/threadUtils.js"
 import { summarizeThreadConfusion } from "../utils/confusionUtils.js";
 import { computePulseSummaryCounts } from "../utils/pulseUtils.js";
 import {
+  computeActivityPulseUpdates,
   didChangeValue,
   didCrossUpwardThreshold,
   summarizeThread,
@@ -46,8 +47,11 @@ export default function TrainerView() {
   const [grewCrossedAtByRootId, setGrewCrossedAtByRootId] = useState({});
   const [topicChangedAtByRootId, setTopicChangedAtByRootId] = useState({});
   const [lensNowMs, setLensNowMs] = useState(() => Date.now());
+  const [activityNowMs, setActivityNowMs] = useState(() => Date.now());
+  const [lastActivityAtByRootId, setLastActivityAtByRootId] = useState({});
   const prevReplyCountByRootIdRef = useRef({});
   const prevTopicStateByRootIdRef = useRef({});
+  const prevLatestTsByRootIdRef = useRef({});
   
   // Local state for UI toggles and insights
   const [showInsights, setShowInsights] = useState(false);
@@ -265,6 +269,12 @@ export default function TrainerView() {
     return () => clearInterval(id);
   }, [activeThreadLens]);
 
+  // Keep activity pulses fresh without relying on new server events.
+  useEffect(() => {
+    const id = setInterval(() => setActivityNowMs(Date.now()), 250);
+    return () => clearInterval(id);
+  }, []);
+
   // Track boundary crossings for "Threads That Grew" (≤4 → ≥5 replies)
   useEffect(() => {
     const now = Date.now();
@@ -312,6 +322,23 @@ export default function TrainerView() {
 
     if (changed) {
       setTopicChangedAtByRootId((prev) => ({ ...prev, ...updates }));
+    }
+  }, [threadSummaries]);
+
+  // Track ephemeral per-thread activity pulses (TrainerView-local).
+  // A pulse is emitted when the latest message timestamp for a thread increases.
+  useEffect(() => {
+    const { nextPrevLatestTsByRootId, activityAtUpdates } =
+      computeActivityPulseUpdates(
+        prevLatestTsByRootIdRef.current,
+        threadSummaries,
+        Date.now()
+      );
+
+    prevLatestTsByRootIdRef.current = nextPrevLatestTsByRootId;
+
+    if (Object.keys(activityAtUpdates).length > 0) {
+      setLastActivityAtByRootId((prev) => ({ ...prev, ...activityAtUpdates }));
     }
   }, [threadSummaries]);
 
@@ -507,24 +534,34 @@ export default function TrainerView() {
             <div className="trainer-message-scroller">
               {visibleThreadConfusions.length ? (
                 <div className="message-stream trainer-message-stream">
-                  {visibleThreadConfusions.map(({ root, confusion, threadColor }) => (
-                    <MessageThreadRow
-                      key={root.messageId}
-                      root={root}
-                      threadColor={threadColor}
-                      confusion={confusion}
-                      confusionByRootId={confusionByRootId}
-                      voteTotals={voteTotals[root.messageId]}
-                      voteTotalsMap={voteTotals}
-                      replyToId={replyToId}
-                      setReplyToId={setReplyToId}
-                      replyDrafts={replyDrafts}
-                      setReplyDrafts={setReplyDrafts}
-                      handleReplySubmit={handleReplySubmit}
-                      onScrollToThread={handleScrollToThread}
-                      defaultCollapsed={true}
-                    />
-                  ))}
+                  {visibleThreadConfusions.map(({ root, confusion, threadColor }) => {
+                    const rootId = root?.messageId;
+                    const lastActiveAt =
+                      rootId ? lastActivityAtByRootId[rootId] : null;
+                    const activityPulse =
+                      typeof lastActiveAt === "number" &&
+                      activityNowMs - lastActiveAt <= 900;
+
+                    return (
+                      <MessageThreadRow
+                        key={root.messageId}
+                        root={root}
+                        threadColor={threadColor}
+                        confusion={confusion}
+                        confusionByRootId={confusionByRootId}
+                        voteTotals={voteTotals[root.messageId]}
+                        voteTotalsMap={voteTotals}
+                        replyToId={replyToId}
+                        setReplyToId={setReplyToId}
+                        replyDrafts={replyDrafts}
+                        setReplyDrafts={setReplyDrafts}
+                        handleReplySubmit={handleReplySubmit}
+                        onScrollToThread={handleScrollToThread}
+                        defaultCollapsed={true}
+                        activityPulse={activityPulse}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="trainer-text-muted">No messages yet</p>

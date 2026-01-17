@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSocket } from "../socket/SocketContext.jsx";
 import { useSessionJoin } from "../hooks/useSessionJoin.js";
@@ -9,6 +9,7 @@ import { MessageThreadRow } from "../components/threads/MessageThreadRow.jsx";
 import { MessageInputBar } from "../components/messages/MessageInputBar.jsx";
 import { assignThreadColors } from "../utils/threadUtils.js";
 import { summarizeThreadConfusion } from "../utils/confusionUtils.js";
+import { computeActivityPulseUpdates, summarizeThread } from "../utils/threadToolsUtils.js";
 import "./AudienceInput.css";
 
 const pulseOptions = [
@@ -39,6 +40,14 @@ export default function AudienceInput() {
   const [voteTotals, setVoteTotals] = useState({});
   const [replyDrafts, setReplyDrafts] = useState({});
   const [selectedVotes, setSelectedVotes] = useState({});
+  const [activityNowMs, setActivityNowMs] = useState(() => Date.now());
+  const [lastActivityAtByRootId, setLastActivityAtByRootId] = useState({});
+  const prevLatestTsByRootIdRef = useRef({});
+
+  useEffect(() => {
+    const id = setInterval(() => setActivityNowMs(Date.now()), 250);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const handleMessageStateUpdate = ({ messages }) => {
@@ -164,13 +173,30 @@ export default function AudienceInput() {
   }, [emit, socket]);
 
   const sessionIdLabel = socket?.sessionId ?? "session:default";
-  const roots = buildMessageTree(messages);
-  const rootColorAssignments = assignThreadColors(roots);
-  const threadConfusions = roots.map((root) => ({
-    root,
-    confusion: summarizeThreadConfusion(root, null),
-    threadColor: rootColorAssignments.get(root.messageId),
-  }));
+  const roots = useMemo(() => buildMessageTree(messages), [messages]);
+  const rootColorAssignments = useMemo(() => assignThreadColors(roots), [roots]);
+  const threadSummaries = useMemo(() => roots.map((root) => summarizeThread(root)), [roots]);
+  const threadConfusions = useMemo(() => {
+    return roots.map((root) => ({
+      root,
+      confusion: summarizeThreadConfusion(root, null),
+      threadColor: rootColorAssignments.get(root.messageId),
+    }));
+  }, [roots, rootColorAssignments]);
+
+  // Track ephemeral per-thread activity pulses (AudienceInput-local).
+  useEffect(() => {
+    const { nextPrevLatestTsByRootId, activityAtUpdates } =
+      computeActivityPulseUpdates(
+        prevLatestTsByRootIdRef.current,
+        threadSummaries,
+        Date.now()
+      );
+    prevLatestTsByRootIdRef.current = nextPrevLatestTsByRootId;
+    if (Object.keys(activityAtUpdates).length > 0) {
+      setLastActivityAtByRootId((prev) => ({ ...prev, ...activityAtUpdates }));
+    }
+  }, [threadSummaries]);
 
   // Show entry form if not joined
   if (!isJoined) {
@@ -229,6 +255,10 @@ export default function AudienceInput() {
               onOffFocusSignal={emitOffFocusSignal}
               voteSelectionMap={selectedVotes}
               defaultCollapsed={true}
+              activityPulse={
+                typeof lastActivityAtByRootId[root.messageId] === "number" &&
+                activityNowMs - lastActivityAtByRootId[root.messageId] <= 900
+              }
             />
           ))
         )}

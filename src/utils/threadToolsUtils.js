@@ -79,6 +79,26 @@ export function summarizeThread(root) {
   };
 }
 
+export function computeActivityPulseUpdates(prevLatestTsByRootId = {}, summaries = [], nowMs) {
+  const now = typeof nowMs === "number" ? nowMs : Date.now();
+  const nextPrev = { ...(prevLatestTsByRootId ?? {}) };
+  const activityAtUpdates = {};
+
+  summaries.forEach((summary) => {
+    const rootId = summary?.rootMessageId;
+    if (!rootId) return;
+    const latest = summary.latestMessageTsMs;
+    if (typeof latest !== "number") return;
+    const prevLatest = nextPrev[rootId];
+    if (typeof prevLatest === "number" && latest > prevLatest) {
+      activityAtUpdates[rootId] = now;
+    }
+    nextPrev[rootId] = latest;
+  });
+
+  return { nextPrevLatestTsByRootId: nextPrev, activityAtUpdates, nowMs: now };
+}
+
 export function didCrossUpwardThreshold(prevValue, nextValue, threshold) {
   if (typeof threshold !== "number") return false;
   if (typeof prevValue !== "number" || typeof nextValue !== "number") {

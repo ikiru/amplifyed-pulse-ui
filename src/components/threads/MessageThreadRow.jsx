@@ -37,6 +37,7 @@ function MessageThreadRowComponent({
   onScrollToThread,
   showReplyControls = true,
   defaultCollapsed = false,
+  activityPulse = false,
 }) {
   const rowRef = useRef(null);
   const messageRefs = useRef(new Map());
@@ -142,7 +143,9 @@ function MessageThreadRowComponent({
 
   return (
     <div
-      className="trainer-message-stream-row"
+      className={`trainer-message-stream-row${
+        activityPulse ? " thread-activity-pulse" : ""
+      }`}
       ref={attachRowRef}
       style={themeStyle}
     >

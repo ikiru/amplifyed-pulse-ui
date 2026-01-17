@@ -90,6 +90,20 @@ This is a UI presentation choice and does not alter canonical message state. Liv
 
 ---
 
+### 1.4.2 Ephemeral Thread Activity Pulse (TrainerView + AudienceInput)
+
+Trainer-local views (TrainerView and AudienceInput) may render a brief, neutral **activity pulse** on a thread’s **structural chrome** (e.g., the lineage bar) when a new message arrives in that thread.
+
+Constraints:
+
+* The pulse must be **ephemeral** (on the order of ~1 second) and **non-accumulating**
+* The pulse must not imply importance, priority, urgency, neglect, or “unread” state
+* The pulse must be visual-only and must not change canonical ordering, visibility, or content
+
+This mechanism exists to preserve a “live document” feel without introducing semantic meaning.
+
+---
+
 ### 1.5 Normative Definitions (Binding)
 
 * **Thread**: a root message and all of its descendant replies. Thread identity is the root message id (`rootMessageId`).
