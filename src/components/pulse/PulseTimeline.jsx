@@ -24,6 +24,7 @@ function PulseTimelineComponent(props) {
     scaleMin,
     scaleMax,
     points,
+    footer,
   } = props;
   const participantCount = participantsCount;
 
@@ -259,7 +260,8 @@ function PulseTimelineComponent(props) {
           <div className="pulse-timeline-title">PULSE</div>
         </div>
         <div className="pulse-timeline-current">
-          👥 {participantCount} {participantCount === 1 ? 'participant' : 'participants'}
+          👥 {resolvedParticipantsCount}{" "}
+          {resolvedParticipantsCount === 1 ? "participant" : "participants"}
         </div>
       </div>
       <div className="pulse-timeline-track">
@@ -328,6 +330,7 @@ function PulseTimelineComponent(props) {
           <span />
         </div>
       )}
+      {footer ? <div className="pulse-timeline-footer">{footer}</div> : null}
     </div>
   );
 }

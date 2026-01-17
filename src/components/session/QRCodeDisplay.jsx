@@ -1,5 +1,6 @@
 import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import './QRCodeDisplay.css';
 
 /**
  * QRCodeDisplay Component

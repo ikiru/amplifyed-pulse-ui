@@ -51,7 +51,7 @@ const messagePipeline = createMessagePipeline(
   confusionPipeline
 );
 const trainerPipeline = createTrainerPipeline(io, pulsePipeline.momentBuilder);
-const focusPipeline = registerFocusHandlers({ io });
+const focusPipeline = registerFocusHandlers({ io, sessionPipeline });
 const obsPipeline = createObsPipeline(io);
 const safetyPipeline = null;
 // const emotionPipeline = createEmotionPipeline(io);

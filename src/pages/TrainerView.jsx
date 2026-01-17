@@ -12,7 +12,6 @@ import { InsightsPanel } from "../components/insights/InsightsPanel.jsx";
 import { ConfusionPanel } from "../components/confusion/ConfusionPanel.jsx";
 import { SessionHeader } from "../components/session/SessionHeader.jsx";
 import { FocusControls } from "../components/focus/FocusControls.jsx";
-import { FocusDisplay } from "../components/focus/FocusDisplay.jsx";
 import { assignThreadColors, scrollToThreadRoot } from "../utils/threadUtils.js";
 import { summarizeThreadConfusion } from "../utils/confusionUtils.js";
 import { computePulseSummaryCounts } from "../utils/pulseUtils.js";
@@ -64,9 +63,17 @@ export default function TrainerView() {
     setFocus,
     focusInput,
     setFocusInput,
-    handleSetFocus,
-    handleClearFocus,
-  } = useFocusState({ emit });
+    entries,
+    activeFocusId,
+    defaultFocusId,
+    activeFocusText,
+    handleAddFocus,
+    handleActivateFocus,
+    handleResetToDefault,
+    handleReorder,
+    handleEditInPlace,
+    handleReviseByNew,
+  } = useFocusState({ emit, onEvent, offEvent });
 
   // Message management hook
   const {
@@ -116,6 +123,16 @@ export default function TrainerView() {
     onEvent,
     offEvent,
   });
+
+  // Ensure this client is registered as a trainer (required for trainer-only Focus Box actions)
+  useEffect(() => {
+    if (!socket?.connected) return;
+    emit("session:join", {
+      role: "trainer",
+      name: "Trainer",
+      metadata: { client: "trainer_view" },
+    });
+  }, [socket?.connected, emit]);
   // Memoized confusion lookup
   const confusionByRootId = useMemo(() => {
     const threads = confusionAdvisory?.threads;
@@ -293,6 +310,20 @@ export default function TrainerView() {
               <InsightsPanel insights={visibleInsights} />
             )}
 
+            {/* ===== Pulse ===== */}
+            <section>
+              <PulseTimeline
+                eventLog={livePulse?.eventLog ?? []}
+                participantsCount={canonicalParticipantCount}
+                footer={<PulseSummary summaryVoteTotals={summaryVoteTotals} />}
+              />
+              {connectionStatus !== "connected" && (
+                <div className="pulse-timeline-placeholder">
+                  Waiting for live pulse data before drawing the timeline.
+                </div>
+              )}
+            </section>
+
             <AudienceDriftMeter projection={driftProjection} />
 
             <ConfusionPanel confusionThreads={confusionThreads} onScrollToThread={handleScrollToThread} />
@@ -300,22 +331,6 @@ export default function TrainerView() {
         </div>
 
         <div data-column="center" className="trainer-center-column">
-          {/* ===== Pulse ===== */}
-          <section>
-            <PulseTimeline
-              eventLog={livePulse?.eventLog ?? []}
-              participantsCount={canonicalParticipantCount}
-            />
-            {connectionStatus !== "connected" && (
-              <div className="pulse-timeline-placeholder">
-                Waiting for live pulse data before drawing the timeline.
-              </div>
-            )}
-            <PulseSummary summaryVoteTotals={summaryVoteTotals} />
-          </section>
-
-          <FocusDisplay focus={focus} />
-
           <div className="trainer-message-area">
             <h3 className="trainer-section-heading">Messages</h3>
             <div className="trainer-message-scroller">
@@ -357,8 +372,16 @@ export default function TrainerView() {
           <FocusControls
             focusInput={focusInput}
             setFocusInput={setFocusInput}
-            handleSetFocus={handleSetFocus}
-            handleClearFocus={handleClearFocus}
+            entries={entries}
+            activeFocusId={activeFocusId}
+            defaultFocusId={defaultFocusId}
+            activeFocusText={activeFocusText}
+            handleAddFocus={handleAddFocus}
+            handleActivateFocus={handleActivateFocus}
+            handleResetToDefault={handleResetToDefault}
+            handleReorder={handleReorder}
+            handleEditInPlace={handleEditInPlace}
+            handleReviseByNew={handleReviseByNew}
           />
 
           {/* Session Info with Access */}
@@ -368,6 +391,7 @@ export default function TrainerView() {
             {/* Session Access Code */}
             <SessionAccessPanel
               accessCode={accessCode}
+              showQr={false}
             />
             
             {/* Open LiveView Button */}

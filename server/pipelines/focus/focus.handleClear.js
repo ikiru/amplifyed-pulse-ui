@@ -4,25 +4,33 @@
 import {
   getActiveFocus,
   clearActiveFocus,
+  resetFocusToDefault,
 } from "./focus.state.js";
-import { broadcastFocusCleared } from "./focus.broadcast.js";
+import { broadcastFocus } from "./focus.broadcast.js";
 
 export function handleClearFocus({ io, sessionId }) {
   const now = Date.now();
   const existing = getActiveFocus(sessionId);
-
-  if (!existing) return;
-
-  existing.deactivatedAt = now;
-  clearActiveFocus(sessionId);
+  if (!existing) {
+    // Ensure default exists even if state was never initialized.
+    resetFocusToDefault(sessionId);
+  } else {
+    existing.deactivatedAt = now;
+    // Legacy clear now means reset to default.
+    clearActiveFocus(sessionId);
+  }
+  const active = getActiveFocus(sessionId);
 
   // session event (non-signal)
   io.to(sessionId).emit("session:event", {
-    type: "focus:cleared",
+    type: "focus:reset_default",
     sessionId,
     timestamp: now,
-    focusId: existing.focusId,
+    focusId: active?.focusId ?? existing?.focusId,
   });
 
-  broadcastFocusCleared(io, sessionId);
+  // Contract invariant: there is always an active focus.
+  if (active) {
+    broadcastFocus(io, sessionId, active);
+  }
 }

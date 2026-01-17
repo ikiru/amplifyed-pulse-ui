@@ -70,17 +70,24 @@ Audience members have **no interaction** with Focus.
   - deactivates any previously active focus
 
 ### Editing
-- Editing a focus **creates a new focus record**.
-- Historical focus records are never mutated.
+- Editing is permitted only to correct:
+  - spelling
+  - grammar
+  - clarity that preserves original intent
+- The system must support two explicit modes:
+  - **Edit-in-Place** (modifies an existing focus record; allowed only when intent is unchanged)
+  - **Revise-by-New** (creates a new focus record; original remains unchanged)
+- The system must not silently rewrite focus text or infer which mode applies.
+- Historical meaning must not be retroactively changed.
 
 ### Clearing
-- Trainers may clear the active focus at any time.
+- Trainers may \"clear\" the active focus at any time.
+- \"Clear\" MUST NOT create a \"no focus\" state.
 - Clearing focus results in:
-  - **no active focus**
-  - no substitution or fallback
-  - no retained framing
+  - Active Focus becomes the default baseline: **\"Open Conversation\"**
+  - no hidden substitution beyond that explicit default
 
-Clearing focus is a **valid and intentional state**.
+Clearing focus is a **valid and intentional action**.
 
 ---
 
@@ -122,6 +129,7 @@ Focus events are **not signals** and have **no runtime effect** on:
 - Focus does **not influence** pulse, safety, or scoring pipelines.
 - Focus does **not trigger** automation or system nudges.
 - Focus is **not required** to be present.
+- Focus is **not required** to be explicitly set by a trainer; the system may display a default baseline focus (**\"Open Conversation\"**) when no specific focus has been activated.
 - Focus is **not evaluated**, ranked, or scored.
 
 ---

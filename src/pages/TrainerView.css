@@ -392,6 +392,7 @@
 }
 
 .audience-drift-meter {
+  margin-top: 12px;
   margin-bottom: 12px;
   width: 100%;
   display: flex;
@@ -464,7 +465,18 @@
   border: 1px solid #ddd;
   border-radius: 10px;
   background: #fff;
-  max-height: 260px;
+}
+
+.pulse-timeline-footer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+/* When PulseSummary is rendered in the pulse footer, remove extra outer spacing */
+.pulse-timeline-footer .pulse-distribution {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .pulse-timeline-header {
@@ -694,7 +706,7 @@
   padding: 12px;
   border: 1px solid #ddd;
   border-radius: 8px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
   background: #fff;
   display: flex;
   flex-direction: column;
@@ -745,7 +757,7 @@
 }
 
 .trainer-message-scroller {
-  max-height: 60vh;
+  max-height: none;
 }
 
 .trainer-message-scroller .message-input-bar {
@@ -764,7 +776,8 @@
 .trainer-view-shell {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .trainer-view-grid {
@@ -774,6 +787,7 @@
   gap: 12px;
   padding: 12px;
   min-height: 0;
+  height: 100%;
 }
 
 .trainer-left-column,
@@ -949,10 +963,6 @@
   background: #fff;
 }
 
-.trainer-focus-panel {
-  /* reserved for future variants */
-}
-
 .trainer-focus-controls {
   padding: 12px;
   border: 1px solid #ddd;
@@ -979,6 +989,63 @@
 .trainer-focus-actions {
   display: flex;
   gap: 8px;
+}
+
+.trainer-focus-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trainer-focus-list-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.trainer-focus-entry {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #dadada;
+  background: #fafafa;
+  color: #222;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.trainer-focus-entry[data-active="true"] {
+  background: #e9f1ff;
+  border-color: rgba(0, 102, 255, 0.6);
+}
+
+.trainer-focus-entry-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.trainer-focus-entry-action {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #dadada;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.trainer-focus-edit-panel {
+  grid-column: 1 / -1;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+  background: #fff;
 }
 
 .trainer-focus-button {
@@ -1010,10 +1077,6 @@
 /* ================================
    Session Access Panel
    ================================ */
-
-.session-access-panel {
-  /* Nested inside Session Info panel, no extra padding/borders */
-}
 
 .session-access-heading {
   margin: 0 0 16px 0;
@@ -1095,53 +1158,6 @@
 .session-copy-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.session-qr-placeholder {
-  display: flex;
-  justify-content: center;
-  padding: 12px 0;
-}
-
-.qr-placeholder-box {
-  width: 100px;
-  height: 100px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #f5f5f5;
-  border: 2px dashed #ccc;
-  border-radius: 6px;
-}
-
-.qr-placeholder-text {
-  font-size: 12px;
-  font-weight: 600;
-  color: #999;
-}
-
-.qr-placeholder-subtitle {
-  font-size: 10px;
-  color: #bbb;
-  margin-top: 2px;
-}
-
-/* QR Code Display Styling */
-.session-qr-code {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 16px;
-  background: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  margin-top: 12px;
-}
-
-.session-qr-code svg {
-  display: block;
-  border-radius: 4px;
 }
 
 /* ================================
