@@ -9,6 +9,7 @@ import { createTrainerPipeline } from "./pipelines/trainer/trainerPipeline.js";
 import { createConfusionPipeline } from "./pipelines/confusion/confusionPipeline.js";
 import { registerFocusHandlers } from "./pipelines/focus/focusPipeline.js";
 import { createSessionPipeline } from "./pipelines/session/sessionPipeline.js";
+import { createObsPipeline } from "./pipelines/obs/obsPipeline.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -51,6 +52,7 @@ const messagePipeline = createMessagePipeline(
 );
 const trainerPipeline = createTrainerPipeline(io, pulsePipeline.momentBuilder);
 const focusPipeline = registerFocusHandlers({ io });
+const obsPipeline = createObsPipeline(io);
 const safetyPipeline = null;
 // const emotionPipeline = createEmotionPipeline(io);
 // ----------------------------------------------------
@@ -90,6 +92,7 @@ io.on("connection", (socket) => {
     sessionPipeline,
     momentPipeline, // Phase 2.4.2
     confusionPipeline,
+    obsPipeline,
   });
 });
 

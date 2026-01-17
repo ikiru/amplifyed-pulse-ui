@@ -47,6 +47,7 @@ export default function registerEventRouter(io, socket, pipelines = {}) {
     trainerPipeline = null,
     momentPipeline = null, // Added Phase 2.4.2
     confusionPipeline = null,
+    obsPipeline = null,
   } = pipelines;
 
   const assignSessionId = (requestedSessionId) => {
@@ -195,6 +196,11 @@ socket.on("audience:pulse", (payload = {}) => {
       pulsePipeline.syncPulseState(socket, sessionId);
     }
 
+    // Sync OBS state (if available)
+    if (obsPipeline?.syncState) {
+      obsPipeline.syncState(socket, sessionId);
+    }
+
     // Send success response to client
     socket.emit('session:joined', {
       sessionId,
@@ -229,6 +235,90 @@ socket.on("audience:pulse", (payload = {}) => {
           socket.emit("moment:update", envelope);
         });
       }
+    }
+
+    if (obsPipeline?.syncState) {
+      obsPipeline.syncState(socket, socket.sessionId ?? DEFAULT_SESSION_ID);
+    }
+  });
+
+  // ----------------------------------------------------
+  // OBS PIPELINE (Pixels-only capture lifecycle)
+  // ----------------------------------------------------
+  socket.on("obs:capture:request", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handleCaptureRequest) {
+      obsPipeline.handleCaptureRequest({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
+    }
+  });
+
+  socket.on("obs:capture:started", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handleCaptureStarted) {
+      obsPipeline.handleCaptureStarted({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
+    }
+  });
+
+  socket.on("obs:capture:stopped", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handleCaptureStopped) {
+      obsPipeline.handleCaptureStopped({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
+    }
+  });
+
+  socket.on("obs:capture:interrupted", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handleCaptureInterrupted) {
+      obsPipeline.handleCaptureInterrupted({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
+    }
+  });
+
+  socket.on("obs:capture:permission_denied", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handlePermissionDenied) {
+      obsPipeline.handlePermissionDenied({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
+    }
+  });
+
+  socket.on("obs:capture:not_supported", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handleNotSupported) {
+      obsPipeline.handleNotSupported({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
+    }
+  });
+
+  socket.on("obs:capture:error", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (obsPipeline?.handleError) {
+      obsPipeline.handleError({
+        sessionId,
+        socketId: socket.id,
+        ...payload,
+      });
     }
   });
 
