@@ -714,6 +714,47 @@
   min-height: 0;
 }
 
+.thread-tools-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0 10px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 8px;
+}
+
+.thread-tools-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.thread-tools-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #555;
+  white-space: nowrap;
+}
+
+.thread-tools-select {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: #fff;
+  font-size: 0.85rem;
+  color: #222;
+}
+
+.thread-tools-viewing {
+  font-size: 0.85rem;
+  color: #444;
+  white-space: nowrap;
+}
+
 .trainer-message-scroller {
   display: flex;
   flex-direction: column;

@@ -36,6 +36,7 @@ function MessageThreadRowComponent({
   voteSelectionMap,
   onScrollToThread,
   showReplyControls = true,
+  defaultCollapsed = false,
 }) {
   const rowRef = useRef(null);
   const messageRefs = useRef(new Map());
@@ -180,6 +181,7 @@ function MessageThreadRowComponent({
         <ThreadItem
           node={root}
           depth={0}
+          defaultCollapsed={defaultCollapsed}
           replyToId={replyToId}
           setReplyToId={setReplyToId}
           replyDrafts={replyDrafts}

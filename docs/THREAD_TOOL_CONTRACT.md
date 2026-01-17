@@ -74,7 +74,36 @@ They must not:
 * privilege authors or identities
 * evaluate tone, sentiment, or quality
 
-Threads remain collapsed by default under the LiveView contract.
+Thread Tools must not change canonical message content, authorship, or chronology. Threading/indentation remains as defined by the LiveView contract; lenses may only apply structural emphasis at the thread level.
+
+---
+
+### 1.4.1 Thread Presentation (TrainerView + AudienceInput)
+
+In trainer-local views (TrainerView and AudienceInput), threads may be **collapsed by default** for tractability:
+
+* The thread root remains visible
+* Replies are hidden until the user expands the thread
+* Collapsing is a navigation affordance and must not imply importance, neglect, or evaluation
+
+This is a UI presentation choice and does not alter canonical message state. LiveView behavior remains governed by the LiveView contract and may differ.
+
+---
+
+### 1.5 Normative Definitions (Binding)
+
+* **Thread**: a root message and all of its descendant replies. Thread identity is the root message id (`rootMessageId`).
+* **Reply count**: number of replies in the thread excluding the root message.
+* **Canonical order**: the canonical LiveView message order (chronological). Shared lenses must not reorder it.
+* **Recent window**: a fixed, system-set lookback window used only for discrete boundary crossing detection (not trainer-configurable).
+
+---
+
+### 1.6 System-Set Defaults (Non-Configurable)
+
+* **Threads That Grew**: 300s window; boundary crossing is **reply count** moving from ≤ 4 to ≥ 5.
+* **Topic Changes**: 120s window; eligible changes are reversible transitions between system-recognized on-topic/off-topic states.
+* **New Since Last View**: uses trainer-local “last view” timestamp (not time-windowed).
 
 ---
 
@@ -93,14 +122,14 @@ No additional Thread Tools may be introduced without amending this contract.
 > “What’s new since I last looked?”
 
 **Definition:**
-Displays threads that have received new messages since the trainer last viewed the thread map.
+Displays threads that have received new messages since the trainer last viewed the thread map (trainer-local timestamp).
 
 **Constraints:**
 
-* “Last view” is trainer-local and ephemeral
+* “Last view” is trainer-local and ephemeral (single timestamp; no per-thread read/unread state)
 * No canonical read/unread state is created
 * No implication of importance, urgency, or neglect
-* Threads remain collapsed
+* No automatic expansion, isolation, or surfacing of individual messages outside their thread context
 
 This tool exists solely for **orientation recovery**.
 
@@ -113,11 +142,14 @@ This tool exists solely for **orientation recovery**.
 > “Which conversations accumulated more discussion?”
 
 **Definition:**
-Displays threads that crossed a predefined, system-set growth boundary within a recent time window.
+Displays threads that crossed the system-set growth boundary within the system-set recent window:
+
+* **Window**: last 300 seconds
+* **Boundary**: reply count crosses from ≤ 4 to ≥ 5
 
 **Constraints:**
 
-* Growth is measured only by message count or reply count
+* Growth is measured only by **reply count** (discrete boundary crossing)
 * No rates, trends, velocity, or comparisons are allowed
 * Thresholds are fixed and not trainer-configurable
 * Growth does not imply quality, interest, or priority
@@ -133,7 +165,9 @@ This tool describes **structural accumulation**, not significance.
 > “Did anything move off topic or come back?”
 
 **Definition:**
-Displays threads that transitioned between on-topic and off-topic states within a recent time window.
+Displays threads that transitioned between on-topic and off-topic states within the system-set recent window:
+
+* **Window**: last 120 seconds
 
 **Constraints:**
 
@@ -164,7 +198,7 @@ Shared Structural Lenses exist to **amplify audience voices** by revealing colle
 They may:
 
 * highlight threads
-* group threads
+* group threads (without reordering canonical order)
 * annotate structural change
 * visually emphasize accumulation or categorization
 
@@ -174,6 +208,7 @@ They must never:
 * select winners
 * imply urgency or neglect
 * suppress non‑emphasized content
+* filter, hide, or reorder the canonical thread map while shared
 
 Nothing disappears.
 
@@ -224,10 +259,6 @@ Shared attention must never be guided by unseen structure.
 
 ### 3.6 Visibility & Meaning Constraints
 
----
-
-### 3.5 Visibility & Meaning Constraints
-
 When a Shared Structural Lens is active:
 
 * LiveView must clearly indicate that a lens is applied
@@ -265,7 +296,7 @@ Any tool that answers “what should the trainer do?” is invalid.
 
 ---
 
-## 4. Measurement Constraints
+## 5. Measurement Constraints
 
 Thread Tools may recognize change **only when a thread crosses a predefined, discrete boundary** in a system-defined property.
 
@@ -286,7 +317,7 @@ If a measurement can be reasonably argued about, it is too semantic to surface.
 
 ---
 
-## 5. Visibility & Narration
+## 6. Visibility & Narration
 
 When a Thread Tool is active:
 
@@ -301,7 +332,7 @@ The trainer must never be unsure which lens is applied.
 
 ---
 
-## 6. Trainer Role Boundary
+## 7. Trainer Role Boundary
 
 Thread Tools must not rely on trainer judgment to prevent harm.
 
@@ -321,7 +352,7 @@ The system absorbs complexity so the trainer does not have to.
 
 ---
 
-## 7. Status
+## 8. Status
 
 This contract is **binding** until explicitly revised.
 

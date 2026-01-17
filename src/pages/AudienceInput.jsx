@@ -228,6 +228,7 @@ export default function AudienceInput() {
               onConfusionSignal={emitConfusionSignal}
               onOffFocusSignal={emitOffFocusSignal}
               voteSelectionMap={selectedVotes}
+              defaultCollapsed={true}
             />
           ))
         )}

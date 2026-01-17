@@ -32,7 +32,8 @@ function ThreadItemComponent(props) {
 export const ThreadItem = React.memo(ThreadItemComponent);
 
 function AnchorThreadItem(props) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const defaultCollapsed = Boolean(props.defaultCollapsed);
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   return (
     <ThreadItemContent
       {...props}
