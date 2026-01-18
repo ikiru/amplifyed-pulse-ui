@@ -255,6 +255,65 @@ export async function runScenario({ scenario = {}, serverUrl } = {}) {
     });
   };
 
+  /**
+   * Schedule self-report events from scenario
+   * Self reports are emitted by participant sockets via the real audience path.
+   * Currently supported: { type: "off_focus", messageId }
+   */
+  const scheduleSelfReportEvents = () => {
+    const selfReportEvents = Array.isArray(scenario.selfReportEvents)
+      ? scenario.selfReportEvents
+      : [];
+
+    console.log(
+      "[HISTE-DIAG] Scheduling",
+      selfReportEvents.length,
+      "self report events"
+    );
+    if (selfReportEvents.length === 0) {
+      return;
+    }
+
+    selfReportEvents.forEach((event) => {
+      const delay = Math.max(0, typeof event.delayMs === "number" ? event.delayMs : 0);
+
+      clock.schedule(() => {
+        const participantId = event.from ?? event.participantId;
+        const socket = sockets.get(participantId);
+
+        if (!socket) {
+          console.warn(
+            `[HISTE] No socket for participant ${participantId} - skipping self report event`
+          );
+          return;
+        }
+
+        const type = typeof event.type === "string" ? event.type : "";
+        const messageId =
+          typeof event.messageId === "string" ? event.messageId : null;
+
+        if (!messageId) {
+          console.warn("[HISTE] Self report event missing messageId", event);
+          return;
+        }
+
+        if (type !== "off_focus") {
+          console.warn(
+            `[HISTE] Unsupported self report type "${type}" - only "off_focus" is supported`
+          );
+          return;
+        }
+
+        socket.emit("self-report:signal", {
+          type,
+          messageId,
+          sessionId,
+          ts: Date.now(),
+        });
+      }, delay);
+    });
+  };
+
   const scheduleMessages = () => {
     messages.forEach((message) => {
       const delay = Math.max(0, typeof message.delayMs === "number" ? message.delayMs : 0);
@@ -321,6 +380,7 @@ export async function runScenario({ scenario = {}, serverUrl } = {}) {
     // #endregion
     scheduleFocusEvents(); // Schedule focus events first
     schedulePulseEvents(); // Schedule pulse votes
+    scheduleSelfReportEvents(); // Optional self reports (e.g., off_focus)
     scheduleMessages();     // Then schedule messages
   });
 

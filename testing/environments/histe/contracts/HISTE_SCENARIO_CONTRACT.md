@@ -59,3 +59,35 @@ Focus events must respect the **Phase 8 Focus Governance** contract:
 Focus events are executed through the same `focus:set` and `focus:clear` socket events that a real trainer would use. No privileged or internal paths are permitted.
 
 The HISTE simulated trainer must join the session with `role: "trainer"` to have permission to emit focus events.
+
+---
+
+## Self Report Events (Optional)
+
+Scenarios may define audience self-report events that a real participant could emit from AudienceInput.
+
+These events exist to test **topic state surfacing** (e.g., `off_focus`) under realistic room load without privileged paths.
+
+Each event in the `selfReportEvents` array must include:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `delayMs` | number | Yes | Milliseconds from scenario start when this self-report should occur |
+| `from` | string | Yes | Participant id emitting the self-report |
+| `type` | string | Yes | Self report type. Currently supported: `"off_focus"` |
+| `messageId` | string | Yes | Target message id for the self-report |
+
+**Example:**
+
+```json
+{
+  "selfReportEvents": [
+    { "delayMs": 8000, "from": "p2", "type": "off_focus", "messageId": "m12" }
+  ]
+}
+```
+
+**Interaction Boundary:**
+
+Self reports are executed through the same `self-report:signal` socket event used by AudienceInput.
+No privileged or internal paths are permitted.
