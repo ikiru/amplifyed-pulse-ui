@@ -171,18 +171,30 @@ export function useTrainerSocket({
         "[WIRE_TEST][CLIENT_RECEIVE][AUDIENCE_DRIFT]",
         payload
       );
+      if (payload?.status === "paused") {
+        setDriftProjection({
+          status: "paused",
+          reason: payload?.reason ?? null,
+          score: 0,
+        });
+        return;
+      }
       if (typeof payload?.score === "number") {
         console.log("[WIRE_TEST][SET_DRIFT_PROJECTION]", {
           incomingScore: payload.score,
           next: payload.score,
         });
-        setDriftProjection({ score: payload.score });
+        setDriftProjection(
+          payload?.projection && typeof payload.projection === "object"
+            ? payload.projection
+            : { score: payload.score }
+        );
         console.log("[WIRE_TEST][METER_STATE_APPLIED]", payload.score);
       }
     };
 
     onEvent("audience:drift:update", handleDriftUpdate);
-    return () => offEvent("audience.drift.update", handleDriftUpdate);
+    return () => offEvent("audience:drift:update", handleDriftUpdate);
   }, [onEvent, offEvent, setDriftProjection]);
 
   // audience:label:update handler
