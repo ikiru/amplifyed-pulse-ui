@@ -27,6 +27,12 @@
  */
 
 import { applyOffFocusSelfReportGate } from "../pipelines/audienceDrift/classification.state.js";
+import { updateDriftForMessage } from "../pipelines/audienceDrift/aggregation.js";
+import {
+  DEFAULT_FOCUS_ID,
+  DEFAULT_FOCUS_TEXT,
+  getActiveFocus,
+} from "../pipelines/focus/focus.state.js";
 
 const DEFAULT_SESSION_ID = "session:default";
 
@@ -502,6 +508,37 @@ socket.on("audience:pulse", (payload = {}) => {
       messageId: payload?.messageId,
       type: payload?.type,
     });
+
+    const activeFocus = getActiveFocus(sessionId);
+    const isDefaultFocus =
+      activeFocus?.focusId === DEFAULT_FOCUS_ID ||
+      activeFocus?.text === DEFAULT_FOCUS_TEXT;
+
+    if (isDefaultFocus) {
+      io.to(sessionId).emit("audience:drift:update", {
+        sessionId,
+        status: "paused",
+        reason: "default_focus",
+        timestamp: payload?.ts ?? Date.now(),
+      });
+      return;
+    }
+
+    const score = updateDriftForMessage({
+      sessionId,
+      messageId: payload?.messageId,
+      timestamp: payload?.ts ?? Date.now(),
+    });
+
+    if (typeof score === "number") {
+      io.to(sessionId).emit("audience:drift:update", {
+        sessionId,
+        score,
+        source: "self_report",
+        messageId: payload?.messageId ?? null,
+        timestamp: payload?.ts ?? Date.now(),
+      });
+    }
   });
 
   socket.on("message.state.update", (payload = {}) => {

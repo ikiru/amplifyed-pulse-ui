@@ -106,6 +106,12 @@ New observations must:
 - **Interaction Path:** `focus:set` and `focus:clear` via trainer socket
 - **Temporal Model:** Scheduled by `delayMs` from scenario start
 
+#### ✅ Self Report Events (Implemented)
+- **Rationale:** Allows scenarios to exercise audience self-report paths (e.g., `off_focus`) under load.
+- **Interaction Path:** `self-report:signal` via participant socket (AudienceInput-equivalent)
+- **Temporal Model:** Scheduled by `delayMs` from scenario start
+- **Notes:** Must remain non-privileged and declarative; no direct pipeline injection.
+
 #### 🟡 Emotion Context Events (Under Consideration)
 - **Rationale:** Test trainer perception of emotional shifts
 - **Requirements:** Must align with emotion pipeline contract

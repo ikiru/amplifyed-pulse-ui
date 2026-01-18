@@ -21,8 +21,10 @@ The system does **not** instruct, correct, evaluate, or intervene.
 - Audience Drift is **room-level only**
 - Audience members are **anonymous**
 - No tracking of individuals
-- No message-level results are exposed
-- Only a **single aggregate audience drift score** exists
+- The authoritative output is a **single aggregate audience drift score**
+- Optional message-level **on/off-focus labels** may exist as **transient, non-authoritative annotations**
+  - They are not required for the system to function
+  - They must not be interpreted as evaluation, correctness, or behavioral enforcement
 - The system is **allowed to be imperfect**
 - Audience Drift can be **generative, neutral, or integrative**
 
@@ -66,6 +68,15 @@ Judgments are **transient** and used only to update the aggregate drift score.
 - Trainer intent, tone, or verbal explanation is not inferred.
 - A focus change updates the reference frame **immediately**.
 - A focus change does **not** erase prior momentum.
+
+### 5.1 Default Focus (“Open Conversation”)
+
+The system may maintain a default focus (e.g., “Open Conversation”) to preserve the invariant that a session always has an active focus.
+
+When the active focus is the default “Open Conversation”, **semantic on/off-focus judgment is undefined** and Audience Drift is considered **paused**:
+- No on/off-focus classification is applied
+- No aggregate drift score is updated (prior score may be retained but is not advanced)
+- The UI may display an explicit “drift paused / no focus set” state
 
 ---
 
@@ -185,6 +196,8 @@ AI is **never authoritative**.
   - does not evaluate
 - Interpretation belongs entirely to the trainer
 
+Indeterminate / ambiguous contributions may contribute mild “uncertainty pressure” (i.e., a small nudge toward drift) to reflect a lack of clear alignment signals. This is a modeling choice, not a judgment.
+
 ---
 
 ## 12. Explicit Non-Goals
@@ -216,7 +229,7 @@ The system is considered working if:
 - The score moves plausibly
 - AI calls are rare for Audience Drift resolution
 - Performance is stable
-- No message-level artifacts exist
+- Any message-level artifacts remain optional, transient, and non-authoritative
 - Trainers feel informed, not directed
 
 ---
@@ -313,7 +326,7 @@ The drift meter will **not** include:
 - warnings
 - recommendations
 - labels such as “good” or “bad”
-- message-level indicators
+- required message-level indicators in the drift meter (message labels, if present, are optional and non-authoritative)
 - participant-level indicators
 
 ---

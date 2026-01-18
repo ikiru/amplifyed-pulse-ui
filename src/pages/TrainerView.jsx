@@ -15,6 +15,12 @@ import { FocusControls } from "../components/focus/FocusControls.jsx";
 import { assignThreadColors, scrollToThreadRoot } from "../utils/threadUtils.js";
 import { summarizeThreadConfusion } from "../utils/confusionUtils.js";
 import { computePulseSummaryCounts } from "../utils/pulseUtils.js";
+import {
+  computeActivityPulseUpdates,
+  didChangeValue,
+  didCrossUpwardThreshold,
+  summarizeThread,
+} from "../utils/threadToolsUtils.js";
 import { useTrainerSocket } from "../hooks/useTrainerSocket.js";
 import { useMessageState } from "../hooks/useMessageState.js";
 import { useFocusState } from "../hooks/useFocusState.js";
@@ -34,6 +40,18 @@ export default function TrainerView() {
   // Reference to LiveView window to prevent multiple instances
   const liveViewWindowRef = useRef(null);
   const obsClientRef = useRef(null);
+  const [activeThreadLens, setActiveThreadLens] = useState("all");
+  const [lastThreadMapViewedAt, setLastThreadMapViewedAt] = useState(() =>
+    Date.now()
+  );
+  const [grewCrossedAtByRootId, setGrewCrossedAtByRootId] = useState({});
+  const [topicChangedAtByRootId, setTopicChangedAtByRootId] = useState({});
+  const [lensNowMs, setLensNowMs] = useState(() => Date.now());
+  const [activityNowMs, setActivityNowMs] = useState(() => Date.now());
+  const [lastActivityAtByRootId, setLastActivityAtByRootId] = useState({});
+  const prevReplyCountByRootIdRef = useRef({});
+  const prevTopicStateByRootIdRef = useRef({});
+  const prevLatestTsByRootIdRef = useRef({});
   
   // Local state for UI toggles and insights
   const [showInsights, setShowInsights] = useState(false);
@@ -211,6 +229,19 @@ export default function TrainerView() {
 
   const messageRoots = useMemo(() => buildMessageTree(messages), [messages]);
   const rootColorAssignments = useMemo(() => assignThreadColors(messageRoots), [messageRoots]);
+  const threadSummaries = useMemo(
+    () => messageRoots.map((root) => summarizeThread(root)),
+    [messageRoots]
+  );
+  const threadSummaryByRootId = useMemo(() => {
+    const map = {};
+    threadSummaries.forEach((summary) => {
+      if (summary?.rootMessageId) {
+        map[summary.rootMessageId] = summary;
+      }
+    });
+    return map;
+  }, [threadSummaries]);
   const threadConfusions = useMemo(() => {
     return messageRoots.map((root) => ({
       root,
@@ -218,6 +249,138 @@ export default function TrainerView() {
       threadColor: rootColorAssignments.get(root.messageId),
     }));
   }, [messageRoots, confusionByRootId, rootColorAssignments]);
+
+  // "Last view" is a trainer-local single timestamp; clearing back to All Threads updates it.
+  useEffect(() => {
+    if (activeThreadLens !== "all") return;
+    setLastThreadMapViewedAt(Date.now());
+  }, [activeThreadLens]);
+
+  // Keep time-window lenses fresh so items age out without requiring new messages to arrive.
+  useEffect(() => {
+    const isTimeWindowLens =
+      activeThreadLens === "threads_that_grew" ||
+      activeThreadLens === "topic_changes";
+    if (!isTimeWindowLens) {
+      return undefined;
+    }
+    setLensNowMs(Date.now());
+    const id = setInterval(() => setLensNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [activeThreadLens]);
+
+  // Keep activity pulses fresh without relying on new server events.
+  useEffect(() => {
+    const id = setInterval(() => setActivityNowMs(Date.now()), 250);
+    return () => clearInterval(id);
+  }, []);
+
+  // Track boundary crossings for "Threads That Grew" (≤4 → ≥5 replies)
+  useEffect(() => {
+    const now = Date.now();
+    const threshold = 5;
+    const grewUpdates = {};
+    let changed = false;
+
+    threadSummaries.forEach((summary) => {
+      const rootId = summary?.rootMessageId;
+      if (!rootId) return;
+      const prev = prevReplyCountByRootIdRef.current[rootId];
+      const next = summary.replyCount;
+      if (
+        typeof prev === "number" &&
+        didCrossUpwardThreshold(prev, next, threshold)
+      ) {
+        grewUpdates[rootId] = now;
+        changed = true;
+      }
+      prevReplyCountByRootIdRef.current[rootId] = next;
+    });
+
+    if (changed) {
+      setGrewCrossedAtByRootId((prev) => ({ ...prev, ...grewUpdates }));
+    }
+  }, [threadSummaries]);
+
+  // Track topic state transitions for "Topic Changes"
+  useEffect(() => {
+    const now = Date.now();
+    const updates = {};
+    let changed = false;
+
+    threadSummaries.forEach((summary) => {
+      const rootId = summary?.rootMessageId;
+      if (!rootId) return;
+      const prev = prevTopicStateByRootIdRef.current[rootId];
+      const next = summary.topicState;
+      if (didChangeValue(prev, next)) {
+        updates[rootId] = now;
+        changed = true;
+      }
+      prevTopicStateByRootIdRef.current[rootId] = next;
+    });
+
+    if (changed) {
+      setTopicChangedAtByRootId((prev) => ({ ...prev, ...updates }));
+    }
+  }, [threadSummaries]);
+
+  // Track ephemeral per-thread activity pulses (TrainerView-local).
+  // A pulse is emitted when the latest message timestamp for a thread increases.
+  useEffect(() => {
+    const { nextPrevLatestTsByRootId, activityAtUpdates } =
+      computeActivityPulseUpdates(
+        prevLatestTsByRootIdRef.current,
+        threadSummaries,
+        Date.now()
+      );
+
+    prevLatestTsByRootIdRef.current = nextPrevLatestTsByRootId;
+
+    if (Object.keys(activityAtUpdates).length > 0) {
+      setLastActivityAtByRootId((prev) => ({ ...prev, ...activityAtUpdates }));
+    }
+  }, [threadSummaries]);
+
+  const visibleThreadConfusions = useMemo(() => {
+    if (activeThreadLens === "all") {
+      return threadConfusions;
+    }
+
+    const now = lensNowMs;
+    const grewWindowMs = 300_000;
+    const topicWindowMs = 120_000;
+
+    return threadConfusions.filter(({ root }) => {
+      const rootId = root?.messageId;
+      if (!rootId) return false;
+
+      if (activeThreadLens === "new_since_last_view") {
+        const latest = threadSummaryByRootId[rootId]?.latestMessageTsMs ?? null;
+        return typeof latest === "number" && latest > lastThreadMapViewedAt;
+      }
+
+      if (activeThreadLens === "threads_that_grew") {
+        const crossedAt = grewCrossedAtByRootId[rootId];
+        return typeof crossedAt === "number" && crossedAt >= now - grewWindowMs;
+      }
+
+      if (activeThreadLens === "topic_changes") {
+        const changedAt = topicChangedAtByRootId[rootId];
+        return typeof changedAt === "number" && changedAt >= now - topicWindowMs;
+      }
+
+      return true;
+    });
+  }, [
+    activeThreadLens,
+    threadConfusions,
+    threadSummaryByRootId,
+    lastThreadMapViewedAt,
+    grewCrossedAtByRootId,
+    topicChangedAtByRootId,
+    lensNowMs,
+  ]);
   const confusionThreads = useMemo(() => {
     return threadConfusions.filter(
       ({ confusion }) => confusion.showConfusionRow
@@ -250,6 +413,20 @@ export default function TrainerView() {
   const handleMessageInputChange = useCallback((event) => {
     setMessageInput(event.target.value);
   }, []);
+
+  const activeThreadLensLabel = useMemo(() => {
+    switch (activeThreadLens) {
+      case "new_since_last_view":
+        return "New Since Last View";
+      case "threads_that_grew":
+        return "Threads That Grew";
+      case "topic_changes":
+        return "Topic Changes";
+      case "all":
+      default:
+        return "All Threads";
+    }
+  }, [activeThreadLens]);
 
   const handleScrollToThread = useCallback((rootMessageId) => {
     if (!rootMessageId) return;
@@ -333,26 +510,58 @@ export default function TrainerView() {
         <div data-column="center" className="trainer-center-column">
           <div className="trainer-message-area">
             <h3 className="trainer-section-heading">Messages</h3>
+            <div className="thread-tools-bar" aria-label="Thread Tools">
+              <div className="thread-tools-bar-left">
+                <span className="thread-tools-label">Thread Tools</span>
+                <select
+                  className="thread-tools-select"
+                  aria-label="Select thread lens"
+                  value={activeThreadLens}
+                  onChange={(e) => setActiveThreadLens(e.target.value)}
+                >
+                  <option value="all">All Threads</option>
+                  <option value="new_since_last_view">New Since Last View</option>
+                  <option value="threads_that_grew">Threads That Grew</option>
+                  <option value="topic_changes">Topic Changes</option>
+                </select>
+              </div>
+              {activeThreadLens !== "all" && (
+                <div className="thread-tools-viewing" aria-live="polite">
+                  Viewing: {activeThreadLensLabel}
+                </div>
+              )}
+            </div>
             <div className="trainer-message-scroller">
-              {threadConfusions.length ? (
+              {visibleThreadConfusions.length ? (
                 <div className="message-stream trainer-message-stream">
-                  {threadConfusions.map(({ root, confusion, threadColor }) => (
-                    <MessageThreadRow
-                      key={root.messageId}
-                      root={root}
-                      threadColor={threadColor}
-                      confusion={confusion}
-                      confusionByRootId={confusionByRootId}
-                      voteTotals={voteTotals[root.messageId]}
-                      voteTotalsMap={voteTotals}
-                      replyToId={replyToId}
-                      setReplyToId={setReplyToId}
-                      replyDrafts={replyDrafts}
-                      setReplyDrafts={setReplyDrafts}
-                      handleReplySubmit={handleReplySubmit}
-                      onScrollToThread={handleScrollToThread}
-                    />
-                  ))}
+                  {visibleThreadConfusions.map(({ root, confusion, threadColor }) => {
+                    const rootId = root?.messageId;
+                    const lastActiveAt =
+                      rootId ? lastActivityAtByRootId[rootId] : null;
+                    const activityPulse =
+                      typeof lastActiveAt === "number" &&
+                      activityNowMs - lastActiveAt <= 900;
+
+                    return (
+                      <MessageThreadRow
+                        key={root.messageId}
+                        root={root}
+                        threadColor={threadColor}
+                        confusion={confusion}
+                        confusionByRootId={confusionByRootId}
+                        voteTotals={voteTotals[root.messageId]}
+                        voteTotalsMap={voteTotals}
+                        replyToId={replyToId}
+                        setReplyToId={setReplyToId}
+                        replyDrafts={replyDrafts}
+                        setReplyDrafts={setReplyDrafts}
+                        handleReplySubmit={handleReplySubmit}
+                        onScrollToThread={handleScrollToThread}
+                        defaultCollapsed={true}
+                        activityPulse={activityPulse}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="trainer-text-muted">No messages yet</p>

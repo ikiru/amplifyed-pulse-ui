@@ -63,6 +63,58 @@
   text-align: center;
 }
 
+/* ----------------------------
+   Thread lineage bar (used by MessageThreadRow)
+   ---------------------------- */
+
+.trainer-message-stream-row {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.trainer-message-lineage-gutter {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  width: 18px;
+  pointer-events: none;
+}
+
+.trainer-message-lineage-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(calc(-50% - 2px));
+  width: 4px;
+  background: var(--thread-color, #e63946);
+  border-radius: 1px;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+@keyframes threadLineageActivityPulse {
+  0% {
+    opacity: 0.7;
+    filter: brightness(1);
+  }
+  35% {
+    opacity: 1;
+    filter: brightness(1.6);
+  }
+  100% {
+    opacity: 0.7;
+    filter: brightness(1);
+  }
+}
+
+.thread-activity-pulse .trainer-message-lineage-bar {
+  animation: threadLineageActivityPulse 900ms ease-out 1;
+}
+
 .message-input-bar {
   display: flex;
   gap: 8px;

@@ -10,6 +10,8 @@ export function formatMessage({
   timestamp,
   parentMessageId = null,
   content,
+  focusId = null,
+  focusText = null,
 }) {
   return {
     envelope: {
@@ -18,6 +20,8 @@ export function formatMessage({
       authorRole,
       timestamp,
       parentMessageId,
+      focusId,
+      focusText,
     },
     payload: {
       content,

@@ -23,7 +23,14 @@ import { broadcastVoteUpdate } from "./message.vote.broadcast.js";
 import { v4 as uuidv4 } from "uuid";
 import { detectConfusionFromText } from "../../confusion/confusion.phrases.js";
 import { handleVoteIntent as processVoteIntent } from "./message.vote.handle.js";
-import { setAudienceLabelEmitter } from "../audienceDrift/classification.state.js";
+import {
+  applyAIBinaryGate,
+  applyIgnoreGate,
+  applyLiteralFocusGate,
+  applyThreadInheritanceGate,
+  initializeMessageClassification,
+  setAudienceLabelEmitter,
+} from "../audienceDrift/classification.state.js";
 import {
   setAudienceDriftEmitter,
   updateDriftForMessage,
@@ -32,6 +39,11 @@ import {
   FEATURE_AUDIENCE_DRIFT_METER,
   getMeterProjection,
 } from "../audienceDrift/meter.js";
+import {
+  DEFAULT_FOCUS_ID,
+  DEFAULT_FOCUS_TEXT,
+  getActiveFocus,
+} from "../focus/focus.state.js";
 
 function resolveRootMessageId(sessionId, parentMessageId, fallbackId) {
   if (!parentMessageId) {
@@ -90,8 +102,9 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
       return;
     }
 
-    io.to(sessionId).emit("audience.drift.update", {
+    io.to(sessionId).emit("audience:drift:update", {
       sessionId,
+      score: projection.score,
       projection,
     });
   }
@@ -112,6 +125,7 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
       providedSessionId ?? this.getSessionIdForSocket?.(socketId);
     if (!sessionId) return;
     const messageId = incomingMessageId ?? uuidv4();
+    const activeFocus = getActiveFocus(sessionId);
 
     console.log("[HISTE PAYLOAD]", {
       incomingMessageId,
@@ -125,6 +139,8 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
       timestamp: now,
       parentMessageId: parentMessageId ?? null,
       content: effectiveContent,
+      focusId: activeFocus?.focusId ?? null,
+      focusText: activeFocus?.text ?? null,
     });
 
     const storedMessage = addMessage({
@@ -137,21 +153,47 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
     // Authoritative message state is broadcast below.
     broadcastMessageState({ io, sessionId });
 
-    updateDriftForMessage({
-      sessionId,
-      messageId,
-      timestamp: now,
-      focusEpoch: message.envelope?.focusEpoch,
-    });
-
-    emitDriftProjection(sessionId);
-
     const audienceText =
       typeof text === "string"
         ? text
         : typeof effectiveContent === "string"
           ? effectiveContent
           : effectiveContent?.text ?? null;
+
+    // ------------------------------------------------------------------
+    // Audience drift behavior
+    // - If focus is default "Open Conversation", drift is semantically undefined → pause it.
+    // - Otherwise: run classification gates, then aggregate.
+    // ------------------------------------------------------------------
+    const isDefaultFocus =
+      activeFocus?.focusId === DEFAULT_FOCUS_ID ||
+      activeFocus?.text === DEFAULT_FOCUS_TEXT;
+
+    if (isDefaultFocus) {
+      io?.to(sessionId).emit("audience:drift:update", {
+        sessionId,
+        status: "paused",
+        reason: "default_focus",
+        timestamp: now,
+      });
+    } else {
+      if (typeof audienceText === "string") {
+        initializeMessageClassification(sessionId, messageId);
+        applyIgnoreGate({ sessionId, messageId, text: audienceText });
+        applyLiteralFocusGate({ sessionId, messageId, text: audienceText });
+        applyAIBinaryGate({ sessionId, messageId, text: audienceText });
+        applyThreadInheritanceGate({ sessionId, messageId });
+      }
+
+      updateDriftForMessage({
+        sessionId,
+        messageId,
+        timestamp: now,
+        focusEpoch: message.envelope?.focusEpoch,
+      });
+
+      emitDriftProjection(sessionId);
+    }
 
     const detected = detectConfusionFromText(audienceText);
 
@@ -208,6 +250,7 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
       providedSessionId ?? this.getSessionIdForSocket?.(socketId);
     if (!sessionId) return;
     const messageId = uuidv4();
+    const activeFocus = getActiveFocus(sessionId);
 
     const message = formatMessage({
       messageId,
@@ -216,6 +259,8 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
       timestamp: now,
       parentMessageId: parentMessageId ?? null,
       content: effectiveContent,
+      focusId: activeFocus?.focusId ?? null,
+      focusText: activeFocus?.text ?? null,
     });
 
     const storedMessage = addMessage({
@@ -226,14 +271,27 @@ export function createMessagePipeline(io, momentBuilder = null, confusionPipelin
 
     broadcastMessageState({ io, sessionId });
 
-    updateDriftForMessage({
-      sessionId,
-      messageId,
-      timestamp: now,
-      focusEpoch: message.envelope?.focusEpoch,
-    });
+    const isDefaultFocus =
+      activeFocus?.focusId === DEFAULT_FOCUS_ID ||
+      activeFocus?.text === DEFAULT_FOCUS_TEXT;
 
-    emitDriftProjection(sessionId);
+    if (isDefaultFocus) {
+      io?.to(sessionId).emit("audience:drift:update", {
+        sessionId,
+        status: "paused",
+        reason: "default_focus",
+        timestamp: now,
+      });
+    } else {
+      updateDriftForMessage({
+        sessionId,
+        messageId,
+        timestamp: now,
+        focusEpoch: message.envelope?.focusEpoch,
+      });
+
+      emitDriftProjection(sessionId);
+    }
 
     const signalText =
       typeof text === "string"

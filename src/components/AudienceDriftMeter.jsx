@@ -25,6 +25,7 @@ const toPercent = (value) => {
 };
 
 export default function AudienceDriftMeter({ projection }) {
+  const isPaused = projection?.status === "paused";
   const centerBand =
     projection?.centerBand && typeof projection.centerBand === "object"
       ? projection.centerBand
@@ -70,15 +71,23 @@ export default function AudienceDriftMeter({ projection }) {
         />
       </div>
       <div className="audience-drift-labels" aria-hidden="true">
-        <span className="audience-drift-label audience-drift-label-left">
-          Off Focus
-        </span>
-        <span className="audience-drift-label audience-drift-label-center">
-          Productive Drift
-        </span>
-        <span className="audience-drift-label audience-drift-label-right">
-          Over-Constrained
-        </span>
+        {isPaused ? (
+          <span className="audience-drift-label audience-drift-label-center">
+            Drift paused (no focus set)
+          </span>
+        ) : (
+          <>
+            <span className="audience-drift-label audience-drift-label-left">
+              Off Focus
+            </span>
+            <span className="audience-drift-label audience-drift-label-center">
+              Productive Drift
+            </span>
+            <span className="audience-drift-label audience-drift-label-right">
+              Over-Constrained
+            </span>
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { getSessionMessages } from "../message/message.state.js";
+import { getMessage, getSessionMessages } from "../message/message.state.js";
 import { getActiveFocus } from "../focus/focus.state.js";
 
 /**
@@ -214,6 +214,27 @@ function applyThreadInheritanceGate({ sessionId, messageId }) {
 
   if (!sessionMap.has(messageId)) {
     sessionMap.set(messageId, DEFAULT_CLASSIFICATION);
+  }
+
+  // Inherit parent classification for replies (contract: replies inherit from thread head / parent).
+  const current = sessionMap.get(messageId);
+  if (current === AudienceDriftClassification.UNKNOWN) {
+    const message = getMessage(sessionId, messageId);
+    const parentId = message?.envelope?.parentMessageId;
+    if (parentId) {
+      if (!sessionMap.has(parentId)) {
+        sessionMap.set(parentId, DEFAULT_CLASSIFICATION);
+        setClassificationSource(sessionId, parentId, "unset");
+      }
+      const parentClass = sessionMap.get(parentId);
+      if (
+        parentClass === AudienceDriftClassification.ON_FOCUS ||
+        parentClass === AudienceDriftClassification.OFF_FOCUS
+      ) {
+        sessionMap.set(messageId, parentClass);
+        setClassificationSource(sessionId, messageId, "inferred");
+      }
+    }
   }
 
   const classification = sessionMap.get(messageId);

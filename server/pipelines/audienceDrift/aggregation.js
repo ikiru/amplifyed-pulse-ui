@@ -220,6 +220,8 @@ export function updateDriftForMessage({
   }
 
   const state = ensureSessionState(sessionId);
+  // Ensure messageId is unique in the active window so re-scoring doesn't double count.
+  state.entries = state.entries.filter((entry) => entry?.messageId !== messageId);
   const entry = {
     messageId,
     timestamp: typeof timestamp === "number" ? timestamp : Date.now(),
