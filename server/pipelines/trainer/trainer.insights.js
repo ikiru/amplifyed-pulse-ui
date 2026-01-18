@@ -19,7 +19,9 @@ export function generateTrainerInsights(moment) {
   const { category, confidence, stable, signals } = moment.interpretation;
 
   if (!stable) return [];
-  if (!CATEGORY_MODIFIERS.hasOwnProperty(category)) return [];
+  if (!Object.prototype.hasOwnProperty.call(CATEGORY_MODIFIERS, category)) {
+    return [];
+  }
 
   const adjustedConfidence =
     confidence + CATEGORY_MODIFIERS[category];

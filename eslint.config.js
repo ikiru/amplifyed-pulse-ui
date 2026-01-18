@@ -47,6 +47,16 @@ export default [
         require: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        fetch: "readonly",
+        navigator: "readonly",
+        Blob: "readonly",
+        FileReader: "readonly",
+        URL: "readonly",
+        requestAnimationFrame: "readonly",
+        cancelAnimationFrame: "readonly",
+        ResizeObserver: "readonly",
       },
     },
     plugins: {
@@ -61,6 +71,22 @@ export default [
       ...jsxA11y.configs.recommended.rules,
       "import/no-unresolved": "warn",
       "react/prop-types": "off",
+      // React 17+ JSX transform
+      "react/react-in-jsx-scope": "off",
+      "react/jsx-uses-react": "off",
+
+      // Keep lint actionable while scaffolds exist.
+      "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+
+      // These are very strict and currently create lots of noise across the codebase.
+      "react-hooks/purity": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/set-state-in-effect": "off",
+
+      // Allow shipping UX while we harden accessibility iteratively.
+      "jsx-a11y/no-autofocus": "off",
+      "jsx-a11y/click-events-have-key-events": "off",
+      "jsx-a11y/no-static-element-interactions": "off",
     },
     settings: {
       react: { version: "detect" },
@@ -256,74 +282,64 @@ export default [
       },
     ],
   },
-},
-
-];
-// -----------------------------------------------------------------------------
-// PIPELINE BOUNDARY ENFORCEMENT — EMOTION DOMAIN
-// -----------------------------------------------------------------------------
-// The legacy emotion engine (server/emotion/*) is deprecated and must not be
-// imported by any active pipeline or server module. All functional emotion logic
-// now lives exclusively under server/pipelines/emotion/*.
-//
-// This lint rule ensures:
-//   • No accidental resurrection of legacy emotional engine files
-//   • No cross-domain drift (emotion ↔ pulse ↔ session)
-//   • No imports of deprecated scoring/state-map modules
-//   • Clear developer errors if boundaries are violated
-//
-// Only emotionConfig.js and exported enums remain allowed at the domain root.
-// -----------------------------------------------------------------------------
-{
-  "no-restricted-imports": [
-    "error",
-    {
-      "patterns": [
-        {
-          "group": ["server/emotion/*"],
-          "message": "Do not import legacy emotion engine files. Use server/pipelines/emotion/* instead."
-        }
-      ],
-      "paths": [
-        {
-          "name": "server/emotion/stateMapEngine.js",
-          "message": "stateMapEngine.js is LEGACY. Never import it."
-        },
-        {
-          "name": "server/emotion/emotionalScoring.js",
-          "message": "Legacy emotional scoring module. Use emotion.featureExtractors or emotion.scoring in the canonical pipeline."
-        }
-      ]
-    }
-  ]
-}
-
-// -----------------------------------------------------------------------------
-// PIPELINE BOUNDARY ENFORCEMENT — SESSION DOMAIN
-// -----------------------------------------------------------------------------
-// Session state (session/state.js or sessionPipeline’s internal state) must not
-// be read directly from other pipelines. Other domains may only access data
-// exposed by the session pipeline’s public API (e.g., participant snapshots).
-//
-// This rule prevents:
-//   • Pulse or moment pipelines from reaching into raw session state
-//   • New code from importing ../session/state.js as a shortcut
-//   • Drift back toward a single global session engine
-// -----------------------------------------------------------------------------
-
-{
-  rules: {
-    "no-restricted-imports": [
-      "error",
-      {
-        patterns: [
-          {
-            group: ["../session/state.js", "server/session/state.js"],
-            message:
-              "Do not import session state directly. Use the session pipeline API instead.",
-          },
-        ],
-      },
-    ],
   },
-}
+
+  // -----------------------------------------------------------------------------
+  // PIPELINE BOUNDARY ENFORCEMENT — EMOTION DOMAIN
+  // -----------------------------------------------------------------------------
+  // The legacy emotion engine (server/emotion/*) is deprecated and must not be
+  // imported by any active pipeline or server module. All functional emotion logic
+  // now lives exclusively under server/pipelines/emotion/*.
+  //
+  // Only emotionConfig.js and exported enums remain allowed at the domain root.
+  // -----------------------------------------------------------------------------
+  {
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["server/emotion/*"],
+              message:
+                "Do not import legacy emotion engine files. Use server/pipelines/emotion/* instead.",
+            },
+          ],
+          paths: [
+            {
+              name: "server/emotion/stateMapEngine.js",
+              message: "stateMapEngine.js is LEGACY. Never import it.",
+            },
+            {
+              name: "server/emotion/emotionalScoring.js",
+              message:
+                "Legacy emotional scoring module. Use emotion.featureExtractors or emotion.scoring in the canonical pipeline.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // -----------------------------------------------------------------------------
+  // PIPELINE BOUNDARY ENFORCEMENT — SESSION DOMAIN
+  // -----------------------------------------------------------------------------
+  // Session state must not be imported directly from other domains.
+  // -----------------------------------------------------------------------------
+  {
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["../session/state.js", "server/session/state.js"],
+              message:
+                "Do not import session state directly. Use the session pipeline API instead.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+];

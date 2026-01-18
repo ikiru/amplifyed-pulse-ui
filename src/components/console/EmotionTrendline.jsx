@@ -3,9 +3,9 @@ import { useEmotionStream } from "../../state/useEmotionStream";
 
 // Legacy socket hook removed
 export default function EmotionTrendline({ emotionState }) {
-  const emotionEnvelope =
-    emotionState ??
-    useEmotionStream((state) => state.emotionEnvelope);
+  // Hooks must be called unconditionally; select between prop and store after.
+  const storeEnvelope = useEmotionStream((state) => state.emotionEnvelope);
+  const emotionEnvelope = emotionState ?? storeEnvelope;
 
   if (!emotionEnvelope) return null;
 
