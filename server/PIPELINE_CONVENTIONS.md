@@ -94,36 +94,53 @@ Each domain must define exactly one `{domain}Pipeline.js` entrypoint.
 
 3. Event Naming Conventions
 
-All socket events must follow the pattern:
+## 3. Event Naming Conventions (As-Built + Best Practice)
 
-namespace:action
+This repo currently contains a mix of event naming styles. Because we are in **Option B (as-built is truth)**, the conventions below distinguish:
 
-3.1 Allowed Event Names (Examples)
-audience:pulse
-audience:message
-message:trainerReply
-trainer:command
-trainer:nudge
-session:join
-session:leave
-session:reconnect
-focus:set
-focus:clear
-safety:softFlag
-safety:pattern
-moment:update
+- **As-built allowed patterns** (what exists and works today)
+- **Preferred patterns** (what we should use going forward)
+- **Aspirational tightening** (what we can enforce later, after migrations)
 
-3.2 Forbidden Event Patterns
+### 3.1 As-built allowed patterns (current reality)
 
-pulse:submit (legacy)
+The router and pipelines currently use:
 
-snake_case (e.g., audience_pulse)
+- **Colon namespaced**: `session:join`, `message:audience`, `trainer:action`
+- **Multi-segment namespaces**: `trainer:scroll:to:thread`, `focus:trainer:state`
+- **Dot-delimited legacy broadcasts**: `message.state.update`, `message.vote.update`
+- **Underscore tokens in actions**: `focus:reset_default`, `obs:status_changed`, `obs:capture:not_supported`
 
-camelCase (e.g., audiencePulse)
+### 3.2 Preferred pattern for new events
 
-un-namespaced events (e.g., pulse)
+For new events, prefer:
 
-All new events must be documented and registered via eventRouter.js.
+- **namespaced with colons** (human readable, easy to grep): `namespace:action[:subaction...]`
+- avoid dots and underscores in new names unless there is a compatibility reason
+
+### 3.3 Canonical inbound event surface (router)
+
+`server/routers/eventRouter.js` is the canonical list of inbound events. As of this audit, it registers:
+
+- `audience:pulse`
+- `session:join`, `session:leave`, `session:reconnect`, `session:request_metadata`
+- `focus:set`, `focus:clear`, `focus:entry:add`, `focus:activate`, `focus:reset_default`, `focus:edit_in_place`, `focus:revise_by_new`, `focus:reorder`
+- `message:audience`, `message:trainerReply`, `message:vote:intent`
+- `confusion:signal`, `confusion:clear`, `trainer:resolve_confusion`
+- `trainer:action`, `trainer:command`, `trainer:nudge`, `trainer:scroll:to:thread`
+- `obs:capture:request`, `obs:capture:started`, `obs:capture:stopped`, `obs:capture:interrupted`, `obs:capture:permission_denied`, `obs:capture:not_supported`, `obs:capture:error`
+- `self-report:signal`
+- `message.state.update` and `audience:drift:update` (**debug passthrough; non-prod only**)
+
+### 3.4 Forbidden patterns (aspirational)
+
+These are still good goals, but they are **not fully true today**:
+
+- no un-namespaced events (e.g. `pulse`)
+- no camelCase events (e.g. `audiencePulse`)
+- avoid snake_case (e.g. `audience_pulse`)
+
+All new events must be documented and registered via `eventRouter.js`.
 
 4. Routing Rules — Event Router as the Authority
 
@@ -166,68 +183,53 @@ All live imports must reference:
 
 server/pipelines/<domain>/
 
-6. Domain Isolation Rules
+6. Domain Isolation Rules (As-Built + Best Practice)
 
-Pipelines must be independent and must not import other pipelines directly.
+Best practice: pipelines should be independent and should not import other pipeline **entrypoints** (e.g. `*Pipeline.js`) directly.
 
-6.1 Forbidden Imports
-import pulsePipeline from "../pulse/pulsePipeline.js";      // ❌
-import emotionPipeline from "../emotion";                   // ❌
-import { participants } from "../session/state.js";         // ❌
+### 6.1 Forbidden imports (best practice)
 
-6.2 Allowed Interactions
+Avoid importing pipeline entrypoints or reaching into another pipeline’s private state:
 
-eventRouter → pipelines
+```js
+import pulsePipeline from "../pulse/pulsePipeline.js"; // ❌
+import emotionPipeline from "../emotion"; // ❌
+import { participants } from "../session/state.js"; // ❌
+```
 
-Pipelines → shared utilities
+### 6.2 Allowed interactions (as-built)
 
-Pipelines → moment builder
+- `eventRouter` → pipelines (router wires socket events)
+- pipelines → shared utilities (pure helpers)
+- pipelines → MomentBuilder / MomentPipeline (integration point)
 
-Trainer Pipeline Exception
+### 6.3 As-built shared-module exceptions (documented)
 
-The trainer pipeline is:
+Some domains currently import **shared state/modules** from other domains (not entrypoints). This is allowed **as-built**, but should be treated as a stability boundary:
 
-write-only into momentBuilder
+- Message pipeline reads active focus via `server/pipelines/focus/focus.state.js` (`getActiveFocus`) to stamp messages with focus metadata.
+- Message pipeline uses `server/pipelines/audienceDrift/*` to classify/aggregate drift and emit `audience:*` updates.
+- Event router imports some focus/audience drift helpers for gating/normalization.
 
-forbidden from reading pulse/emotion/session state
+If we want stricter isolation later, the upgrade path is to move these “shared” pieces into an explicit shared module (e.g. `server/shared/`) and/or route reads through injected adapters.
 
-(See PIPELINES.md for behavioral boundaries.)
+7. Lint/Guardrails (As-Built)
 
-7. Lint Rules That Enforce These Conventions
+This repo has some enforcement, but not all of the aspirational rules below are currently implemented.
 
-To ensure stability, ESLint must enforce:
+### 7.1 What is enforced today
 
-7.1 Block Forbidden Imports
-"no-restricted-imports": [
-  "error",
-  {
-    "patterns": [
-      "server/pulse/*",
-      "server/emotion/*",
-      "server/safety/*",
-      "archive/**",
-      "server/_legacy_*",
-      "*momentBuilder*",
-      "*momentEnvelope*"
-    ]
-  }
-]
+See `eslint.config.js` for the authoritative rules. As of this audit, ESLint enforces:
 
-7.2 Block Socket Listeners Outside the Router
+- blocking legacy directory imports (e.g. `server/pulse/**`, `server/emotion/**`, `archive/**`)
+- blocking legacy Moment filenames (e.g. `momentBuilder.js`, `momentEnvelope.js`)
+- some pipeline boundary protections (partial; not a complete “no cross-pipeline imports” system)
 
-Custom rule:
+### 7.2 What is aspirational (not yet reliably enforced)
 
-Error if `socket.on(...)` appears outside `eventRouter.js`.
-
-7.3 Enforce Event Naming Pattern
-
-Allowed: ^[a-z]+:[a-z]+$
-Forbidden: snake_case, camelCase, uppercase.
-
-7.4 Enforce One Pipeline Entrypoint Per Domain
-
-Multiple *Pipeline.js files = error.
-Missing one = error.
+- “Error if `socket.on(...)` appears outside `eventRouter.js`”
+- strict event-name regex such as `^[a-z]+:[a-z]+$` (this does not match as-built events like `message.state.update`, `obs:status_changed`, `focus:reset_default`)
+- “Exactly one Pipeline.js per domain” as a lint-enforced invariant
 
 8. Legacy Quarantine Policy
 
