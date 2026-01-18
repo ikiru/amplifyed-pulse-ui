@@ -5,7 +5,7 @@ import { QRCodeDisplay } from './QRCodeDisplay.jsx';
  * SessionAccessPanel Component
  * 
  * Displays session access code for trainers.
- * Matches wireframe A.2.1 from SESSION_CONTRACT.md
+ * Matches wireframe A.2.1 from docs/session-contract.md
  * 
  * Note: Participant count is displayed in the PULSE window, not here.
  * 

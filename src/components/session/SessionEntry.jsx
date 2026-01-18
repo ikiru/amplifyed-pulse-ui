@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
  * SessionEntry Component
  * 
  * Entry form for joining a session via access code.
- * Matches wireframe A.1.1 from SESSION_CONTRACT.md
+ * Matches wireframe A.1.1 from docs/session-contract.md
  * 
  * @param {Object} props
  * @param {Function} props.onJoin - Callback when join button is clicked

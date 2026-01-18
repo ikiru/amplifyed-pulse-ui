@@ -3,7 +3,7 @@
 **Purpose:** This document governs how new testing capabilities are added to HISTE while maintaining contract integrity.
 
 **Governed by:**
-- docs/TESTING_ENVIRONMENTS.md
+- docs/testing-environments.md
 - server/contracts/Human Interaction Stress Testing Environment (HISTE).md
 
 ---

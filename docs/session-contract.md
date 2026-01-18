@@ -1,8 +1,19 @@
+# Status: Canonical
+# Owner: TBD
+# Last reviewed: 2026-01-18
+
 # SESSION CONTRACT
 
 **AmplifyEd Pulse — Foundational Layer**
 
 ---
+
+## TL;DR (Guarantees)
+
+- **Owns**: authoritative participant registry + join/leave/rejoin lifecycle.
+- **Defines**: access code + QR-based join routing (routing only; not identity).
+- **Synchronizes**: current session state on join/rejoin (current messages, focus, vote totals, confusion state).
+- **Does not**: authenticate users, validate identity, assign meaning, evaluate behavior, or make facilitation decisions.
 
 ## 1. Purpose
 
@@ -256,6 +267,14 @@ QR codes:
 - **Component**: `src/components/session/QRCodeDisplay.jsx`
 - **Routing**: `/join` route handler in `src/App.jsx`
 - **Scanning**: External (phone camera), not in-app
+
+**Implementation Pointers (Code):**
+- **Client join/leave state**: `src/hooks/useSessionJoin.js`
+- **Join UI entry**: `src/components/session/SessionEntry.jsx`
+- **Trainer access code + QR display**: `src/components/session/SessionAccessPanel.jsx`
+- **Socket event routing**: `server/routers/eventRouter.js` (`session:join`, `session:leave`, `session:reconnect`)
+- **Session pipeline**: `server/pipelines/session/sessionPipeline.js`
+- **Session state + access code map**: `server/pipelines/session/session.state.js`, `server/pipelines/session/session.accessCode.js`
 
 QR code content is **session join information only**.
 

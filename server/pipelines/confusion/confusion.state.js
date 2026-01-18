@@ -20,7 +20,7 @@
 
 const confusionState = new Map();
 const ALLOWED_RESOLUTION_TYPES = new Set([
-  // Contract-aligned resolution types (see MESSAGE_CONTRACT.md wireframe)
+  // Contract-aligned resolution types (see docs/message-contract.md wireframe)
   "clarified",
   "example",
   "reframed",

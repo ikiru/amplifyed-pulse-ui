@@ -1,3 +1,7 @@
+# Status: Canonical
+# Owner: TBD
+# Last reviewed: 2026-01-18
+
 # Testing Environments
 
 This project supports multiple **testing environments**, each designed to explore a different class of system behavior under controlled conditions.
@@ -14,6 +18,13 @@ It is a **purpose-built world** with:
 Each environment exists to surface **truth under specific kinds of stress**, not to prove correctness.
 
 ---
+
+## TL;DR (Guarantees)
+
+- Testing environments are **purpose-built worlds**, not “debug mode”.
+- Each environment has a **binding contract** with explicit allowed/forbidden boundaries.
+- Environments must remain **isolatable and removable** without weakening production guarantees.
+- If a test need violates an environment’s contract, that implies **a new environment**, not a shortcut.
 
 ## Why Testing Environments Exist
 
@@ -93,6 +104,19 @@ No privileged or internal interaction paths are permitted.
 `server/contracts/Human Interaction Stress Testing Environment (HISTE).md`
 
 ---
+
+## Implementation Pointers (Code)
+
+**Canonical doc:**
+- This doc: `docs/testing-environments.md`
+
+**HISTE implementation:**
+- Environment root: `testing/environments/histe/`
+- Contracts: `testing/environments/histe/contracts/`
+- Engine + actors: `testing/environments/histe/engine/`, `testing/environments/histe/actors/`
+
+**Key integration constraint (enforced by design):**
+- HISTE interacts only through public socket events (e.g. `session:join`, `message:audience`, `focus:set`, `focus:clear`)—no privileged pipeline entrypoints.
 
 ## Future Environments (Planned, Not Implemented)
 

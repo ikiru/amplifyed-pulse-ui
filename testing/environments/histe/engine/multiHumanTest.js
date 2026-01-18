@@ -1,6 +1,6 @@
 // HISTE Stage 3A Script — Multiple simulated audience participants
 // Governed by:
-// - docs/TESTING_ENVIRONMENTS.md
+// - docs/testing-environments.md
 // - server/contracts/Human Interaction Stress Testing Environment (HISTE).md
 
 import SimulationClock from "./SimulationClock.js";

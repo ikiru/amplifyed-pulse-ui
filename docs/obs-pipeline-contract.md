@@ -1,8 +1,19 @@
+# Status: Canonical
+# Owner: TBD
+# Last reviewed: 2026-01-18
+
 # 📜 OBS Pipeline Contract
 
 *Pixel-Capture Only · Source-Agnostic · Composition-Free · Codex-Ready*
 
 ---
+
+## TL;DR (Guarantees)
+
+- **Browser owns pixels**: capture uses `getDisplayMedia`; the MediaStream never becomes server data.
+- **Server owns state**: backend tracks a session-scoped capture lifecycle and broadcasts status.
+- **No composition / no semantics**: this pipeline never interprets content or alters room meaning.
+- **Lifecycle is explicit** via socket events (`obs:capture:*`) and session broadcasts (`obs:status_changed`).
 
 ## 0. Purpose
 
@@ -54,6 +65,20 @@ The OBS Pipeline owns:
 
 * initiating and stopping capture
 * user-mediated source selection
+
+## Implementation Pointers (Code)
+
+**Client:**
+- Capture client (browser-only): `src/obs/obsCaptureClient.js`
+- Trainer UI controls: `src/pages/TrainerView.jsx` (Start/Stop buttons)
+
+**Server:**
+- Pipeline state machine + broadcasts: `server/pipelines/obs/obsPipeline.js`
+- Router wiring (trainer-only events): `server/routers/eventRouter.js`
+
+**Key events (observed):**
+- Trainer emit → server: `obs:capture:request`, `obs:capture:started`, `obs:capture:stopped`, `obs:capture:interrupted`, `obs:capture:permission_denied`, `obs:capture:not_supported`, `obs:capture:error`
+- Server broadcast → session: `obs:status_changed` (plus capture lifecycle events)
 * maintaining a stable video stream
 * reporting capture lifecycle state
 * detecting and surfacing capture interruption

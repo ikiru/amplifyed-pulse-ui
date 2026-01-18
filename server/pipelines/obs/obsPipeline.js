@@ -5,7 +5,7 @@
  * - The browser performs getDisplayMedia and owns the MediaStream.
  * - The server owns the single-session state machine + event broadcast.
  *
- * Contract: docs/OBS Pipeline Contract.md
+ * Contract: docs/obs-pipeline-contract.md
  */
 
 const DEFAULT_STATUS = "idle";

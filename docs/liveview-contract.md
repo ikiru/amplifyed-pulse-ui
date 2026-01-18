@@ -1,8 +1,20 @@
+# Status: Canonical
+# Owner: TBD
+# Last reviewed: 2026-01-18
+
 # LIVEVIEW CONTRACT
 
 **Projection Display for Live Sessions**
 
 ---
+
+## TL;DR (Guarantees)
+
+- **Read-only** projection surface (no required interaction).
+- **Shows**: Focus, Pulse timeline, and the shared Message stream (threaded).
+- **Stays non-surveillant**: emphasizes collective state (“we”), not individual tracking.
+- **Subscribes** to the same core session broadcasts as TrainerView, but **does not** include trainer-only analytics/control surfaces.
+- **Session access** is displayed from the route param (`/live/:sessionCode`) and rendered as a QR join URL.
 
 ## 1. Purpose
 
@@ -17,6 +29,23 @@ LiveView serves as the **"medical monitor for the room"** — displaying collect
 LiveView is **inviting and energizing**, not surveillance.
 
 ---
+
+## Implementation Pointers (Code)
+
+**Client:**
+- Route definition: `src/App.jsx` (`/live/:sessionCode`)
+- LiveView page: `src/pages/LiveView.jsx`
+- Socket subscriptions: `src/hooks/useLiveViewSocket.js`
+- Shared components/utilities:
+  - Pulse: `src/components/pulse/PulseTimeline.jsx`
+  - Threads: `src/components/threads/MessageThreadRow.jsx`
+  - Join QR: `src/components/session/QRCodeDisplay.jsx`
+  - Thread tree: `src/utils/messageUtils.js`
+  - Thread colors + scroll sync: `src/utils/threadUtils.js`
+  - Confusion summarization: `src/utils/confusionUtils.js`
+
+**Notes:**
+- LiveView listens for `trainer:scroll:to:thread` to keep the projected view aligned with trainer navigation.
 
 ## 2. Core Principles
 

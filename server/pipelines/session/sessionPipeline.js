@@ -2,7 +2,7 @@
  * Session Pipeline
  * 
  * Authoritative participant state and session lifecycle management.
- * Implements SESSION_CONTRACT.md specifications.
+ * Implements docs/session-contract.md specifications.
  */
 
 import { validateAccessCode, normalizeAccessCode } from './session.accessCode.js';

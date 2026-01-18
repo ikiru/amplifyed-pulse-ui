@@ -1,8 +1,20 @@
+# Status: Canonical
+# Owner: TBD
+# Last reviewed: 2026-01-18
+
 # MESSAGING CONTRACT
 
 AudienceView · TrainerView · LiveView
 
 ---
+
+## TL;DR (Guarantees)
+
+- **Owns**: the shared message stream as a structural conversation surface.
+- **Threading**: defined structurally via `parentMessageId` (indentation reflects depth, not importance).
+- **Broadcast model**: clients render from **authoritative snapshots** (`message.state.update`), not incremental message pushes.
+- **Voting**: supported as a display-only signal (no semantic interpretation by Messaging).
+- **Does not**: evaluate correctness, infer intent, rank messages, or decide meaning.
 
 ## 1. Purpose
 
@@ -184,6 +196,25 @@ Messaging does not:
 * replace facilitation
 
 ---
+
+## Implementation Pointers (Code)
+
+**Socket events (implementation surface):**
+- **Inbound**: `message:audience`, `message:trainerReply` (trainer only), `message:vote:intent`
+- **Outbound**: `message.state.update`, `message.vote.update` (also emitted as `message:vote:update` alias)
+
+**Server:**
+- Pipeline: `server/pipelines/message/messagePipeline.js`
+- Authoritative snapshot broadcast: `server/pipelines/message/message.broadcast.js`
+- Message storage: `server/pipelines/message/message.state.js`
+- Voting: `server/pipelines/message/message.vote.*`
+- Router wiring: `server/routers/eventRouter.js`
+
+**Client:**
+- Audience surface: `src/pages/AudienceInput.jsx` (emit `message:audience`, listen `message.state.update` / `message.vote.update`)
+- Trainer surface: `src/pages/TrainerView.jsx`, `src/hooks/useTrainerSocket.js`, `src/hooks/useMessageState.js`
+- Message adaptation: `src/pages/messageHelpers.js`
+- Thread/tree utilities: `src/utils/messageUtils.js`
 
 # APPENDIX A — MESSAGE CARD WIREFRAME (NORMATIVE)
 

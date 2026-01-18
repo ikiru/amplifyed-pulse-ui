@@ -1,10 +1,44 @@
-**shared orientation** in a live, projected training environment.
+# Status: Canonical
+# Owner: TBD
+# Last reviewed: 2026-01-18
+
+# FOCUS BOX CONTRACT
+
+## TL;DR (Guarantees)
+
+- **Exactly one active focus** at all times (default: “Open Conversation”).
+- **Audience sees only the active focus** (no history, no inactive list, no controls).
+- **Trainer can manage** focus entries and activate/reset focus (trainer-only controls/state).
+- **Non-enforcement**: focus is orientation only; it must not restrict, judge, or coerce behavior.
+
+## 1. Purpose
+
+The Focus Box provides **shared orientation** in a live, projected training environment.
 
 It declares a single, canonical focus for the room so participants can align understanding and contribution without coercion, enforcement, or behavioral control.
 
 The Focus Box governs **meaning**, not behavior.
 
 ---
+
+## Implementation Pointers (Code)
+
+**Socket events (implementation surface):**
+- **Audience-facing broadcast**: `focus:update`, `focus:cleared`
+- **Trainer actions**: `focus:entry:add`, `focus:activate`, `focus:reset_default`, `focus:edit_in_place`, `focus:revise_by_new`, `focus:reorder`
+- **Trainer state sync**: `focus:trainer:state`
+- (Legacy) aliases used in some clients: `focus:set`, `focus:clear`
+
+**Server:**
+- Focus pipeline: `server/pipelines/focus/focusPipeline.js` (`registerFocusHandlers`)
+- Focus state: `server/pipelines/focus/focus.state.js`
+- Router wiring + join sync: `server/routers/eventRouter.js`
+
+**Client:**
+- Trainer controls UI: `src/components/focus/FocusControls.jsx`
+- Trainer state hook: `src/hooks/useFocusState.js`
+- Focus subscriptions: `src/hooks/useTrainerSocket.js`, `src/hooks/useLiveViewSocket.js`
+- Global focus mirror: `src/socket/SocketContext.jsx`
 
 ## 2. Definitions
 

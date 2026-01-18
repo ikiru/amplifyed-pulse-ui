@@ -1,6 +1,6 @@
 // HISTE Utility — Scenario loader
 // Governed by:
-// - docs/TESTING_ENVIRONMENTS.md
+// - docs/testing-environments.md
 // - server/contracts/Human Interaction Stress Testing Environment (HISTE).md
 
 export async function loadScenario(filePath) {

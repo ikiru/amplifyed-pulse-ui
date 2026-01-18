@@ -1,9 +1,19 @@
+# Status: Canonical
+# Owner: TBD
+# Last reviewed: 2026-01-18
 
 # 📜 THREAD TOOLS CONTRACT
 
 *Trainer-Local · Tractability-Oriented · Meaning-Safe*
 
 ---
+
+## TL;DR (Guarantees)
+
+- Thread Tools are **trainer-local lenses** over the existing canonical thread map.
+- They may surface **structural signals** (counts, timestamps, “grew”, “new since last view”, topic-change) but must not claim “importance”.
+- They must not mutate canonical message state, reorder the room’s reality, or introduce evaluative judgment.
+- In current implementation, lenses are **trainer-only** (no “promotion to shared” behavior).
 
 ## 0. Purpose
 
@@ -14,6 +24,15 @@ Its purpose is to allow a trainer to **view and, when explicitly chosen, share a
 Thread Tools are **navigation and amplification aids**, not moderation instruments, analytics, or decision engines.
 
 ---
+
+## Implementation Pointers (Code)
+
+**Client-only (no server ownership):**
+- Trainer lens selection + filtering: `src/pages/TrainerView.jsx` (`activeThreadLens`, “New Since Last View”, “Threads That Grew”, “Topic Changes”)
+- Thread summaries (meaning-light): `src/utils/threadToolsUtils.js`
+- Contract-ish tests: `src/__tests__/threadToolsUtils.test.js`
+- Rendering: `src/components/threads/MessageThreadRow.jsx`, `src/components/messages/ThreadItem.jsx`
+- Thread tree source: `src/utils/messageUtils.js`
 
 ## 1. Core Principles (Non-Negotiable)
 

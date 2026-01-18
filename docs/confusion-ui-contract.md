@@ -1,3 +1,7 @@
+# Status: Canonical
+# Owner: TBD
+# Last reviewed: 2026-01-18
+
 Confusion UI Contract
 
 TrainerView — UI Surface Only
@@ -5,6 +9,14 @@ TrainerView — UI Surface Only
 Version v1.1
 
 Revision: Clarifies that the left-column Confusion section persists while entries appear only when confusion exists; no behavioral change.
+
+## TL;DR (Guarantees)
+
+- **UI-only**: governs TrainerView presentation + interaction boundaries only.
+- **Thread-level only**: confusion is never presented as message-level or participant-level.
+- **Placement**: confusion lives in the **left column Confusion panel**, not inside message cards.
+- **Interaction**: clicking a confusion item **scrolls to the associated thread** (and may also sync LiveView scroll).
+- **Data source**: driven by `confusion:update` advisory payloads from the server (no scoring logic in UI).
 
 1. Purpose
 
@@ -119,6 +131,21 @@ resolve confusion
 mark the thread as active
 
 Navigation is assistive only.
+
+## Implementation Pointers (Code)
+
+**Client:**
+- Panel component: `src/components/confusion/ConfusionPanel.jsx`
+- Trainer integration: `src/pages/TrainerView.jsx` (left column Confusion panel)
+- Confusion summarization: `src/utils/confusionUtils.js` (`summarizeThreadConfusion`)
+- Thread scrolling: `src/utils/threadUtils.js` (`scrollToThreadRoot`)
+- Optional LiveView scroll sync: emits `trainer:scroll:to:thread` (handled by `src/pages/LiveView.jsx`)
+
+**Server (data shape + broadcast):**
+- Event: `confusion:update`
+- Payload shape (observed): `{ sessionId, threads: [{ rootMessageId, level, contributors, resolvedAt, resolvedBy, resolutionType }] }`
+- Pipeline: `server/pipelines/confusion/confusionPipeline.js`
+- Broadcast: `server/pipelines/confusion/confusion.broadcast.js`
 
 7. Ordering Rules
 

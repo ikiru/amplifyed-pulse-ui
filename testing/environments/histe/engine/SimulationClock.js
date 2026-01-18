@@ -1,6 +1,6 @@
 // HISTE Stage 2 Utility — Simulation Clock
 // Governed by:
-// - docs/TESTING_ENVIRONMENTS.md
+// - docs/testing-environments.md
 // - server/contracts/Human Interaction Stress Testing Environment (HISTE).md
 //
 // Provides deterministic scheduling for simulated actors. It can pause,

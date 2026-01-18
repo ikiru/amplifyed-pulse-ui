@@ -1,3 +1,7 @@
+# Status: Canonical
+# Owner: TBD
+# Last reviewed: 2026-01-18
+
 # 📜 VISUAL MEANING & ANONYMITY CONTRACT  
 ## Thread Lineage, Depth, and Sensemaking
 
@@ -18,6 +22,13 @@ This contract governs **visual semantics only**.
 It does **not** prescribe layout mechanics, interaction logic, behavior, or implementation.
 
 ---
+
+## TL;DR (Guarantees)
+
+- Threads must read as **lines of thought** (not chat turns).
+- Depth/indentation communicates **structural lineage**, not correctness or importance.
+- Color/lineage cues must be **idea-bound**, not identity-bound (supports anonymity).
+- Visual structure must support orientation **without rewarding performance** (no competitive/status cues).
 
 ## 0.1 Visual Metaphor (Normative)
 
@@ -102,6 +113,20 @@ Elbows exist to make **structure visible**, not expressive.
 Color resets between sessions and carries no meaning beyond structural grouping.
 
 ---
+
+## Implementation Pointers (Code)
+
+**Core rendering:**
+- Thread row + lineage + connectors: `src/components/threads/MessageThreadRow.jsx`
+- Message bubble + indentation + collapse: `src/components/messages/ThreadItem.jsx`
+
+**Utilities:**
+- Thread color palette + assignment: `src/utils/threadUtils.js` (`THREAD_COLOR_PALETTE`, `assignThreadColors`)
+- Thread tree shape: `src/utils/messageUtils.js`
+
+**Styling:**
+- TrainerView lineage/connectors: `src/pages/TrainerView.css` (lineage gutter + connector layer)
+- AudienceInput lineage/connectors: `src/pages/AudienceInput.css`
 
 ### 3.4 Color Presence vs Emphasis
 

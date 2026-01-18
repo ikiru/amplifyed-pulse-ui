@@ -1,7 +1,7 @@
 # HISTE Scenario Contract
 
 Governed by:
-- docs/TESTING_ENVIRONMENTS.md
+- docs/testing-environments.md
 - server/contracts/Human Interaction Stress Testing Environment (HISTE).md
 
 Scenario files describe **declarative, data-only instructions** for simulated audience behavior.

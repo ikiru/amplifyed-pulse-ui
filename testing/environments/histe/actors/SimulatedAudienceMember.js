@@ -1,6 +1,6 @@
 // HISTE Stage 1 Actor — Simulated Audience Member
 // Governed by:
-// - docs/TESTING_ENVIRONMENTS.md
+// - docs/testing-environments.md
 // - server/contracts/Human Interaction Stress Testing Environment (HISTE).md
 //
 // This actor may ONLY interact with the system via the public audience socket

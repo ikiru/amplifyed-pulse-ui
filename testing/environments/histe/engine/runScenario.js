@@ -1,6 +1,6 @@
 // HISTE Stage 4 Script — Scenario message execution loop
 // Governed by:
-// - docs/TESTING_ENVIRONMENTS.md
+// - docs/testing-environments.md
 // - server/contracts/Human Interaction Stress Testing Environment (HISTE).md
 
 import { io } from "socket.io-client";
