@@ -4,6 +4,9 @@ import registerEventRouter from "../../server/routers/eventRouter.js";
 import { createPulseBroadcast } from "../../server/pipelines/pulse/pulse.broadcast.js";
 import { createPulseState } from "../../server/pipelines/pulse/pulse.state.js";
 import { broadcastVoteUpdate } from "../../server/pipelines/message/message.vote.broadcast.js";
+import { createTrainerPipeline } from "../../server/pipelines/trainer/trainerPipeline.js";
+import { createMomentPipeline } from "../../server/pipelines/moment/momentPipeline.js";
+import { createObsPipeline } from "../../server/pipelines/obs/obsPipeline.js";
 
 function createIoMock() {
   const emit = vi.fn(); // global
@@ -58,6 +61,50 @@ describe("Model A isolation: session-scoped broadcasts", () => {
     expect(io.emitTo).toHaveBeenCalledTimes(2);
     expect(io.emit).not.toHaveBeenCalled();
   });
+
+  it("trainer:signal is emitted to the trainer room (not globally) when sessionId is present", () => {
+    const io = createIoMock();
+    const builderMock = { addTrainer: vi.fn() };
+    const trainerPipeline = createTrainerPipeline(io, builderMock);
+
+    trainerPipeline.handleTrainerAction({
+      action: "nudge",
+      type: "trainer:action",
+      sessionId: "session:A",
+    });
+
+    expect(io.to).toHaveBeenCalledWith("session:A:trainers");
+    expect(io.emitTo).toHaveBeenCalledWith(
+      "trainer:signal",
+      expect.objectContaining({ sessionId: "session:A" })
+    );
+    expect(io.emit).not.toHaveBeenCalled();
+  });
+
+  it("moment:update is emitted to the trainer room (not globally) when sessionId is present", () => {
+    const io = createIoMock();
+    const momentPipeline = createMomentPipeline(io);
+
+    momentPipeline.addMoment({ sessionId: "session:A", insights: [] });
+
+    expect(io.to).toHaveBeenCalledWith("session:A:trainers");
+    expect(io.emitTo).toHaveBeenCalledWith(
+      "moment:update",
+      expect.objectContaining({ sessionId: "session:A" })
+    );
+    expect(io.emit).not.toHaveBeenCalled();
+  });
+
+  it("obs:status_changed is emitted to the session room (not globally) when sessionId is present", () => {
+    const io = createIoMock();
+    const obsPipeline = createObsPipeline(io);
+
+    obsPipeline.handleCaptureRequest({ sessionId: "session:A", socketId: "socket:trainer" });
+
+    // status_changed + requesting_permission are both session-scoped
+    expect(io.to).toHaveBeenCalledWith("session:A");
+    expect(io.emit).not.toHaveBeenCalled();
+  });
 });
 
 describe("Model A gating: trainer-only events + debug passthrough guards", () => {
@@ -106,6 +153,22 @@ describe("Model A gating: trainer-only events + debug passthrough guards", () =>
     expect(handler).toBeTypeOf("function");
 
     handler({ sessionId: "session:A", messages: [] });
+
+    expect(io.to).not.toHaveBeenCalled();
+    expect(io.emit).not.toHaveBeenCalled();
+  });
+
+  it("blocks debug audience:drift:update passthrough in production", () => {
+    process.env.NODE_ENV = "production";
+    const io = createIoMock();
+    const socket = createSocketMock("socket:any");
+
+    registerEventRouter(io, socket, {});
+
+    const handler = socket._handlers.get("audience:drift:update");
+    expect(handler).toBeTypeOf("function");
+
+    handler({ sessionId: "session:A", score: 0.2 });
 
     expect(io.to).not.toHaveBeenCalled();
     expect(io.emit).not.toHaveBeenCalled();
