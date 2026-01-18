@@ -1,5 +1,3 @@
-}
-
 # AMPLIFYED PULSE UI
 
 Front-End Interface for the AmplifyEd Platform
@@ -13,6 +11,15 @@ AmplifyEd Pulse UI is the trainer-facing interface for the AmplifyEd platform, d
 This UI focuses on **observation, interpretation, and clarity** — not control, recommendation, or adaptation.
 
 The system intentionally preserves trainer agency by ensuring that nothing reacts, adapts, or intervenes without explicit intent.
+
+---
+
+## DOCUMENTATION
+
+Docs currently live in a few places (root phase/governance files, `docs/`, and `server/contracts/`).
+To avoid “drifted docs accidentally read as truth”, start here:
+
+📄 See `docs/README.md`
 
 ---
 
@@ -100,9 +107,10 @@ The UI avoids unnecessary abstractions and remains intentionally direct and insp
 │   ├── state/
 │   ├── utils/
 │   └── socket/
-├── server/          (integration reference only)
-├── archive/
-├── public/
+├── server/          (local dev backend; optional but supported)
+├── docs/
+├── testing/
+├── dist/            (build output)
 ├── scripts/
 ├── PHASE_3_CLOSURE.md
 ├── index.html
@@ -138,10 +146,14 @@ http://localhost:5173/
 
 ## BACKEND INTEGRATION
 
-The UI connects to a WebSocket backend (default):
+The UI connects to the backend via **Socket.IO**.
+
+In development, the client connects to the current origin and Vite proxies Socket.IO:
 
 ```text
-ws://localhost:4001
+Vite dev server (UI):  http://localhost:5173
+Socket.IO proxy path:  /socket.io  →  http://localhost:3000
+Backend (default):     http://localhost:3000  (set PORT to override)
 ```
 
 If the backend is unavailable, the UI may display connection warnings.
