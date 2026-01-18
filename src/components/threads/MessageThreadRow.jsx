@@ -32,9 +32,11 @@ function MessageThreadRowComponent({
   actorRole = "trainer",
   emitVoteIntent,
   onConfusionSignal,
+  onClearConfusionSignal,
   onOffFocusSignal,
   voteSelectionMap,
   onScrollToThread,
+  onResolveConfusion,
   showReplyControls = true,
   defaultCollapsed = false,
   activityPulse = false,
@@ -205,9 +207,11 @@ function MessageThreadRowComponent({
           registerMessageRef={registerMessageRef}
           emitVoteIntent={emitVoteIntent}
           onConfusionSignal={onConfusionSignal}
+          onClearConfusionSignal={onClearConfusionSignal}
           onOffFocusSignal={onOffFocusSignal}
           voteSelectionMap={voteSelectionMap}
           onScrollToThread={onScrollToThread}
+          onResolveConfusion={onResolveConfusion}
           showReplyControls={showReplyControls}
         />
       </div>

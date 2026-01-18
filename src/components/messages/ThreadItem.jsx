@@ -56,7 +56,9 @@ function ThreadItemContent({
   voteTotalsMap,
   confusionByRootId,
   onConfusionSignal = () => {},
+  onClearConfusionSignal = () => {},
   onOffFocusSignal = () => {},
+  onResolveConfusion = () => {},
   emitVoteIntent,
   voteSelectionMap,
   showVoteControls = true,
@@ -186,7 +188,12 @@ function ThreadItemContent({
     onToggleCollapse();
   };
 
-  const handleConfusionClick = () => {
+  const handleConfusionToggle = () => {
+    if (localConfusionSignaled) {
+      setLocalConfusionSignaled(false);
+      onClearConfusionSignal(node.messageId);
+      return;
+    }
     setLocalConfusionSignaled(true);
     onConfusionSignal(node.messageId);
   };
@@ -197,12 +204,17 @@ function ThreadItemContent({
   };
 
   const handleResolutionChange = (event) => {
-    const resolution = event.target.value;
-    if (resolution) {
-      setLocalResolutionType(resolution);
-      setLocalResolvedBy(viewerRole);
-      // Signal resolution - you may want to add a separate handler for this
-      console.log('[RESOLUTION]', { messageId: node.messageId, resolution, resolvedBy: viewerRole });
+    const resolutionType = event.target.value;
+    if (!resolutionType) {
+      return;
+    }
+
+    setLocalResolutionType(resolutionType);
+    setLocalResolvedBy(viewerRole);
+
+    // Persist to server only for trainers (audience cannot resolve server-side).
+    if (viewerRole === "trainer") {
+      onResolveConfusion(node.messageId, resolutionType);
     }
   };
 
@@ -345,7 +357,7 @@ function ThreadItemContent({
                           className="thread-resolution-select" 
                           value={localResolutionType || ""}
                           onChange={handleResolutionChange}
-                          disabled={viewerRole === "trainer"}
+                          disabled={viewerRole !== "trainer"}
                         >
                           <option value="" disabled hidden>
                             Resolution ▾
@@ -366,17 +378,19 @@ function ThreadItemContent({
               </div>
             )}
 
-            {isAnchor && allowConfusionAnchors && !showConfusionRow && !localConfusionSignaled && !isOffFocus && !localOffFocusSignaled && (
+            {isAnchor && allowConfusionAnchors && !isOffFocus && !localOffFocusSignaled && (
               <div className="thread-confusion-actions">
                 <button
-                  className={`confusion-anchor ${localConfusionSignaled ? 'active' : ''}`}
-                  onClick={handleConfusionClick}
-                  aria-label="This topic is confusing"
+                  className={`confusion-anchor ${localConfusionSignaled ? "active" : ""}`}
+                  onClick={handleConfusionToggle}
+                  aria-label={
+                    localConfusionSignaled ? "Clear confusion" : "This topic is confusing"
+                  }
                 >
-                  Confused
+                  {localConfusionSignaled ? "Clear Confusion" : "Confused"}
                 </button>
                 <button
-                  className={`confusion-anchor ${localOffFocusSignaled ? 'active' : ''}`}
+                  className={`confusion-anchor ${localOffFocusSignaled ? "active" : ""}`}
                   onClick={handleOffFocusClick}
                   aria-label="This topic is off focus"
                 >

@@ -438,6 +438,17 @@ export default function TrainerView() {
     });
   }, [emit]);
 
+  const handleResolveConfusion = useCallback(
+    (rootMessageId, resolutionType) => {
+      if (!rootMessageId || !resolutionType) return;
+      emit("trainer:resolve_confusion", {
+        rootMessageId,
+        resolutionType,
+      });
+    },
+    [emit]
+  );
+
   // Handle opening LiveView window with single-instance enforcement
   const handleOpenLiveView = useCallback(() => {
     if (!accessCode) return;
@@ -557,6 +568,7 @@ export default function TrainerView() {
                         setReplyDrafts={setReplyDrafts}
                         handleReplySubmit={handleReplySubmit}
                         onScrollToThread={handleScrollToThread}
+                        onResolveConfusion={handleResolveConfusion}
                         defaultCollapsed={true}
                         activityPulse={activityPulse}
                       />
@@ -713,7 +725,7 @@ export default function TrainerView() {
             
             {!showInsights && (
               <p className="trainer-text-muted trainer-panel-note" style={{ marginTop: '12px' }}>
-                Click "Show" to view insights when available.
+                Click &quot;Show&quot; to view insights when available.
               </p>
             )}
           </section>

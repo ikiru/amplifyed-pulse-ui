@@ -161,6 +161,17 @@ export default function AudienceInput() {
     });
   }, [emit, socket]);
 
+  const emitConfusionClear = useCallback(
+    (rootMessageId) => {
+      if (!rootMessageId) return;
+      emit("confusion:clear", {
+        rootMessageId,
+        ts: Date.now(),
+      });
+    },
+    [emit]
+  );
+
   const emitOffFocusSignal = useCallback((messageId) => {
     if (!messageId) return;
 
@@ -252,6 +263,7 @@ export default function AudienceInput() {
               actorRole="audience"
               emitVoteIntent={emitVoteIntent}
               onConfusionSignal={emitConfusionSignal}
+              onClearConfusionSignal={emitConfusionClear}
               onOffFocusSignal={emitOffFocusSignal}
               voteSelectionMap={selectedVotes}
               defaultCollapsed={true}

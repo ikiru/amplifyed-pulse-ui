@@ -63,11 +63,14 @@ export default function LiveView() {
   
   // Build confusion lookup map (same as TrainerView)
   const confusionByRootId = useMemo(() => {
-    if (!confusionAdvisory?.rootConfusion) return {};
+    const threads = confusionAdvisory?.threads;
+    if (!Array.isArray(threads) || threads.length === 0) {
+      return {};
+    }
     const map = {};
-    confusionAdvisory.rootConfusion.forEach((item) => {
-      if (item?.rootMessageId) {
-        map[item.rootMessageId] = item;
+    threads.forEach((thread) => {
+      if (thread?.rootMessageId) {
+        map[thread.rootMessageId] = thread;
       }
     });
     return map;
