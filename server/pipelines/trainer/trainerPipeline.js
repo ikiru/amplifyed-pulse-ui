@@ -19,7 +19,7 @@ import { handleTrainerNudge as registerTrainerNudge } from "./trainer.handleNudg
 
 export function createTrainerPipeline(io, momentBuilder = null) {
 
-  function handleTrainerAction({ action, type }) {
+  function handleTrainerAction({ action, type, sessionId }) {
     if (!action) return;
 
     // --------------------------------------------------------------
@@ -51,10 +51,17 @@ export function createTrainerPipeline(io, momentBuilder = null) {
     }
 
     // Emit for Trainer UI widgets (future use)
-    io.emit("trainer:signal", {
+    const payload = {
       trainerSignal,
       timestamp: Date.now(),
-    });
+      sessionId: sessionId ?? null,
+    };
+    if (sessionId) {
+      io.to(`${sessionId}:trainers`).emit("trainer:signal", payload);
+    } else {
+      // Backwards-compat: if sessionId is missing, fall back to global emit.
+      io.emit("trainer:signal", payload);
+    }
   }
 
   function handleAction(payload = {}) {
@@ -66,6 +73,7 @@ export function createTrainerPipeline(io, momentBuilder = null) {
     return handleTrainerAction({
       action: nextAction,
       type: payload.type,
+      sessionId: payload.sessionId,
     });
   }
 
@@ -73,6 +81,7 @@ export function createTrainerPipeline(io, momentBuilder = null) {
     return handleTrainerAction({
       action: payload.action ?? "nudge",
       type: payload.type,
+      sessionId: payload.sessionId,
     });
   }
 

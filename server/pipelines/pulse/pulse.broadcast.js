@@ -8,8 +8,13 @@
 export function createPulseBroadcast(io, pulseState) {
 
   // Step 7.4.2 — participants now provided externally (Session Pipeline)
-  function broadcastPulseUpdate(participants) {
-    const { votes, eventLog } = pulseState.state;
+  function broadcastPulseUpdate(sessionId, participants) {
+    const snapshot = pulseState.getSessionSnapshot?.(sessionId) ?? {
+      votes: {},
+      eventLog: [],
+    };
+    const votes = snapshot.votes ?? {};
+    const eventLog = snapshot.eventLog ?? [];
     const ts = Date.now();
 
     if (participants == null) {
@@ -27,7 +32,19 @@ export function createPulseBroadcast(io, pulseState) {
 
     const participantsCount = Object.keys(participants).length;
 
-    io.emit("pulse:update", {
+    if (!sessionId) {
+      // Backwards-compat: if sessionId is missing, fall back to global emit.
+      io.emit("pulse:update", {
+        participants,
+        participantsCount,
+        votes,
+        eventLog,
+        ts,
+      });
+      return;
+    }
+
+    io.to(sessionId).emit("pulse:update", {
       participants,
       participantsCount,
       votes,

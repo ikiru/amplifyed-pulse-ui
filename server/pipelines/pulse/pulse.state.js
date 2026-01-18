@@ -9,31 +9,52 @@ export function createPulseState() {
   // ----------------------------------------------------
   // REAL PULSE STATE (moved from pulsePipeline)
   // ----------------------------------------------------
-  const state = {
-    votes: {},          // updated by Pulse Pipeline
-    eventLog: [],       // pulse event log
-  };
+  const stateBySession = new Map(); // sessionId -> { votes, eventLog }
 
+  function ensureSession(sessionId) {
+    const sid = sessionId || "session:default";
+    if (!stateBySession.has(sid)) {
+      stateBySession.set(sid, {
+        votes: {},
+        eventLog: [],
+      });
+    }
+    return stateBySession.get(sid);
+  }
 
   // ----------------------------------------------------
   // ACCESSORS
   // ----------------------------------------------------
   return {
-    state,
+    getSessionState(sessionId) {
+      return ensureSession(sessionId);
+    },
+
+    getSessionSnapshot(sessionId) {
+      const s = ensureSession(sessionId);
+      return {
+        votes: s.votes ?? {},
+        eventLog: s.eventLog ?? [],
+      };
+    },
 
     // Participant state (Session Pipeline writes here)
     // Pulse votes
-    setVote(id, value) {
-      state.votes[id] = value;
+    setVote(sessionId, id, value) {
+      const s = ensureSession(sessionId);
+      s.votes[id] = value;
     },
 
-    clearVote(id) {
-      state.votes[id] = null;
+    clearVote(sessionId, id) {
+      const s = ensureSession(sessionId);
+      // Remove entirely to avoid unbounded growth across reconnects.
+      delete s.votes[id];
     },
 
     // Event log
-    addEventLog(entry) {
-      state.eventLog.push(entry);
+    addEventLog(sessionId, entry) {
+      const s = ensureSession(sessionId);
+      s.eventLog.push(entry);
     },
   };
 }

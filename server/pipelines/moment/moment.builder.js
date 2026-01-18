@@ -24,6 +24,7 @@ export function createMomentBuilder(dispatchMoment = null) {
 
   // Private working context for one moment
   let context = {
+    sessionId: null,
     pulseValue: null,
     safetyFlag: "none",
     emotionScore: null,
@@ -34,9 +35,10 @@ export function createMomentBuilder(dispatchMoment = null) {
   // ----------------------------------------------------
   // Begin a moment with a pulse contribution
   // ----------------------------------------------------
-  function beginMoment({ pulseValue = null } = {}) {
+  function beginMoment({ sessionId = null, pulseValue = null } = {}) {
     context = {
       ...context,
+      sessionId,
       pulseValue,
     };
   }
@@ -97,6 +99,7 @@ export function createMomentBuilder(dispatchMoment = null) {
 
     // Clear builder context for next moment
     context = {
+      sessionId: null,
       pulseValue: null,
       safetyFlag: "none",
       emotionScore: null,

@@ -36,7 +36,8 @@ export function createPulsePipeline(
   const pulseEngine = createPulseEngine?.(pulseState);
 
   // Step 7.3.2 — Centralize pulse state
-  const { state: roomState } = pulseState;
+  const getSessionState = pulseState.getSessionState?.bind(pulseState);
+  const getSessionSnapshot = pulseState.getSessionSnapshot?.bind(pulseState);
 
   // Phase 2.3.3 — Initialize the Moment Builder
   const momentBuilder = createMomentBuilder(momentPipeline?.addMoment);
@@ -59,14 +60,16 @@ export function createPulsePipeline(
   // NEW HELPERS FOR SESSION PIPELINE (Step 7.1)
   // ----------------------------------------------------
 
-  function handlePulseRevoke({ userId }) {
+  function handlePulseRevoke({ sessionId, userId }) {
     // Step 7.3.6 — final orchestration form
-    pulseState.clearVote(userId);
+    pulseState.clearVote(sessionId, userId);
 
-    broadcastPulseUpdate(getParticipants?.());
+    broadcastPulseUpdate?.(sessionId, getParticipants?.(sessionId));
   }
 
-  function handlePulseSubmit({ userId, value, payload }) {
+  function handlePulseSubmit({ sessionId, userId, value, payload }) {
+    const effectiveSessionId =
+      sessionId ?? payload?.sessionId ?? null;
     // Normalize userId (router always sends socket.id)
     if (!userId && payload?.socketId) {
       userId = payload.socketId;
@@ -76,7 +79,8 @@ export function createPulsePipeline(
       return;
     }
 
-    const previousVote = roomState.votes[userId];
+    const sessionState = getSessionState?.(effectiveSessionId);
+    const previousVote = sessionState?.votes?.[userId];
     if (previousVote === value) {
       console.log("[PIPELINE] Ignoring duplicate pulse value:", {
         userId,
@@ -93,7 +97,11 @@ export function createPulsePipeline(
     });
 
     // Step 7.3.6 — all pulse math handled by pulseEngine
-    const result = pulseEngine.applyPulseChange({ userId, value });
+    const result = pulseEngine.applyPulseChange({
+      sessionId: effectiveSessionId,
+      userId,
+      value,
+    });
 
     if (safety?.analyzeEvent) {
       safety.analyzeEvent({ userId, value });
@@ -104,19 +112,24 @@ export function createPulsePipeline(
     }
 
     // 2. Begin a new Multi-Signal moment (Pulse contributes first)
-    momentBuilder?.beginMoment({ pulseValue: value });
+    momentBuilder?.beginMoment({ sessionId: effectiveSessionId, pulseValue: value });
 
     // 4. Finalize the Multi-Signal moment (dispatch happens in builder)
     momentBuilder?.finalize();
 
     // Step 7.3.5 — use broadcast module
-    const participants = getParticipants?.();
+    const participants = getParticipants?.(effectiveSessionId);
+    const snapshot = getSessionSnapshot?.(effectiveSessionId) ?? {
+      votes: {},
+      eventLog: [],
+    };
     console.log("[BROADCAST] pulse:update ->", {
+      sessionId: effectiveSessionId,
       participants,
-      votes: roomState.votes,
-      eventLog: roomState.eventLog,
+      votes: snapshot.votes,
+      eventLog: snapshot.eventLog,
     });
-    broadcastPulseUpdate(participants);
+    broadcastPulseUpdate?.(effectiveSessionId, participants);
 
     return result;
   }
@@ -132,25 +145,35 @@ export function createPulsePipeline(
       return;
     }
 
-    const participants = getParticipants?.();
+    const participants = getParticipants?.(sessionId);
+    const snapshot = getSessionSnapshot?.(sessionId) ?? {
+      votes: {},
+      eventLog: [],
+    };
     
     // Build pulse update payload
     const payload = {
       participants: participants || {},
-      votes: roomState.votes || {},
-      eventLog: roomState.eventLog || [],
+      votes: snapshot.votes || {},
+      eventLog: snapshot.eventLog || [],
     };
 
     socket.emit('pulse:update', payload);
   }
 
+  function removeUserPulse(sessionId, userId) {
+    if (!sessionId || !userId) return;
+    pulseState.clearVote(sessionId, userId);
+    broadcastPulseUpdate?.(sessionId, getParticipants?.(sessionId));
+  }
+
   // Make helpers available to other pipelines
   return {
-    roomState,
     momentBuilder,
     broadcastPulseUpdate,
     handlePulseSubmit,
     handlePulseRevoke,
     syncPulseState,
+    removeUserPulse,
   };
 }

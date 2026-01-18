@@ -11,6 +11,7 @@
 
 import {
   upsertConfusionEnvelope,
+  clearConfusionContribution,
 } from "./confusion.state.js";
 
 export function handleConfusionSignal(payload) {
@@ -100,6 +101,30 @@ export function handleConfusionSignal(payload) {
   );
 
   return envelope;
+}
+
+export function handleConfusionClear(payload) {
+  console.group("[CONFUSION][CLEAR][INCOMING]");
+  console.log("raw payload:", payload);
+  console.groupEnd();
+
+  const {
+    sessionId,
+    rootMessageId,
+    participantId,
+    ts = Date.now(),
+  } = payload ?? {};
+
+  if (!sessionId || !rootMessageId || !participantId) {
+    return null;
+  }
+
+  return clearConfusionContribution({
+    sessionId,
+    rootMessageId,
+    participantId,
+    ts,
+  });
 }
 
 // END CONFUSION SIGNAL

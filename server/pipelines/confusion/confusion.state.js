@@ -20,10 +20,10 @@
 
 const confusionState = new Map();
 const ALLOWED_RESOLUTION_TYPES = new Set([
-  "explanation",
+  // Contract-aligned resolution types (see MESSAGE_CONTRACT.md wireframe)
+  "clarified",
   "example",
-  "pause",
-  "reframe",
+  "reframed",
 ]);
 
 function normalizeContributors(value) {
@@ -93,6 +93,47 @@ export function upsertConfusionEnvelope({
     "contributors:",
     getContributorCount(next)
   );
+  return next;
+}
+
+export function clearConfusionContribution({
+  sessionId,
+  rootMessageId,
+  participantId,
+  ts = Date.now(),
+}) {
+  if (!sessionId || !rootMessageId || !participantId) return null;
+
+  const sessionMap = confusionState.get(sessionId);
+  if (!sessionMap) return null;
+
+  const existing = sessionMap.get(rootMessageId);
+  if (!existing) return null;
+
+  const contributors = normalizeContributors(existing.contributors);
+  const nextContributors = contributors.filter((id) => id !== participantId);
+
+  // No change (participant was not a contributor)
+  if (nextContributors.length === contributors.length) {
+    return existing;
+  }
+
+  const nextConfusionScore = Math.max(0, nextContributors.length);
+
+  // If confusion fully clears, remove the envelope entirely so UI de-surfaces it.
+  if (nextConfusionScore === 0) {
+    sessionMap.delete(rootMessageId);
+    return null;
+  }
+
+  const next = {
+    ...existing,
+    contributors: nextContributors,
+    confusionScore: nextConfusionScore,
+    ts,
+  };
+
+  sessionMap.set(rootMessageId, next);
   return next;
 }
 

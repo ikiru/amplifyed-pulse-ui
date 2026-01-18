@@ -39,12 +39,12 @@ export function createPulseEngine(pulseState) {
   // ----------------------------------------------------
   // Apply the pulse to state (no broadcast here)
   // ----------------------------------------------------
-  function applyPulseChange({ userId, value }) {
+  function applyPulseChange({ sessionId, userId, value }) {
     // Write vote into real pulse state
-    pulseState.setVote(userId, value);
+    pulseState.setVote(sessionId, userId, value);
 
     // Append to event log
-    pulseState.addEventLog({
+    pulseState.addEventLog(sessionId, {
       userId,
       value,
       ts: Date.now(),

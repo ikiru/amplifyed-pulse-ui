@@ -35,6 +35,11 @@ import {
 } from "../pipelines/focus/focus.state.js";
 
 const DEFAULT_SESSION_ID = "session:default";
+const TRAINER_ROOM_SUFFIX = ":trainers";
+
+function getTrainerRoom(sessionId) {
+  return `${sessionId}${TRAINER_ROOM_SUFFIX}`;
+}
 
 // ------------------------------------------------------------------
 // EventRouter
@@ -56,14 +61,36 @@ export default function registerEventRouter(io, socket, pipelines = {}) {
     obsPipeline = null,
   } = pipelines;
 
+  const isProd = process.env.NODE_ENV === "production";
+  // Debug passthrough events are allowed only in non-production by default.
+  // You can further disable in dev by setting ALLOW_DEBUG_EMITS=false.
+  const allowDebugEmits =
+    !isProd && process.env.ALLOW_DEBUG_EMITS !== "false";
+
+  const leaveRoomsForSession = (sessionId) => {
+    if (!sessionId) return;
+    socket.leave(sessionId);
+    socket.leave(getTrainerRoom(sessionId));
+  };
+
+  const joinRoomsForSession = (sessionId, { isTrainer = false } = {}) => {
+    if (!sessionId) return;
+    socket.join(sessionId);
+    if (isTrainer) {
+      socket.join(getTrainerRoom(sessionId));
+    }
+  };
+
   const assignSessionId = (requestedSessionId) => {
     const targetSessionId = requestedSessionId ?? DEFAULT_SESSION_ID;
 
     if (socket.sessionId && socket.sessionId !== targetSessionId) {
-      socket.leave(socket.sessionId);
+      leaveRoomsForSession(socket.sessionId);
     }
 
     socket.sessionId = targetSessionId;
+    // Join the session room unconditionally; trainer room is joined after
+    // role is known (post session:join).
     socket.join(targetSessionId);
     if (messagePipeline?.syncSessionState) {
       messagePipeline.syncSessionState(targetSessionId);
@@ -112,10 +139,12 @@ socket.on("audience:pulse", (payload = {}) => {
     return;
   }
 
- pulsePipeline.handlePulseSubmit({
-  userId: socket.id,
-  value: payload.pulse,
-});
+  const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+  pulsePipeline.handlePulseSubmit({
+    sessionId,
+    userId: socket.id,
+    value: payload.pulse,
+  });
 
 });
 
@@ -132,7 +161,7 @@ socket.on("audience:pulse", (payload = {}) => {
 
   const requireTrainer = (sessionId, action) => {
     if (isTrainerSocket(sessionId)) return true;
-    console.warn("[FOCUS] denied non-trainer focus action", {
+    console.warn("[AUTH] denied non-trainer action", {
       action,
       socketId: socket.id,
       sessionId,
@@ -265,6 +294,10 @@ socket.on("audience:pulse", (payload = {}) => {
     
     // Assign socket to session room
     assignSessionId(sessionId);
+    // Join trainer-only room if applicable
+    if (participant?.actorRole === "trainer") {
+      joinRoomsForSession(sessionId, { isTrainer: true });
+    }
 
     // NOW broadcast participant count - socket has joined the room and will receive it
     if (sessionPipeline?.broadcastParticipantCount) {
@@ -304,15 +337,22 @@ socket.on("audience:pulse", (payload = {}) => {
   });
 
   socket.on("session:leave", () => {
+    const currentSessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
     if (sessionPipeline?.handleLeave) {
       sessionPipeline.handleLeave({
         socketId: socket.id,
       });
     }
+    // Ensure the socket stops receiving session-scoped broadcasts.
+    leaveRoomsForSession(currentSessionId);
+    socket.sessionId = DEFAULT_SESSION_ID;
+    joinRoomsForSession(DEFAULT_SESSION_ID, { isTrainer: false });
+    syncFocusState(DEFAULT_SESSION_ID);
   });
 
   socket.on("session:reconnect", (payload = {}) => {
-    syncFocusState(socket.sessionId);
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    syncFocusState(sessionId);
     if (sessionPipeline?.handleReconnect) {
       sessionPipeline.handleReconnect({
         socketId: socket.id,
@@ -321,16 +361,19 @@ socket.on("audience:pulse", (payload = {}) => {
     }
 
     if (momentPipeline?.getHistory) {
-      const history = momentPipeline.getHistory();
-      if (history.length) {
-        history.forEach((envelope) => {
-          socket.emit("moment:update", envelope);
-        });
+      // Trainer-only: insights are never replayed to audience sockets.
+      if (requireTrainer(sessionId, "moment:replay")) {
+        const history = momentPipeline.getHistory(sessionId);
+        if (history.length) {
+          history.forEach((envelope) => {
+            socket.emit("moment:update", envelope);
+          });
+        }
       }
     }
 
     if (obsPipeline?.syncState) {
-      obsPipeline.syncState(socket, socket.sessionId ?? DEFAULT_SESSION_ID);
+      obsPipeline.syncState(socket, sessionId);
     }
   });
 
@@ -339,6 +382,7 @@ socket.on("audience:pulse", (payload = {}) => {
   // ----------------------------------------------------
   socket.on("obs:capture:request", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "obs:capture:request")) return;
     if (obsPipeline?.handleCaptureRequest) {
       obsPipeline.handleCaptureRequest({
         sessionId,
@@ -350,6 +394,7 @@ socket.on("audience:pulse", (payload = {}) => {
 
   socket.on("obs:capture:started", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "obs:capture:started")) return;
     if (obsPipeline?.handleCaptureStarted) {
       obsPipeline.handleCaptureStarted({
         sessionId,
@@ -361,6 +406,7 @@ socket.on("audience:pulse", (payload = {}) => {
 
   socket.on("obs:capture:stopped", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "obs:capture:stopped")) return;
     if (obsPipeline?.handleCaptureStopped) {
       obsPipeline.handleCaptureStopped({
         sessionId,
@@ -372,6 +418,7 @@ socket.on("audience:pulse", (payload = {}) => {
 
   socket.on("obs:capture:interrupted", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "obs:capture:interrupted")) return;
     if (obsPipeline?.handleCaptureInterrupted) {
       obsPipeline.handleCaptureInterrupted({
         sessionId,
@@ -383,6 +430,7 @@ socket.on("audience:pulse", (payload = {}) => {
 
   socket.on("obs:capture:permission_denied", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "obs:capture:permission_denied")) return;
     if (obsPipeline?.handlePermissionDenied) {
       obsPipeline.handlePermissionDenied({
         sessionId,
@@ -394,6 +442,7 @@ socket.on("audience:pulse", (payload = {}) => {
 
   socket.on("obs:capture:not_supported", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "obs:capture:not_supported")) return;
     if (obsPipeline?.handleNotSupported) {
       obsPipeline.handleNotSupported({
         sessionId,
@@ -405,6 +454,7 @@ socket.on("audience:pulse", (payload = {}) => {
 
   socket.on("obs:capture:error", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "obs:capture:error")) return;
     if (obsPipeline?.handleError) {
       obsPipeline.handleError({
         sessionId,
@@ -492,10 +542,12 @@ socket.on("audience:pulse", (payload = {}) => {
   });
 
   socket.on("message:trainerReply", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "message:trainerReply")) return;
     if (messagePipeline?.handleTrainerReply) {
       messagePipeline.handleTrainerReply({
         socketId: socket.id,
-        sessionId: socket.sessionId ?? DEFAULT_SESSION_ID,
+        sessionId,
         ...payload,
       });
     }
@@ -542,6 +594,9 @@ socket.on("audience:pulse", (payload = {}) => {
   });
 
   socket.on("message.state.update", (payload = {}) => {
+    if (!allowDebugEmits) {
+      return;
+    }
     const sessionId =
       payload?.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
     if (!Array.isArray(payload?.messages)) return;
@@ -552,6 +607,9 @@ socket.on("audience:pulse", (payload = {}) => {
   });
 
   socket.on("audience:drift:update", (payload = {}) => {
+    if (!allowDebugEmits) {
+      return;
+    }
     const sessionId =
       payload?.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
     if (typeof payload?.score !== "number") return;
@@ -569,6 +627,8 @@ socket.on("audience:pulse", (payload = {}) => {
     if (!trainerPipeline?.handleTrainerAction) {
       return;
     }
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "trainer:action")) return;
 
     const action =
       payload.action ??
@@ -581,6 +641,7 @@ socket.on("audience:pulse", (payload = {}) => {
       type: payload.type,
       ts: payload.ts ?? Date.now(),
       socketId: socket.id,
+      sessionId,
     });
   });
 
@@ -604,12 +665,28 @@ socket.on("audience:pulse", (payload = {}) => {
     });
   });
 
+  socket.on("confusion:clear", (payload = {}) => {
+    if (!confusionPipeline?.handleConfusionClear) {
+      return;
+    }
+
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+
+    confusionPipeline.handleConfusionClear({
+      sessionId,
+      rootMessageId: payload.rootMessageId,
+      participantId: socket.id,
+      ts: payload.ts ?? Date.now(),
+    });
+  });
+
   socket.on("trainer:resolve_confusion", (payload = {}) => {
     if (!confusionPipeline?.handleConfusionResolution) {
       return;
     }
 
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "trainer:resolve_confusion")) return;
     const { rootMessageId, resolutionType } = payload;
     if (!rootMessageId || !resolutionType) {
       return;
@@ -629,6 +706,7 @@ socket.on("audience:pulse", (payload = {}) => {
   // ----------------------------------------------------
   socket.on("trainer:scroll:to:thread", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "trainer:scroll:to:thread")) return;
     const { rootMessageId } = payload;
     if (!rootMessageId) {
       return;
@@ -653,14 +731,29 @@ socket.on("audience:pulse", (payload = {}) => {
    */
 
   // -------------------------------------------
-  // Phase 2.10 Trainer Routes
+  // Trainer routes (gated)
   // -------------------------------------------
-  if (trainerPipeline?.handleTrainerCommand) {
-    trainerPipeline.handleTrainerCommand(io, socket);
-  }
-  if (trainerPipeline?.handleTrainerNudge) {
-    trainerPipeline.handleTrainerNudge(io, socket);
-  }
+  socket.on("trainer:command", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "trainer:command")) return;
+    trainerPipeline?.handleCommand?.({
+      ...payload,
+      socketId: socket.id,
+      ts: payload.ts ?? Date.now(),
+      sessionId,
+    });
+  });
+
+  socket.on("trainer:nudge", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "trainer:nudge")) return;
+    trainerPipeline?.handleNudge?.({
+      ...payload,
+      socketId: socket.id,
+      ts: payload.ts ?? Date.now(),
+      sessionId,
+    });
+  });
 
   socket.on("disconnect", () => {
     // -----------------------------------------------

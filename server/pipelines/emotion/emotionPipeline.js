@@ -62,7 +62,13 @@ export function createEmotionPipeline(io, momentPipeline) {
 
     const finalEnvelope = applyEmotion(normalizedEnvelope, rawFeatures);
 
-    io.emit("emotion:update", finalEnvelope);
+    const sessionId = moment?.sessionId ?? finalEnvelope?.sessionId ?? null;
+    if (sessionId) {
+      io.to(`${sessionId}:trainers`).emit("emotion:update", finalEnvelope);
+    } else {
+      // Backwards-compat: if sessionId is missing, fall back to global emit.
+      io.emit("emotion:update", finalEnvelope);
+    }
 
     return moment;
   }

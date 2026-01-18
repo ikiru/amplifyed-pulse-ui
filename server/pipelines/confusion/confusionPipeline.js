@@ -9,6 +9,7 @@
 
 import {
   handleConfusionSignal as persistConfusionSignal,
+  handleConfusionClear as persistConfusionClear,
 } from "./confusion.handleSignal.js";
 import { broadcastConfusionUpdate } from "./confusion.broadcast.js";
 import {
@@ -18,21 +19,26 @@ import {
 } from "./confusion.state.js";
 
 export function createConfusionPipeline(io) {
-  let lastBroadcastTs = 0;
+  // Debounce per-session so one busy room doesn't throttle another.
+  const lastBroadcastTsBySession = new Map();
   const BROADCAST_DEBOUNCE_MS = 1500;
   const pipelineIo = io;
 
   const determineLevel = (entry) => {
-    let level = "low";
     const contributorCount = getContributorCount(entry);
+    // Prefer the unique contributor-based counter (confusionScore).
+    const uniqueScore =
+      typeof entry?.confusionScore === "number"
+        ? entry.confusionScore
+        : contributorCount;
 
-    if (contributorCount >= 3 || entry.score >= 5) {
-      level = "high";
-    } else if (contributorCount >= 2 || entry.score >= 2) {
-      level = "medium";
+    if (uniqueScore >= 3 || contributorCount >= 3) {
+      return "high";
     }
-
-    return level;
+    if (uniqueScore >= 2 || contributorCount >= 2) {
+      return "medium";
+    }
+    return "low";
   };
 
   const buildEnvelopes = (sessionState) =>
@@ -51,11 +57,12 @@ export function createConfusionPipeline(io) {
     }
     const now = Date.now();
 
-    if (!force && now - lastBroadcastTs < BROADCAST_DEBOUNCE_MS) {
+    const lastTs = lastBroadcastTsBySession.get(sessionId) ?? 0;
+    if (!force && now - lastTs < BROADCAST_DEBOUNCE_MS) {
       return;
     }
 
-    lastBroadcastTs = now;
+    lastBroadcastTsBySession.set(sessionId, now);
 
     const sessionState = getSessionConfusion(sessionId);
     broadcastConfusionUpdate({
@@ -83,6 +90,26 @@ export function createConfusionPipeline(io) {
         source,
         scoreDelta,
         contributorDelta,
+        ts,
+      });
+
+      broadcastSession(io, sessionId);
+    },
+    handleConfusionClear({
+      io = pipelineIo,
+      sessionId,
+      rootMessageId,
+      participantId,
+      ts = Date.now(),
+    }) {
+      if (!sessionId || !rootMessageId || !participantId) {
+        return;
+      }
+
+      persistConfusionClear({
+        sessionId,
+        rootMessageId,
+        participantId,
         ts,
       });
 
@@ -124,7 +151,8 @@ export function createConfusionPipeline(io) {
       const sessionState = getSessionConfusion(sessionId);
       const envelopes = buildEnvelopes(sessionState);
 
-      socket.emit('confusion:advisory', {
+      // Clients subscribe to `confusion:update`; use the same event for sync.
+      socket.emit("confusion:update", {
         sessionId,
         threads: envelopes,
       });

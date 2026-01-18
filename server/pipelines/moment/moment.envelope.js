@@ -15,6 +15,7 @@
 // ------------------------------------------------------------------
 
 export function buildMomentEnvelope({
+  sessionId = null,
   pulseValue = null,
   safetyFlag = "none",
   emotionScore = null,
@@ -27,6 +28,7 @@ export function buildMomentEnvelope({
     safetyFlag === "softFlag" ? "softFlag" : "none";
 
   return {
+    sessionId: sessionId ?? null,
     timestamp: Date.now(),
     pulse: pulseValue ?? null,
     safety: normalizedSafety,

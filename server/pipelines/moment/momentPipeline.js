@@ -15,10 +15,19 @@
 
 export function createMomentPipeline(io, emotionPipeline = null) {
   const MAX_HISTORY = 200;
-  const momentHistory = [];
+  const momentHistoryBySession = new Map(); // sessionId -> envelope[]
+
+  function ensureSession(sessionId) {
+    const sid = sessionId || "session:default";
+    if (!momentHistoryBySession.has(sid)) {
+      momentHistoryBySession.set(sid, []);
+    }
+    return momentHistoryBySession.get(sid);
+  }
 
   function addMoment(envelope) {
     if (!envelope) return;
+    const sessionId = envelope?.sessionId ?? "session:default";
 
     // Phase 3: Apply emotional evaluation before dispatch
     let enriched = envelope;
@@ -31,9 +40,10 @@ export function createMomentPipeline(io, emotionPipeline = null) {
       }
     }
 
-    momentHistory.push(enriched);
-    if (momentHistory.length > MAX_HISTORY) {
-      momentHistory.shift();
+    const history = ensureSession(sessionId);
+    history.push(enriched);
+    if (history.length > MAX_HISTORY) {
+      history.shift();
     }
 
     if (
@@ -47,11 +57,16 @@ export function createMomentPipeline(io, emotionPipeline = null) {
       }
     }
 
-    io.emit("moment:update", enriched);
+    io.to(`${sessionId}:trainers`).emit("moment:update", enriched);
   }
 
-  function getHistory() {
-    return [...momentHistory];
+  function getHistory(sessionId) {
+    if (sessionId) {
+      const history = ensureSession(sessionId);
+      return [...history];
+    }
+    // Backwards-compat: without sessionId, return a flattened snapshot.
+    return Array.from(momentHistoryBySession.values()).flat();
   }
 
   return {

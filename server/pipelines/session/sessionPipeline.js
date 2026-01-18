@@ -11,6 +11,7 @@ import * as SessionState from './session.state.js';
 const DEFAULT_SESSION_ID = 'session:default';
 
 export function createSessionPipeline(io) {
+  const allowTrainerRole = process.env.ALLOW_TRAINER_ROLE === "true";
   
   // Ensure default session exists
   if (!SessionState.sessionExists(DEFAULT_SESSION_ID)) {
@@ -31,6 +32,16 @@ export function createSessionPipeline(io) {
    */
   function handleJoin({ socketId, payload = {}, pulsePipeline }) {
     const { accessCode, sessionId: requestedSessionId, role, name, metadata } = payload;
+    const requestedRole = role || 'audience';
+    const effectiveRole =
+      requestedRole === "trainer" && !allowTrainerRole
+        ? "audience"
+        : requestedRole;
+    if (requestedRole === "trainer" && effectiveRole !== "trainer") {
+      console.warn("[sessionPipeline] trainer role denied (ALLOW_TRAINER_ROLE not enabled)", {
+        socketId,
+      });
+    }
 
     let sessionId = null;
     let session = null;
@@ -77,7 +88,7 @@ export function createSessionPipeline(io) {
 
     // Add participant to session
     const participant = SessionState.addParticipant(sessionId, socketId, {
-      actorRole: role || 'audience',
+      actorRole: effectiveRole,
       name: name || null,
       metadata: metadata || {},
       joinedAt: Date.now(),
@@ -98,7 +109,7 @@ export function createSessionPipeline(io) {
     if (pulsePipeline?.broadcastPulseUpdate) {
       const participants = SessionState.getParticipants(sessionId);
       console.log(`[sessionPipeline] Broadcasting pulse update after join: ${Object.keys(participants).length} participants`);
-      pulsePipeline.broadcastPulseUpdate(participants);
+      pulsePipeline.broadcastPulseUpdate(sessionId, participants);
     }
 
     return {
@@ -135,13 +146,13 @@ export function createSessionPipeline(io) {
 
     // Clean up pulse vote if pulse pipeline is available
     if (pulsePipeline?.removeUserPulse) {
-      pulsePipeline.removeUserPulse(socketId);
+      pulsePipeline.removeUserPulse(sessionId, socketId);
     }
 
     // Broadcast pulse update with authoritative participants
     if (pulsePipeline?.broadcastPulseUpdate) {
       const participants = SessionState.getParticipants(sessionId);
-      pulsePipeline.broadcastPulseUpdate(participants);
+      pulsePipeline.broadcastPulseUpdate(sessionId, participants);
     }
 
     // Broadcast participant count update
