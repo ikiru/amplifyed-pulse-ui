@@ -1,30 +1,50 @@
-# Status: Canonical
+# Status: Draft
 # Owner: TBD
 # Last reviewed: 2026-01-18
 
-# LIVEVIEW CONTRACT
+# LIVEVIEW CONTRACT (UNLOCKED FOR REDESIGN)
 
 **Projection Display for Live Sessions**
+
+> **UNLOCKED**: This contract is intentionally in **Draft** while we redesign LiveView’s look + functionality.
+> It should be treated as a working spec until it returns to **Canonical**.
+>
+> **Still binding (Phase 8 invariants):**
+> - Silence is always valid; absence is never legible
+> - No individual identification, ranking, or “scoreboard” dynamics
+> - Pulse must not visually react to audience behavior or non-behavior
+> - Safety overrides visibility (containment over amplification)
 
 ---
 
 ## TL;DR (Guarantees)
 
 - **Read-only** projection surface (no required interaction).
-- **Shows**: Focus, Pulse timeline, and the shared Message stream (threaded).
+- **Shows ONLY** (5 elements):
+  - **Session Info** (QR + alphanumeric join code)
+  - **Pulse** timeline (collective room pulse)
+  - **Focus** statement (room-anchoring text)
+  - **OBS Slide/Deck Feed** (PowerPoint/Slides surface; pixels-only)
+  - **Optional future**: presenter video tile (reserved; not v1)
 - **Stays non-surveillant**: emphasizes collective state (“we”), not individual tracking.
-- **Subscribes** to the same core session broadcasts as TrainerView, but **does not** include trainer-only analytics/control surfaces.
+- **Does NOT show**: messages/threads, confusion, drift, insights, participant identity, rankings, or controls.
+- **Layout**: vertical columns — left **25%** (Session + Pulse), right **75%** (Focus + Slides).
 - **Session access** is displayed from the route param (`/live/:sessionCode`) and rendered as a QR join URL.
+
+## Decision Log (Redesign)
+
+- 2026-01-18: LiveView contract unlocked for redesign (layout + functionality).
+- TBD: (add decisions here as we lock them)
 
 ## 1. Purpose
 
 LiveView is a **read-only projection display** that shows live session activity to all participants in a physical training room.
 
 LiveView serves as the **"medical monitor for the room"** — displaying collective vital signs that:
-- Create energy and connection
-- Anchor participants to shared focus
-- Show conversation as it flows
-- Reflect collective room mood
+- Keep the room oriented to shared focus
+- Keep access visible (QR + code)
+- Make collective pulse legible without pressure
+- Provide a stable slide/deck surface for the room (pixels-only)
 
 LiveView is **inviting and energizing**, not surveillance.
 
@@ -35,17 +55,17 @@ LiveView is **inviting and energizing**, not surveillance.
 **Client:**
 - Route definition: `src/App.jsx` (`/live/:sessionCode`)
 - LiveView page: `src/pages/LiveView.jsx`
-- Socket subscriptions: `src/hooks/useLiveViewSocket.js`
-- Shared components/utilities:
-  - Pulse: `src/components/pulse/PulseTimeline.jsx`
-  - Threads: `src/components/threads/MessageThreadRow.jsx`
-  - Join QR: `src/components/session/QRCodeDisplay.jsx`
-  - Thread tree: `src/utils/messageUtils.js`
-  - Thread colors + scroll sync: `src/utils/threadUtils.js`
-  - Confusion summarization: `src/utils/confusionUtils.js`
+- Pulse: `src/components/pulse/PulseTimeline.jsx`
+- Join QR: `src/components/session/QRCodeDisplay.jsx`
+- OBS status subscription: `src/hooks/useObsCaptureState.js`
+
+**Trainer (source for local OBS deck feed):**
+- OBS capture client (browser-only): `src/obs/obsCaptureClient.js`
+- Trainer UI controls: `src/pages/TrainerView.jsx` (Start/Stop capture)
 
 **Notes:**
-- LiveView listens for `trainer:scroll:to:thread` to keep the projected view aligned with trainer navigation.
+- LiveView does not render messages/threads/confusion/drift/insights.
+- v1 OBS deck feed is **not server-streamed**; LiveView can render the deck only via **local stream handoff** from TrainerView (Option B).
 
 ## 2. Core Principles
 
@@ -73,94 +93,45 @@ Like a medical monitor, LiveView:
 
 ### 3.1 Overall Layout (16:9 Projection Optimized)
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                                                               │
-│                     [FOCUS BAR]                               │
-│         Current focus/question anchoring the room             │
-│              72-96px text, warm background                    │
-│                                                               │
-├──────────────────────────┬────────────────────────────────────┤
-│                          │                                    │
-│   [PULSE TIMELINE]       │     [MESSAGE STREAM]               │
-│                          │                                    │
-│   Timeline graph         │   All messages                     │
-│   Shows room mood        │   Threading visible                │
-│   over time              │   Large readable text              │
-│   (like TrainerView)     │   Auto-updating                    │
-│                          │                                    │
-│   [SESSION ACCESS]       │                                    │
-│   QR Code / Join Code    │                                    │
-│                          │                                    │
-│   30-35% width           │   65-70% width                     │
-│   Full height below      │   Full height below focus          │
-│   focus bar              │   bar                              │
-│                          │                                    │
-└──────────────────────────┴────────────────────────────────────┘
-```
-
-### 3.2 Detailed Wireframe
+**Vertical two-column layout (side-by-side):**
+- **Left column (25%)**: Pulse (top) + Session Info (bottom)
+- **Right column (75%)**: Focus statement (top) + OBS slide/deck feed (bottom)
 
 ```
-╔═══════════════════════════════════════════════════════════════╗
-║                                                                 ║
-║  CURRENT FOCUS                                                  ║
-║  "How do we balance speed with quality in our workflows?"      ║
-║                                                                 ║
-╠═════════════════════════╦═══════════════════════════════════════╣
-║                         ║                                       ║
-║  PULSE  👥 12 participants                                      ║
-║                         ║                                       ║
-║  ┌──────────────────┐   ║  MESSAGES                             ║
-║  │ +12 ────────────│   ║                                       ║
-║  │         ╱━━━━━●  │   ║  👤 Participant                        ║
-║  │    0 ━━━────────│   ║  "I think we need clearer criteria    ║
-║  │  ╱              │   ║   for what 'quality' means here."     ║
-║  │ -12 ────────────│   ║                                       ║
-║  └──────────────────┘   ║    ↳ Trainer                          ║
-║                         ║     "Great point. Let's explore..."   ║
-║                         ║                                       ║
-║  [SESSION ACCESS]       ║  👤 Participant                        ║
-║  [QR CODE]              ║  "Speed matters for client response    ║
-║  ABCD-1234              ║   times though."                      ║
-║                         ║                                       ║
-║                         ║  👤 Participant                        ║
-║                         ║  "Can we look at examples?"           ║
-║                         ║                                       ║
-║                         ║  👤 Participant                        ║
-║                         ║  "I want to flag that some people     ║
-║                         ║   process slower in chat."            ║
-║                         ║                                       ║
-║                         ║  👤 Participant                        ║
-║                         ║  "Yes, silence doesn't always mean    ║
-║                         ║   disengaged."                        ║
-║                         ║                                       ║
-╚═════════════════════════╩═══════════════════════════════════════╝
+┌───────────────┬───────────────────────────────────────────────────────────┐
+│ LEFT (25%)    │ RIGHT (75%)                                               │
+│               │                                                           │
+│ Pulse         │ Focus (fixed height)                                      │
+│               │                                                           │
+│ Session Info  │ Slides / Deck Feed (dominant; pixels-only)                │
+│ QR + code     │                                                           │
+│               │ Optional future: presenter video (PiP; out of scope v1)    │
+└───────────────┴───────────────────────────────────────────────────────────┘
 ```
 
-### 3.3 Zone Specifications
+### 3.2 Zone Specifications
 
-**Focus Bar (Top, Full Width):**
-- Height: ~15-20% of viewport
-- Centered text, 72-96px
-- Warm background color (cream/beige)
-- High contrast dark text
-- Label: "CURRENT FOCUS" in small caps above
+**Left Column (25% width):**
+- **Pulse (top):**
+  - PulseTimeline (collective room pulse)
+  - No controls; stable posture
+- **Session Info (bottom):**
+  - QR code + join code always visible
+  - Language posture: access enables presence, not performance
 
-**Pulse Zone (Left, 30-35% width):**
-- **"PULSE" header** with participant count on right
-- **Clean graph area** with Y-axis scale (±participantCount)
-- **Blue sentiment line** showing net pulse over last 60 seconds
-- **PulseTimeline component** (identical to TrainerView)
-- **Session Access Panel** (QR code and session code for participants to join)
-- Identical to TrainerView PulseTimeline component
+**Right Column (75% width):**
+- **Focus panel (top):**
+  - Fixed height: **16% of viewport height** (locked)
+  - Large, room-anchoring text (1–3 lines)
+  - Fade transition (400ms) on change
+- **Slides / Deck Feed (bottom):**
+  - Dominant surface for the room
+  - **Pixels-only** deck surface (PowerPoint/Slides/etc.)
+  - **Scaling: contain (no cropping)** (locked). Letterboxing is acceptable.
+  - If unavailable: calm placeholder + neutral OBS status line
 
-**Message Zone (Right, 65-70% width):**
-- Displays all messages (threaded)
-- Threading/indentation preserved
-- Message text: 32-40px
-- Author labels: 24-28px
-- Auto-scroll as new messages arrive
+**Optional Future (not v1):**
+- Presenter video tile (PiP) — reserved only
 
 ---
 
@@ -172,12 +143,10 @@ Like a medical monitor, LiveView:
 - Display full focus text
 - Large, prominent, high contrast
 - Smooth transition animation on change
-- Background color highlight
 
 **When Focus NOT Set:**
 - Display: "Open Conversation"
 - Reduced visual prominence (40-48px text)
-- Neutral background
 
 **Update Behavior:**
 - Instant update when trainer sets/clears focus
@@ -204,53 +173,52 @@ Like a medical monitor, LiveView:
 - Current position marked with filled circle (●)
 - No interactive elements (read-only)
 
-**Session Access:**
+### 4.3 Session Access Display
+
+**Required content:**
 - QR code display for easy participant join
 - Session code displayed prominently
 - Join instructions visible
 - Required for participants to access the session
 
-### 4.3 Message Display
+### 4.4 OBS Slide/Deck Feed (Pixels-Only)
 
-**Inclusion Rules:**
-- ✅ Show ALL audience messages
-- ✅ Show ALL trainer messages
-- ✅ Show threading/replies (indented)
-- ✅ Show message order (chronological)
-- ✅ Show confusion signals (self-reported by participants)
-- ✅ Show vote totals (up/down counts)
+**What it is:**
+- A pixels-only surface intended for slides/deck content (PowerPoint/Slides/etc.)
+- The system must not infer slide numbers, boundaries, or meaning
 
-**Exclusion Rules:**
-- ❌ Do NOT show message classification labels
-- ❌ Do NOT show edit/delete controls
-- ❌ Do NOT show vote/reaction input controls (read-only display)
+**Slide Scaling (Locked):**
+- Slides must use **contain** (no cropping). Letterboxing is acceptable.
 
-**Display Behavior:**
-- Show all messages (no arbitrary limit)
-- New messages appear at bottom with fade-in animation (400ms)
-- Threading preserved (replies indented)
-- Author role indicated (Trainer vs. Participant icon/label)
-- Confusion indicators visible (when self-reported)
+### 4.5 OBS Deck Feed v1 (Option B — Local Handoff)
 
-**Text Sizing:**
-- Message content: 32-40px
-- Author name: 24-28px
-- Timestamp: 18-20px
+**Constraint:** The OBS capture `MediaStream` is not server-streamed in v1.
 
-### 4.4 What Must NOT Appear
+**Allowed behavior (v1):**
+- When LiveView is opened from TrainerView on the **same machine/browser context**, LiveView may attach to the trainer-owned OBS `MediaStream` via a local handoff mechanism.
+- If no local stream is available, LiveView must display:
+  - a calm placeholder (“Slides will appear here”), and
+  - the neutral OBS capture status (idle / requesting_permission / capturing / interrupted / error_*).
+
+**Hard rules:**
+- Slides are **pixels-only**. No slide numbers, inference, highlighting, or semantic overlays.
+- No audio in v1.
+
+### 4.6 What Must NOT Appear (Hard Exclusions)
 
 LiveView explicitly excludes:
-- ❌ Drift meter or scores
-- ❌ Insights panel
-- ❌ Participant names (show role only: "Participant" or "Trainer")
-- ❌ Vote/send controls (read-only display)
-- ❌ Connection status warnings (except subtle reconnecting indicator)
-- ❌ Individual participant identification
+- ❌ Messages, threads, replies, thread lenses
+- ❌ Confusion indicators or thread confusion breakdowns
+- ❌ Drift meter, insights panel, trainer analytics
+- ❌ Participant names/IDs, join/leave events, attendance language
+- ❌ Vote/send controls, any input controls
+- ❌ Any interaction UI (buttons, toggles, settings)
 
-**Required Display:**
+**Required display:**
+- ✅ Focus statement (or “Open Conversation”)
 - ✅ QR code and session access code (required for participants to join)
-- ✅ Confusion signals (self-reported by participants)
-- ✅ Vote totals on messages
+- ✅ Pulse timeline
+- ✅ Slides/deck area (or placeholder + neutral status)
 
 ---
 
@@ -274,9 +242,9 @@ LiveView explicitly excludes:
 
 **Connection:**
 - LiveView connects via same Socket.io infrastructure
-- Joins session as observer (read-only participant)
-- Subscribes to: `pulse:update`, `message.state.update`, `message.vote.update`, `confusion:update`, `focus:update`, `focus:cleared`
-- Does NOT emit events (pure consumer)
+- Joins session as a read-only display client
+- Subscribes to: `pulse:update`, `focus:update`, `focus:cleared`, `session:metadata`, `obs:status_changed`
+- Does NOT emit room-shaping events (display-only)
 
 **Session Discovery:**
 - Session code provided via URL parameter
@@ -291,7 +259,7 @@ LiveView explicitly excludes:
 - Neutral, calm state
 
 **During Session:**
-- Active display of focus, pulse, messages
+- Active display of session info, pulse, focus, and slides (OBS deck feed)
 - Real-time updates
 - Auto-reconnect on disconnect
 
@@ -312,7 +280,7 @@ LiveView explicitly excludes:
 **If Reconnect Succeeds:**
 - Resume real-time updates
 - Remove "Reconnecting" indicator
-- Catch up on missed messages (fetch current session state)
+- Resubscribe and sync state (fetch current session state)
 
 ---
 
@@ -326,15 +294,14 @@ LiveView explicitly excludes:
 
 **Text Sizes:**
 - Focus text: **72-96px**
-- Message content: **32-40px**
-- Author labels: **24-28px**
 - Pulse labels: **20-24px**
-- Timestamps: **18-20px**
-- Session info: **16-18px**
+- Session code: **24-32px** (monospace recommended)
+- Session help text: **14-18px**
+- Slide placeholder/status text: **20-28px**
 
 **Font Weights:**
 - Focus: 600-700 (bold)
-- Message content: 400 (regular)
+- Body text: 400 (regular)
 - Labels: 500-600 (medium)
 
 ### 6.2 Color Palette (Projection-Optimized)
@@ -362,14 +329,20 @@ LiveView explicitly excludes:
 ### 6.3 Spacing & Layout
 
 **Padding:**
-- Focus bar: 32-48px vertical, 64px horizontal
-- Pulse zone: 24-32px all sides
-- Message zone: 24-32px all sides
-- Between messages: 16-24px
+- Left column: 24-32px
+- Right column: 24-32px
+- Focus panel: 24-32px
 
 **Borders:**
-- Focus bar: 2px bottom border
 - Column divider: 2px vertical border (subtle gray)
+- Panel borders: optional 1-2px (subtle)
+
+**Fixed Focus Height (Locked):**
+- Focus panel is fixed at **16% of viewport height** (right column, top).
+- Slides occupy the remaining right-column height (right column, bottom).
+
+**Slide Scaling (Locked):**
+- Slides must use **contain** (no cropping). Letterboxing is acceptable.
 
 ### 6.4 Animations
 
@@ -377,9 +350,9 @@ LiveView explicitly excludes:
 - Fade transition: 400ms ease-in-out
 - No abrupt flashing
 
-**New Messages:**
-- Fade-in from bottom: 400ms ease
-- Smooth push-up of older messages
+**Slides / OBS Feed:**
+- No flashy transitions.
+- Optional: gentle fade (200-400ms) when the local stream attaches/detaches.
 
 **Pulse Updates:**
 - Smooth graph scrolling (continuous, not stepped)
@@ -409,18 +382,17 @@ LiveView explicitly excludes:
 **Connection:**
 - Uses same Socket.io client as TrainerView
 - Connects to main server endpoint
-- Emits: `session:join` with `{ sessionId, actorRole: 'observer' }`
+- Emits: `session:join` using the session code from the URL route param (join is required to receive session-scoped broadcasts)
 
 **Subscriptions:**
 - `pulse:update` → updates pulse timeline
-- `message.state.update` → updates message stream
-- `message.vote.update` → updates vote totals
-- `confusion:update` → updates confusion signals (self-reported)
-- `focus:update` → updates focus bar
-- `focus:cleared` → clears focus bar
-- `session:metadata` → session info
+- `focus:update` / `focus:cleared` → updates focus panel
+- `session:metadata` → session info (code + participant count)
+- `obs:status_changed` → OBS capture status for slide/deck feed
 
 **Does NOT Subscribe:**
+- `message.state.update`, `message.vote.update` (messages are not shown)
+- `confusion:update` (not shown)
 - `audience:drift:update` (trainer-only)
 - `insights:*` (trainer-only)
 
@@ -429,9 +401,9 @@ LiveView explicitly excludes:
 **Local State:**
 - Current focus text (string or null)
 - Pulse data (votes, timeline, participants)
-- Message list (all messages)
-- Vote totals (per message)
-- Confusion advisory data
+- Session metadata (access code, participant count)
+- OBS capture status (status, reason, metrics)
+- Whether a local OBS MediaStream is attached (boolean)
 - Connection status
 
 **No Persistence:**
@@ -468,11 +440,6 @@ LiveView must **NEVER**:
 
 ### 8.2 Anonymity Preservation
 
-**Messages:**
-- Show role only: "Participant" or "Trainer"
-- Do NOT show participant names or IDs
-- Do NOT allow individual identification
-
 **Pulse:**
 - Aggregate display only
 - Vote counts shown, not individual votes
@@ -505,9 +472,9 @@ LiveView must feel:
 - Reduced visual weight
 - Neutral tone
 
-**No Messages Yet:**
-- Display: "Conversation will appear here"
-- Or empty space (no placeholder needed)
+**No Slides Yet / No Local Feed:**
+- Display: "Slides will appear here"
+- Show neutral OBS status line
 - Not an error condition
 
 **No Pulse Data:**
@@ -534,10 +501,10 @@ LiveView must feel:
 
 ### 9.3 Data Issues
 
-**Message Overflow:**
-- No arbitrary message limit (all messages displayed)
-- Scroll handled gracefully if needed
-- Smooth animations for new messages
+**Slides Feed Unavailable:**
+- If OBS is idle/not supported/permission denied/interrupted:
+  - Keep showing placeholder + neutral status
+  - Do not show alarming warnings
 
 **Pulse Spike:**
 - All participants vote at once
@@ -563,7 +530,7 @@ LiveView must feel:
 - Interaction: Full control and input
 
 **LiveView:**
-- Shows: Focus + Pulse + Messages only
+- Shows: Session Info + Pulse + Focus + Slides
 - Audience: Entire room (public)
 - Interaction: None (read-only)
 
@@ -575,7 +542,7 @@ LiveView must feel:
 
 **AudienceInput:**
 - Personal interaction device
-- Sends: Pulse votes, messages, reactions
+- Sends: Pulse votes, messages, reactions (private device)
 - Private to each participant
 
 **LiveView:**
@@ -617,7 +584,8 @@ Explicitly deferred to future versions:
 ### 11.2 Intentionally Deferred
 
 - Customizable pulse time windows (fixed at 60 seconds)
-- Message filtering by type/thread
+- Presenter video tile
+- Server-streamed slide video/composition backend
 - Dark mode toggle (light mode only for projection)
 - Accessibility features beyond high contrast
 - Mobile/tablet optimization (desktop/projection only)
@@ -632,7 +600,9 @@ LiveView is successful if:
 - ✅ Readable from 30+ feet away
 - ✅ Updates within 1 second of source events
 - ✅ Projection-friendly (high contrast, no flicker)
-- ✅ Handles 50+ messages without performance issues
+- ✅ Focus text readable and stable
+- ✅ Slides visible without cropping (contain)
+- ✅ OBS interruptions display neutrally (placeholder + status)
 - ✅ Reconnects automatically after disconnect
 - ✅ Displays correctly on 16:9 projectors
 
@@ -663,9 +633,8 @@ LiveView is successful if:
 
 **Shared Components:**
 - `<PulseTimeline />` - Identical cardiac monitor graph
-- `<MessageThreadRow />` - Message display with threading
-- `<FocusDisplay />` - Focus bar display
 - `<QRCodeDisplay />` - Session access QR code
+ - (Focus + Slides panels may be bespoke to LiveView’s layout)
 
 **Why This Matters:**
 - Ensures LiveView looks and behaves exactly like TrainerView (where applicable)
@@ -717,7 +686,6 @@ LiveView is successful if:
 │ [Open LiveView] ←────── New button
 │                         │
 │ Participant Count: 12   │
-│ Messages: 45            │
 │ Status: Live            │
 └─────────────────────────┘
 ```
@@ -736,7 +704,8 @@ LiveView is successful if:
 - ✅ **Allowed** - Trainer can open multiple LiveView windows for same session
 - Use case: Multiple projectors in same room or different rooms
 - Each LiveView independently subscribes to session events
-- All instances stay in sync (receiving same socket updates)
+- All instances stay in sync for session info/pulse/focus/OBS status
+- **Slides feed may not appear on all instances** in v1 (local handoff constraint)
 
 **Different Sessions:**
 - ✅ **Allowed** - Trainer can run multiple sessions with separate LiveViews
@@ -762,7 +731,7 @@ LiveView is successful if:
 **What This Means:**
 - Trainer cannot pause/freeze LiveView
 - Trainer cannot adjust text size via LiveView UI
-- Trainer cannot filter messages or change display
+- Trainer cannot filter content or change display
 - All control happens in TrainerView only
 
 **Rationale:**
@@ -807,11 +776,9 @@ LiveView is successful if:
 - Easing: `ease-in-out`
 - No flash or abrupt change
 
-**New Message Arrival:**
-- Fade-in: **400ms**
-- Appears at bottom of message list
-- Older messages scroll up smoothly
-- No batch delay (instant when received)
+**Slides / OBS:**
+- When local stream attaches/detaches: optional 200-400ms fade
+- OBS status changes: update immediately (no alarm tone)
 
 **Pulse Updates:**
 - Real-time (no artificial delay)
@@ -819,33 +786,25 @@ LiveView is successful if:
 - Vote count changes: **200ms** fade
 - Participant count changes: **300ms** fade
 
-**Auto-Scroll Messages:**
-- New messages fade in at bottom: **400ms**
-- Smooth scroll behavior as messages are added
-- No jarring jumps
-
 ---
 
 ## 19. Performance Targets (Measurable)
 
 **Update Latency:**
-- Message appears on LiveView within **500ms** of server broadcast
+- Focus update within **300ms** of trainer action
 - Pulse update within **100ms** of server broadcast
-- Focus change within **300ms** of trainer action
+- OBS status update within **300ms** of server broadcast
 
 **Frame Rate:**
 - Pulse graph: **60fps** during animation
-- Message scroll: **60fps** during transitions
 - No dropped frames during normal operation
 
 **Capacity:**
 - Handles **100+ participants** without degradation
-- Handles **500+ messages** in session (displays all)
 - Handles **1000+ pulse events** in timeline (shows last 60s)
 
 **Memory:**
 - Does not accumulate unbounded state
-- Messages stored for display (no arbitrary limit)
 - Auto-prunes old pulse events (keeps last 5 minutes)
 
 ---
@@ -863,10 +822,10 @@ LiveView is successful if:
 
 **Functional Tests:**
 - [ ] Focus changes appear on LiveView within 500ms
-- [ ] Messages appear on LiveView within 500ms
 - [ ] Pulse graph updates in real-time
-- [ ] Vote counts update correctly
 - [ ] Participant count accurate
+- [ ] OBS status changes appear on LiveView promptly and neutrally
+- [ ] Slides area shows local stream when opened from TrainerView on same machine, otherwise shows placeholder + status
 
 **Connection Tests:**
 - [ ] LiveView reconnects after network drop
@@ -875,7 +834,7 @@ LiveView is successful if:
 - [ ] Invalid session code shows error
 
 **Performance Tests:**
-- [ ] 50 messages in rapid succession (no lag)
+- [ ] OBS status churn (start/stop/interrupted) does not lag or flicker
 - [ ] 20 participants voting simultaneously (no lag)
 - [ ] Pulse graph maintains 60fps
 - [ ] 2-hour session (no memory leak)
@@ -887,8 +846,8 @@ LiveView is successful if:
 **Contract Version:** 1.0  
 **Created:** January 2026  
 **Authority:** Foundational — defines LiveView as shared room display  
-**Stability:** Locked for v1 — changes require UX and governance review  
-**Dependencies:** SESSION_CONTRACT, MESSAGE_CONTRACT, PULSE_CONTRACT
+**Stability:** Draft (Unlocked for redesign)  
+**Dependencies:** SESSION_CONTRACT, PULSE_CONTRACT, FOCUS_BOX_CONTRACT, OBS_PIPELINE_CONTRACT
 
 ---
 

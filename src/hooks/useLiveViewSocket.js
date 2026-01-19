@@ -1,16 +1,15 @@
 import { useEffect } from "react";
-import { adaptMessage } from "../pages/messageHelpers.js";
 
 /**
  * useLiveViewSocket
  * 
  * Manages socket event subscriptions for LiveView (projection display).
- * LiveView displays the same data as TrainerView (read-only):
+ * LiveView (vNext) displays a projection subset (read-only):
  * - pulse:update
- * - message.state.update
- * - message.vote.update (vote totals)
- * - confusion:update (confusion advisory)
  * - focus:update, focus:cleared
+ * - session:metadata (participant count)
+ * 
+ * OBS status is handled by useObsCaptureState (obs:status_changed).
  * 
  * Does NOT subscribe to trainer-only control events:
  * - audience:drift:update (trainer-private analytics)
@@ -22,20 +21,18 @@ import { adaptMessage } from "../pages/messageHelpers.js";
  * @param {function} params.onEvent - Event subscription function
  * @param {function} params.offEvent - Event unsubscription function
  * @param {function} params.setLivePulse - State setter for pulse data
- * @param {function} params.setMessages - State setter for messages array
- * @param {function} params.setVoteTotals - State setter for vote totals
- * @param {function} params.setConfusionAdvisory - State setter for confusion data
  * @param {function} params.setFocus - State setter for focus text
+ * @param {function} params.setParticipantCount - State setter for participant count (session metadata)
+ * @param {function} params.setSessionError - State setter for session join errors
  */
 export function useLiveViewSocket({
   socket,
   onEvent,
   offEvent,
   setLivePulse,
-  setMessages,
-  setVoteTotals,
-  setConfusionAdvisory,
   setFocus,
+  setParticipantCount,
+  setSessionError,
 }) {
   // pulse:update handler
   useEffect(() => {
@@ -62,49 +59,6 @@ export function useLiveViewSocket({
     onEvent("pulse:update", handlePulse);
     return () => offEvent("pulse:update", handlePulse);
   }, [onEvent, offEvent, setLivePulse]);
-
-  // message.state.update handler
-  useEffect(() => {
-    const handleMessageStateUpdate = ({ messages: canonicalMessages }) => {
-      if (!Array.isArray(canonicalMessages)) return;
-
-      const adapted = canonicalMessages
-        .map(adaptMessage)
-        .filter(Boolean);
-
-      setMessages(adapted);
-    };
-
-    onEvent("message.state.update", handleMessageStateUpdate);
-    return () => offEvent("message.state.update", handleMessageStateUpdate);
-  }, [onEvent, offEvent, setMessages]);
-
-  // message.vote.update handler
-  useEffect(() => {
-    const handleVoteUpdate = ({ messageId, totals }) => {
-      if (!messageId || !totals) {
-        return;
-      }
-
-      setVoteTotals((prev) => ({
-        ...prev,
-        [messageId]: totals,
-      }));
-    };
-
-    onEvent("message.vote.update", handleVoteUpdate);
-    return () => offEvent("message.vote.update", handleVoteUpdate);
-  }, [onEvent, offEvent, setVoteTotals]);
-
-  // confusion:update handler
-  useEffect(() => {
-    const handleConfusionUpdate = (payload) => {
-      setConfusionAdvisory(payload || null);
-    };
-
-    onEvent("confusion:update", handleConfusionUpdate);
-    return () => offEvent("confusion:update", handleConfusionUpdate);
-  }, [onEvent, offEvent, setConfusionAdvisory]);
 
   // focus events handler
   useEffect(() => {
@@ -150,4 +104,38 @@ export function useLiveViewSocket({
       offEvent("focus:cleared", handleFocusCleared);
     };
   }, [onEvent, offEvent, setFocus]);
+
+  // session:metadata handler (participant count)
+  useEffect(() => {
+    const handleSessionMetadata = (payload) => {
+      if (typeof payload?.participantCount === "number") {
+        setParticipantCount(payload.participantCount);
+      }
+    };
+
+    const handleParticipantCount = (payload) => {
+      if (typeof payload?.count === "number") {
+        setParticipantCount(payload.count);
+      }
+    };
+
+    onEvent("session:metadata", handleSessionMetadata);
+    onEvent("session:participant_count", handleParticipantCount);
+
+    return () => {
+      offEvent("session:metadata", handleSessionMetadata);
+      offEvent("session:participant_count", handleParticipantCount);
+    };
+  }, [onEvent, offEvent, setParticipantCount]);
+
+  // session:error handler (join failures)
+  useEffect(() => {
+    const handleSessionError = (payload) => {
+      const message = payload?.message ?? payload?.error ?? "Failed to join session";
+      setSessionError(message);
+    };
+
+    onEvent("session:error", handleSessionError);
+    return () => offEvent("session:error", handleSessionError);
+  }, [onEvent, offEvent, setSessionError]);
 }

@@ -134,6 +134,24 @@ export default function TrainerView() {
     obsClientRef.current = createObsCaptureClient({ emit });
   }
 
+  // Expose a safe, read-only OBS stream getter for LiveView (Option B: local handoff).
+  // LiveView runs in a separate window opened by TrainerView and can access this via window.opener.
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    window.__LIVEVIEW__ = window.__LIVEVIEW__ || {};
+    window.__LIVEVIEW__.getObsStream = () =>
+      obsClientRef.current?.getStream?.() ?? null;
+
+    return () => {
+      if (window.__LIVEVIEW__) {
+        delete window.__LIVEVIEW__.getObsStream;
+      }
+    };
+  }, []);
+
   // Session state hook
   const { accessCode, participantCount } = useSessionState({
     socket,

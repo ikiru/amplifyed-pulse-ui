@@ -1,20 +1,17 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useSocket } from "../socket/SocketContext.jsx";
 import { useLiveViewSocket } from "../hooks/useLiveViewSocket.js";
 import { PulseTimeline } from "../components/pulse/PulseTimeline.jsx";
-import { MessageThreadRow } from "../components/threads/MessageThreadRow.jsx";
 import { QRCodeDisplay } from "../components/session/QRCodeDisplay.jsx";
-import { buildMessageTree } from "../utils/messageUtils.js";
-import { assignThreadColors, scrollToThreadRoot } from "../utils/threadUtils.js";
-import { summarizeThreadConfusion } from "../utils/confusionUtils.js";
+import { useObsCaptureState } from "../hooks/useObsCaptureState.js";
 import "./LiveView.css";
 
 /**
  * LiveView
  * 
  * Projection-optimized display for live session activity.
- * Shows Focus, Pulse, and Messages in a layout designed for in-room projectors.
+ * Shows Session Info, Pulse, Focus, and Slides (OBS deck feed) in a layout designed for in-room projectors.
  * 
  * Read-only display - no controls or interaction.
  * Launched from TrainerView via "Open LiveView" button.
@@ -23,14 +20,24 @@ import "./LiveView.css";
  */
 export default function LiveView() {
   const { sessionCode } = useParams();
-  const { socket, onEvent, offEvent, connectionStatus } = useSocket();
+  const { socket, emit, onEvent, offEvent, connectionStatus } = useSocket();
 
   // Local state
   const [livePulse, setLivePulse] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [voteTotals, setVoteTotals] = useState({});
-  const [confusionAdvisory, setConfusionAdvisory] = useState(null);
   const [focus, setFocus] = useState(null);
+  const [participantCount, setParticipantCount] = useState(null);
+  const [sessionError, setSessionError] = useState(null);
+  const [obsCapture, setObsCapture] = useState({
+    status: "idle",
+    reason: null,
+    metrics: null,
+    captureSessionId: null,
+    ts: null,
+  });
+
+  const slideVideoRef = useRef(null);
+  const [hasLocalObsStream, setHasLocalObsStream] = useState(false);
+  const lastJoinAttemptRef = useRef({ code: null, connected: false });
 
   // Subscribe to socket events
   useLiveViewSocket({
@@ -38,55 +45,37 @@ export default function LiveView() {
     onEvent,
     offEvent,
     setLivePulse,
-    setMessages,
-    setVoteTotals,
-    setConfusionAdvisory,
     setFocus,
+    setParticipantCount,
+    setSessionError,
   });
 
-  // Subscribe to trainer scroll events
+  // OBS status (server state machine)
+  useObsCaptureState({ onEvent, offEvent, setObsCapture });
+
+  // Join the session room using the access code from the URL param.
   useEffect(() => {
-    const handleScrollToThread = (payload) => {
-      if (!payload?.rootMessageId) {
-        return;
-      }
-      scrollToThreadRoot(payload.rootMessageId, ".liveview-message-list");
-    };
-
-    onEvent("trainer:scroll:to:thread", handleScrollToThread);
-    return () => offEvent("trainer:scroll:to:thread", handleScrollToThread);
-  }, [onEvent, offEvent]);
-
-  // Build message tree and confusion map (same as TrainerView)
-  const messageRoots = useMemo(() => buildMessageTree(messages), [messages]);
-  const rootColorAssignments = useMemo(() => assignThreadColors(messageRoots), [messageRoots]);
-  
-  // Build confusion lookup map (same as TrainerView)
-  const confusionByRootId = useMemo(() => {
-    const threads = confusionAdvisory?.threads;
-    if (!Array.isArray(threads) || threads.length === 0) {
-      return {};
+    if (!socket?.connected || !sessionCode) {
+      lastJoinAttemptRef.current = { code: sessionCode ?? null, connected: false };
+      return;
     }
-    const map = {};
-    threads.forEach((thread) => {
-      if (thread?.rootMessageId) {
-        map[thread.rootMessageId] = thread;
-      }
+
+    // Avoid spamming join on rerenders while connected to the same code.
+    const last = lastJoinAttemptRef.current;
+    if (last.connected && last.code === sessionCode) {
+      return;
+    }
+
+    setSessionError(null);
+    emit("session:join", {
+      accessCode: sessionCode,
+      role: "audience",
+      name: null,
+      metadata: { client: "live_view" },
     });
-    return map;
-  }, [confusionAdvisory]);
 
-  // Compute confusion for each thread (same as TrainerView)
-  const threadConfusions = useMemo(() => {
-    return messageRoots.map((root) => ({
-      root,
-      confusion: summarizeThreadConfusion(root, confusionByRootId),
-      threadColor: rootColorAssignments.get(root.messageId),
-    }));
-  }, [messageRoots, confusionByRootId, rootColorAssignments]);
-
-  // Display all messages (never delete messages - they can be collapsed)
-  const displayMessages = threadConfusions;
+    lastJoinAttemptRef.current = { code: sessionCode, connected: true };
+  }, [socket?.connected, sessionCode, emit]);
 
   // Compute pulse data
   const canonicalParticipantCount = useMemo(() => {
@@ -100,8 +89,12 @@ export default function LiveView() {
     );
   }, [livePulse]);
 
-  // Stable noop callbacks for read-only LiveView (no interaction handlers needed)
-  const noop = useCallback(() => {}, []);
+  const effectiveParticipantCount =
+    typeof canonicalParticipantCount === "number"
+      ? canonicalParticipantCount
+      : typeof participantCount === "number"
+        ? participantCount
+        : undefined;
 
   // Error state: no session code
   if (!sessionCode) {
@@ -115,8 +108,45 @@ export default function LiveView() {
     );
   }
 
-  // Connection status indicator
-  const showReconnecting = connectionStatus === "reconnecting";
+  // Try to attach local OBS stream (Option B — local handoff from TrainerView)
+  useEffect(() => {
+    let intervalId = null;
+
+    const tryAttach = () => {
+      const stream =
+        window.opener?.__LIVEVIEW__?.getObsStream?.() ?? null;
+      if (!stream) {
+        return false;
+      }
+      const node = slideVideoRef.current;
+      if (!node) {
+        return false;
+      }
+
+      if (node.srcObject !== stream) {
+        node.srcObject = stream;
+      }
+      setHasLocalObsStream(true);
+      return true;
+    };
+
+    // Initial attempt and short polling while LiveView initializes.
+    tryAttach();
+    intervalId = window.setInterval(() => {
+      const ok = tryAttach();
+      if (ok) {
+        window.clearInterval(intervalId);
+      }
+    }, 500);
+
+    return () => {
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
+    };
+  }, []);
+
+  const showReconnecting = connectionStatus !== "connected";
 
   return (
     <div className="liveview-shell">
@@ -125,65 +155,61 @@ export default function LiveView() {
         <div className="liveview-reconnecting">Reconnecting...</div>
       )}
 
-      {/* Focus Bar */}
-      <div className="liveview-focus-bar">
-        <div className="liveview-focus-label">CURRENT FOCUS</div>
-        <h1 className="liveview-focus-text">
-          {focus || "Open Conversation"}
-        </h1>
-      </div>
+      {sessionError && (
+        <div className="liveview-banner liveview-banner--error">
+          {sessionError}
+        </div>
+      )}
 
-      {/* Two-column layout */}
-      <div className="liveview-content">
-        {/* Left: Pulse */}
-        <div className="liveview-pulse-zone">
-          <PulseTimeline
-            eventLog={livePulse?.eventLog ?? []}
-            participantsCount={canonicalParticipantCount}
-          />
-          
-          {/* Session Access Info */}
+      <div className="liveview-columns">
+        {/* LEFT COLUMN (25%): Pulse + Session */}
+        <div className="liveview-left">
+          <div className="liveview-pulse-zone">
+            <PulseTimeline
+              eventLog={livePulse?.eventLog ?? []}
+              participantsCount={effectiveParticipantCount}
+            />
+          </div>
+
           <div className="liveview-session-access">
             <div className="liveview-session-access-label">JOIN THIS SESSION</div>
             <QRCodeDisplay accessCode={sessionCode} size={160} />
-            <div className="liveview-session-access-code">
-              {sessionCode}
-            </div>
+            <div className="liveview-session-access-code">{sessionCode}</div>
             <div className="liveview-session-access-help">
               Scan QR code or enter code at {window.location.origin}/join
             </div>
           </div>
         </div>
 
-        {/* Right: Messages */}
-        <div className="liveview-message-zone">
-          {displayMessages.length > 0 ? (
-            <div className="liveview-message-list">
-              <div className="message-stream trainer-message-stream">
-                {displayMessages.map(({ root, confusion, threadColor }) => (
-                  <MessageThreadRow
-                    key={root.messageId}
-                    root={root}
-                    threadColor={threadColor}
-                    confusion={confusion}
-                    confusionByRootId={confusionByRootId}
-                    voteTotals={voteTotals[root.messageId]}
-                    voteTotalsMap={voteTotals}
-                    replyToId={null}
-                    setReplyToId={noop}
-                    replyDrafts={{}}
-                    setReplyDrafts={noop}
-                    handleReplySubmit={noop}
-                    showReplyControls={false}
-                  />
-                ))}
+        {/* RIGHT COLUMN (75%): Focus + Slides */}
+        <div className="liveview-right">
+          <div className="liveview-focus-panel">
+            <div className="liveview-focus-label">CURRENT FOCUS</div>
+            <div className="liveview-focus-text">{focus || "Open Conversation"}</div>
+          </div>
+
+          <div className="liveview-slides-panel">
+            {hasLocalObsStream ? (
+              <video
+                ref={slideVideoRef}
+                className="liveview-slides-video"
+                autoPlay
+                playsInline
+                muted
+              />
+            ) : (
+              <div className="liveview-slides-placeholder">
+                <div className="liveview-slides-title">Slides</div>
+                <div className="liveview-slides-status">
+                  OBS: {obsCapture.status}
+                  {obsCapture.reason ? ` — ${obsCapture.reason}` : ""}
+                </div>
+                <div className="liveview-slides-subtle">
+                  Slides will appear here when LiveView can attach to the trainer&apos;s local capture.
+                </div>
               </div>
-            </div>
-          ) : (
-            <p className="liveview-empty-state">
-              Conversation will appear here
-            </p>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

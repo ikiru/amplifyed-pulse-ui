@@ -10,6 +10,18 @@
   overflow: hidden;
 }
 
+/* Top banner (errors / notices) */
+.liveview-banner {
+  padding: 12px 18px;
+  font-size: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.liveview-banner--error {
+  background: rgba(255, 68, 68, 0.12);
+  color: #1a1a1a;
+}
+
 /* Reconnecting indicator */
 .liveview-reconnecting {
   position: fixed;
@@ -49,123 +61,128 @@
   color: #4a4a4a;
 }
 
-/* Focus Bar (top, full width) */
-.liveview-focus-bar {
-  background: #fff4e6;
-  border-bottom: 2px solid #e0e0e0;
-  padding: 32px 64px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
+/* Focus + Slides + Session + Pulse are rendered in the vNext column layout below. */
 
+/* Shared focus label style */
 .liveview-focus-label {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #666;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
-.liveview-focus-text {
-  font-size: 48px; /* reduced from 72px for better balance */
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0;
-  line-height: 1.3;
-  max-width: 1400px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-/* Two-column content */
-.liveview-content {
+/* New vNext layout: vertical columns (25% / 75%) */
+.liveview-columns {
   display: grid;
-  grid-template-columns: 35% 65%;
+  grid-template-columns: 25% 75%;
   flex: 1;
-  gap: 0;
   min-height: 0;
-  overflow: hidden; /* Prevent content from overflowing grid */
+  overflow: hidden;
 }
 
-/* Pulse Zone (left) */
-.liveview-pulse-zone {
-  padding: 32px;
+.liveview-left {
+  padding: 28px 24px;
   border-right: 2px solid #e0e0e0;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  gap: 18px;
   min-height: 0;
-}
-
-/* Message Zone (right) */
-.liveview-message-zone {
-  padding: 48px 32px 32px 32px;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
-  min-height: 0; /* Allow flex shrinking for scrolling */
-  height: 100%; /* Ensure grid cell takes full height */
 }
 
-.liveview-section-heading {
-  font-size: 32px;
-  font-weight: 600;
-  margin: 0 0 24px 0;
+.liveview-right {
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Focus panel (fixed height) */
+.liveview-focus-panel {
+  height: 16vh; /* locked */
+  min-height: 140px;
+  background: #fff4e6;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.liveview-focus-text {
+  font-size: clamp(40px, 3.0vw, 56px);
+  font-weight: 650;
   color: #1a1a1a;
-  flex-shrink: 0; /* Prevent heading from shrinking */
+  line-height: 1.12;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: opacity 400ms ease-in-out;
 }
 
-.liveview-message-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+/* Slides panel (dominant) */
+.liveview-slides-panel {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
+  background: #ffffff;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
 }
 
-/* Custom scrollbar styling for better visibility */
-.liveview-message-list::-webkit-scrollbar {
-  width: 8px;
+.liveview-slides-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* locked */
+  background: #111;
 }
 
-.liveview-message-list::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-}
-
-.liveview-message-list::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-}
-
-.liveview-message-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.liveview-message-list .message-stream {
-  flex: 1;
+.liveview-slides-placeholder {
+  width: 100%;
+  height: 100%;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  min-height: 0;
-}
-
-.liveview-empty-state {
-  font-size: 24px;
-  color: #999;
+  justify-content: center;
+  align-items: center;
+  color: #1a1a1a;
   text-align: center;
-  margin-top: 48px;
-  padding: 32px;
-  font-style: italic;
+  gap: 10px;
+}
+
+.liveview-slides-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #4a4a4a;
+}
+
+.liveview-slides-status {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.liveview-slides-subtle {
+  font-size: 16px;
+  color: #666;
+  max-width: 72ch;
+  line-height: 1.35;
+}
+
+/* Pulse zone wrapper */
+.liveview-pulse-zone {
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Override component styles for projection */
@@ -186,7 +203,6 @@
 
 /* Session Access Panel (below pulse) */
 .liveview-session-access {
-  margin-top: auto;
   padding: 20px;
   background: #ffffff;
   border: 2px solid #e0e0e0;
@@ -237,49 +253,12 @@
 }
 
 /* Message text scaling */
-.liveview-shell .message-bubble {
-  font-size: 32px; /* large for distance readability */
-  line-height: 1.4;
-  padding: 24px 20px;
-}
-
-.liveview-shell .message-content {
-  font-size: 28px; /* Large, readable text for projection */
-  line-height: 1.4;
-}
-
-.liveview-shell .message-author {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.liveview-shell .message-timestamp {
-  font-size: 18px;
-}
-
-/* Projection-optimized text scaling - don't override component functionality */
-.liveview-shell .trainer-vote-ledger {
-  font-size: 20px; /* Scale vote counts for projection */
-}
-
-.liveview-shell .thread-message-label {
-  font-size: 18px; /* Scale badges for projection */
-}
-
-.liveview-shell .thread-confusion-row {
-  font-size: 16px; /* Scale confusion indicators for projection */
-}
-
-/* Animations */
-.liveview-focus-text {
-  transition: opacity 400ms ease-in-out;
-}
+/* No message/thread overrides in vNext LiveView */
 
 /* Responsive adjustments for 4:3 aspect ratio */
 @media (max-aspect-ratio: 4/3) {
-  .liveview-content {
-    grid-template-columns: 40% 60%;
+  .liveview-columns {
+    grid-template-columns: 30% 70%;
   }
 }
 
