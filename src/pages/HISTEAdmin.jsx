@@ -161,10 +161,6 @@ export default function HISTEAdmin() {
     const handleMessageStateUpdate = ({ messages: canonicalMessages }) => {
       if (!Array.isArray(canonicalMessages)) return;
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HISTEAdmin.jsx:177',message:'received message.state.update',data:{messageCount:canonicalMessages.length,firstMessage:canonicalMessages[0]?.from,lastMessage:canonicalMessages[canonicalMessages.length-1]?.from},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-
       const now = Date.now();
       const timestamps = canonicalMessages
         .map((msg) => msg.timestamp)

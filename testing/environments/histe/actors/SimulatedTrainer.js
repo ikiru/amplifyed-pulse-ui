@@ -47,10 +47,6 @@ export class SimulatedTrainer {
         // Don't cleanup yet - we need to wait for session:joined
         this.socket.off("connect", handleConnect);
         
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SimulatedTrainer.js:46',message:'trainer socket connected, emitting session:join',data:{sessionId:this.sessionId,socketId:this.socket.id,role:'trainer'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
-        
         // Wait for session:joined confirmation before resolving
         const handleSessionJoined = (payload) => {
           this.socket.off("session:joined", handleSessionJoined);

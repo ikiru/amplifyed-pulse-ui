@@ -11,7 +11,10 @@ import * as SessionState from './session.state.js';
 const DEFAULT_SESSION_ID = 'session:default';
 
 export function createSessionPipeline(io) {
-  const allowTrainerRole = process.env.ALLOW_TRAINER_ROLE === "true";
+  const allowTrainerRole =
+    process.env.ALLOW_TRAINER_ROLE === "true" ||
+    (process.env.NODE_ENV !== "production" &&
+      process.env.ALLOW_TRAINER_ROLE !== "false");
   
   // Ensure default session exists
   if (!SessionState.sessionExists(DEFAULT_SESSION_ID)) {
