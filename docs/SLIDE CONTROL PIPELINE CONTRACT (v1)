@@ -1,0 +1,331 @@
+# SLIDE CONTROL PIPELINE CONTRACT (v1)
+
+**Status:** Binding  
+**Scope:** Trainer-initiated slide control for live sessions  
+**Applies to:** TrainerView, SlideControlPipeline, Local Slide Controller Agent  
+**Out of Scope:** Slide rendering, slide indexing, OBS control, audience view
+
+---
+
+## 1. Purpose
+
+This contract defines the authoritative rules for controlling external slide presentations
+(Google Slides via Chrome) from within TrainerView using a local controller agent.
+
+The system MUST behave predictably under live conditions, must never fail silently,
+and must not depend on application focus quirks.
+
+---
+
+## 2. Architectural Roles
+
+### 2.1 TrainerView
+- Human-facing control surface
+- Issues **intent**, never execution
+- Renders authoritative state and outcomes
+- MUST NOT assume success
+
+### 2.2 SlideControlPipeline
+- Single authority inside the AmplifyEd system
+- Routes commands from TrainerView to the Local Agent
+- Receives acknowledgements and broadcasts state
+
+### 2.3 Local Slide Controller Agent
+- Runs on the trainer’s machine
+- Executes OS-level control actions
+- Enforces permissions, binding, rate limits
+- Returns explicit acknowledgements
+
+### 2.4 OBS
+- **Display-only**
+- Has no authority over slide state or control
+
+---
+
+## 3. Connectivity (v1)
+
+### 3.1 v1 Design: TrainerView–Agent Local Channel
+
+In v1, the **Local Agent** runs on the trainer's machine and exposes a **local service** (HTTP or WebSocket on `localhost`). **TrainerView** delivers commands and binding requests directly to the Agent over this channel. The **SlideControlPipeline** does not sit in the execution path; it validates, logs, and broadcasts state. (Section 2.2's "Routes commands from TrainerView to the Local Agent" is thus realized in v1 by TrainerView performing that delivery; the Pipeline validates and broadcasts.)
+
+- **TrainerView → Agent:** TrainerView sends commands (`SLIDE_NEXT`, `SLIDE_PREV`) and binding operations (`BIND_LIST_TARGETS`, `BIND_SELECT_TARGET`, `UNBIND`, `REBIND`) to the Agent over the local channel (e.g. `http://127.0.0.1:<port>/` or `ws://127.0.0.1:<port>/`). The Agent's port is discoverable by convention (well-known or configurable).
+- **Agent → TrainerView:** The Agent returns acknowledgements (success or rejection) over the same local channel. TrainerView receives the ack and updates the Slide Control Panel.
+- **TrainerView → Server (SlideControlPipeline):** TrainerView emits `slide:command` (and `slide:bind:*` as needed) to the server for validation and logging. When TrainerView receives an ack from the Agent, it emits `slide:ack` with the result. The Pipeline broadcasts `slide:ack` and any derived state (e.g. `slide:state`) so that co-trainer views and logging stay consistent.
+- **REJECTED_NOT_CONNECTED:** Produced by **TrainerView** when the local channel to the Agent is unavailable (connection refused, timeout, or no response before the TrainerView-side timeout). TrainerView MUST surface this immediately in the Slide Control Panel and SHALL emit `slide:ack` with `REJECTED_NOT_CONNECTED` to the server so the Pipeline can log and broadcast. The server does not need a direct connection to the Agent in v1.
+
+### 3.2 Agent Startup and Discovery
+
+- The Agent MUST listen on a well-known or configurable address (e.g. `127.0.0.1:<port>`). The port MAY be fixed or supplied via config; the contract does not mandate a specific value.
+- TrainerView SHALL discover the Agent by attempting to connect to that address. If the Agent is not running, the connection fails and TrainerView SHALL treat the Agent as disconnected and produce `REJECTED_NOT_CONNECTED` for any command.
+- Agent health (§10) is observed by TrainerView over the local channel. TrainerView SHALL report agent status (e.g. connected, stale) to the Pipeline (e.g. via `slide:agent_status` or equivalent) so the Pipeline can broadcast and enforce "slide controls disabled when agent is disconnected."
+
+### 3.3 Session and Binding in v1
+
+- The Agent is **not** bound to a specific session or trainer at the wire level in v1. The Agent serves whichever TrainerView can reach it on localhost. Only one TrainerView per machine is expected; multi-trainer or multi-session on one machine is out of scope.
+- `sessionId` and `bindingId` are carried in command and bind payloads for logging and Pipeline state. Binding is Agent-local: the Agent stores the selected target and fingerprint; it does not need to sync binding to the server.
+
+### 3.4 Alternative: Agent–Server Channel (Out of Scope for v1)
+
+- A design where the **Agent connects to the server** (e.g. WebSocket) and the **SlideControlPipeline** forwards commands from TrainerView to the Agent over that connection is **out of scope for v1**. If adopted later, the following MUST be defined: Agent handshake and registration (e.g. "agent for session X" or token-based binding to the trainer), how the Pipeline associates the trainer's socket with the Agent's socket, and that the Pipeline produces `REJECTED_NOT_CONNECTED` when no Agent is registered for the session.
+
+### 3.5 Implementation Pointers (v1)
+
+**TrainerView:**
+- Slide Control Panel: `src/pages/TrainerView.jsx` (to add) or `src/components/slide/SlideControlPanel.jsx` (TBD)
+- Local Agent client: `src/slide/slideControlClient.js` or equivalent (TBD) — connects to Agent on localhost, sends commands/binding, receives acks
+
+**Server:**
+- Pipeline: `server/pipelines/slideControl/slideControlPipeline.js` (TBD)
+- Router: `server/routers/eventRouter.js` — wire `slide:command`, `slide:ack`, `slide:bind:*`, `slide:agent_status`
+
+**Local Agent (out-of-repo):**
+- Separate process; implements binding, key delivery, permissions, rate limits, acks; exposes local HTTP/WebSocket
+
+**Events (v1, local-channel design):**
+- TrainerView → server: `slide:command`, `slide:ack`, `slide:bind:list`, `slide:bind:select`, `slide:bind:unbind`, `slide:bind:rebind`, `slide:agent_status`
+- Server broadcast → trainer room: `slide:ack`, `slide:state`, `slide:agent_status`
+
+---
+
+## 4. Supported Scope (v1)
+
+- Slide source: **Google Slides**
+- Browser: **Chrome only**
+- Commands: **Prev / Next**
+- Control method: **Method A – targeted window key delivery**
+- Platforms: **Windows and macOS**
+
+---
+
+## 5. Authority Rules (Non-Negotiable)
+
+1. TrainerView is the **only UI** allowed to issue slide control commands.
+2. SlideControlPipeline is the **only authority** allowed to forward commands.
+3. Local Agent is the **only component** allowed to execute OS-level actions.
+4. No other component (OBS, hotkeys, scripts) may issue slide commands unless explicitly declared as a Producer Override (out of scope for v1).
+5. TrainerView MUST NOT perform optimistic UI updates.
+
+---
+
+## 6. Binding Lifecycle (Required)
+
+### 6.1 Binding Requirement
+- No slide command may be executed unless a valid binding exists.
+- Unbound commands MUST be rejected.
+
+### 6.2 Binding Flow
+- `BIND_LIST_TARGETS`
+- `BIND_SELECT_TARGET`
+- `UNBIND`
+- `REBIND`
+
+### 6.3 Target Constraints
+- Target application MUST be Chrome.
+- Target URL MUST match Google Slides (`docs.google.com/presentation`).
+- Agent MUST NOT auto-select a target.
+- Trainer MUST explicitly choose.
+
+### 6.4 Binding Fingerprint
+- Binding stores a stable, platform-specific fingerprint.
+- If the fingerprint no longer resolves, the agent MUST return `REJECTED_TARGET_NOT_FOUND`.
+
+### 6.5 Binding Scope
+- Binding is **session-scoped**.
+- Binding MUST be cleared on:
+  - agent disconnect
+  - room/session end
+
+---
+
+## 7. Command Semantics
+
+### 7.1 Supported Commands
+- `SLIDE_NEXT`
+- `SLIDE_PREV`
+
+### 7.2 Command Payload
+Each command MUST include:
+- `commandId` (globally unique)
+- `issuedAt`
+- `sessionId`
+- `bindingId`
+
+### 7.3 Execution Meaning
+- `EXECUTED` means the agent attempted the action against the bound target.
+- It does **not** imply slide position verification.
+
+---
+
+## 8. Acknowledgements (No Silent Failure)
+
+Each command MUST return exactly one acknowledgement:
+
+### 8.1 Success
+- `ACK_EXECUTED`
+
+### 8.2 Rejections
+- `REJECTED_NOT_CONNECTED`
+- `REJECTED_NOT_BOUND`
+- `REJECTED_TARGET_NOT_FOUND`
+- `REJECTED_PERMISSION_DENIED`
+- `REJECTED_RATE_LIMIT`
+- `REJECTED_BUSY`
+- `REJECTED_UNSUPPORTED_PLATFORM`
+- `REJECTED_UNKNOWN`
+
+All rejections MUST include a reason code.
+
+---
+
+## 9. Queueing, Rate Limiting, and Timeouts
+
+### 9.1 Pending Rule
+- Only **one pending command** is allowed at a time.
+- Additional commands MUST be rejected with `REJECTED_BUSY`.
+
+### 9.2 Rate Limiting
+- Minimum execution interval: **200–350ms**
+- Duplicate `commandId` MUST be ignored.
+
+### 9.3 Timeouts
+- If no acknowledgement is received within the timeout window,
+  the pipeline MUST mark the command as failed.
+- Automatic retries are **not allowed** in v1.
+
+---
+
+## 10. Connection and Health Model
+
+### 10.1 Agent Health
+- Agent MUST send heartbeats.
+- Pipeline MUST mark agent stale after missed heartbeats.
+
+### 10.2 TrainerView Behavior
+- Slide controls MUST be disabled when agent is disconnected.
+- Connection state MUST be visible at all times.
+
+---
+
+## 11. macOS Permissions (Required Appendix)
+
+### 11.1 Required Permissions
+- macOS Accessibility permission is REQUIRED for targeted key delivery.
+
+### 11.2 Permission States
+- `PERMISSION_OK`
+- `PERMISSION_MISSING`
+
+### 11.3 Enforcement
+- If permission is missing:
+  - Agent MUST reject bind and control commands.
+  - Rejection code MUST be `REJECTED_PERMISSION_DENIED`.
+
+### 11.4 TrainerView Obligations
+TrainerView MUST:
+- Display a blocking notice explaining:
+  - why permission is required
+  - how to enable it
+- Provide a **Recheck Permissions** action.
+- Never silently retry commands.
+
+---
+
+## 12. TrainerView Integration Requirements
+
+TrainerView MUST provide a **Slide Control Panel** that is:
+
+### 12.1 Always Visible During Live Sessions
+- Prev button
+- Next button
+- Bind / Rebind control
+- Agent connection status
+- Bound target label
+- Last command result
+
+### 12.2 Button Semantics
+- Click = issue command intent only
+- Enter **pending state** immediately
+- MUST NOT update slide state optimistically
+
+### 12.3 Failure UX
+- Rejection reasons MUST be shown verbatim (mapped to human text).
+- Next action MUST be obvious:
+  - Not bound → Bind
+  - Permission missing → Open permissions
+  - Target lost → Rebind
+
+### 12.4 Input Safety
+- Slide commands MUST NOT trigger while typing in text inputs.
+- No implicit hotkeys in v1.
+
+---
+
+## 13. Multi-Controller Conflict Policy
+
+### v1 Policy: Non-Exclusive
+- External slide changes are allowed.
+- The system makes **no guarantees** about slide position.
+- Only command execution is acknowledged.
+
+Future exclusive control modes are out of scope.
+
+---
+
+## 14. Logging Requirements
+
+### Agent MUST log:
+- commandId
+- command type
+- timestamp
+- binding fingerprint
+- execution outcome and reason
+
+### Pipeline MUST log:
+- command receipt
+- forwarding
+- acknowledgement result
+
+### TrainerView MUST surface:
+- last command result and reason
+
+---
+
+## 15. Security Boundary
+
+- Agent MUST accept commands only from localhost or authenticated channel.
+- Agent MUST expose a strict allowlist of commands.
+- Agent MUST NOT provide general key injection or window control APIs.
+
+---
+
+## 16. Safe-Mode Fallback
+
+If agent is offline or unpermitted:
+- Slide controls MUST be disabled.
+- TrainerView MUST clearly indicate manual slide control is required.
+
+---
+
+## 17. Preflight Requirement
+
+Before going live, the system MUST support a **Slide Control Preflight**:
+- Agent connected
+- Permission OK
+- Target bound
+- One successful test command acknowledged
+
+---
+
+## 18. Explicit Non-Responsibilities
+
+TrainerView MUST NOT:
+- infer slide index
+- read OBS state
+- mirror Google Slides UI
+- auto-recover without trainer intent
+
+---
+
+## 19. Contract Evolution
+
+Reserved for versioning and change process. TBD.

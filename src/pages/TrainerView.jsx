@@ -39,6 +39,7 @@ export default function TrainerView() {
   
   // Reference to LiveView window to prevent multiple instances
   const liveViewWindowRef = useRef(null);
+  const [isLiveViewOpen, setIsLiveViewOpen] = useState(false);
   const obsClientRef = useRef(null);
   const [activeThreadLens, setActiveThreadLens] = useState("all");
   const [lastThreadMapViewedAt, setLastThreadMapViewedAt] = useState(() =>
@@ -428,6 +429,35 @@ export default function TrainerView() {
     setShowInsights((v) => !v);
   }, [hiddenInsights]);
 
+  const focusTrainerWindow = useCallback(() => {
+    try {
+      window.focus();
+    } catch (_) {
+      // ignore
+    }
+  }, []);
+
+  const handleStartObsCapture = useCallback(async () => {
+    await obsClientRef.current?.startCapture?.();
+    // Best-effort: the browser may shift focus to the captured surface after Share.
+    // Browsers may ignore programmatic focus, but this helps when allowed.
+    focusTrainerWindow();
+    window.setTimeout(focusTrainerWindow, 250);
+  }, [focusTrainerWindow]);
+
+  const handleStopObsCapture = useCallback(() => {
+    obsClientRef.current?.stopCapture?.();
+    focusTrainerWindow();
+  }, [focusTrainerWindow]);
+
+  const hasLocalObsCapture = !!obsClientRef.current?.getStream?.();
+  const startDisabled =
+    obsCapture.status === "capturing" || connectionStatus !== "connected";
+  const stopDisabled =
+    !hasLocalObsCapture && obsCapture.status !== "capturing";
+
+  // (Debug instrumentation removed)
+
   const handleMessageInputChange = useCallback((event) => {
     setMessageInput(event.target.value);
   }, []);
@@ -467,31 +497,35 @@ export default function TrainerView() {
     [emit]
   );
 
-  // Handle opening LiveView window with single-instance enforcement
-  const handleOpenLiveView = useCallback(() => {
-    if (!accessCode) return;
-    
-    const liveViewUrl = `/live/${accessCode}`;
-    
-    // Check if LiveView window already exists and is still open
-    if (liveViewWindowRef.current && !liveViewWindowRef.current.closed) {
-      // Window exists and is open - focus it instead of opening a new one
-      liveViewWindowRef.current.focus();
-    } else {
-      // No window or window was closed - open a new one
-      liveViewWindowRef.current = window.open(
-        liveViewUrl,
-        'liveViewWindow',
-        'width=1920,height=1080'
-      );
+  // Toggle LiveView window (local-only). If open -> close. If closed -> open.
+  const handleToggleLiveView = useCallback(() => {
+    const existing = liveViewWindowRef.current;
+    if (existing && !existing.closed) {
+      existing.close();
+      liveViewWindowRef.current = null;
+      setIsLiveViewOpen(false);
+      return;
     }
+
+    if (!accessCode) return;
+
+    const liveViewUrl = `/live/${accessCode}`;
+    const nextWindow = window.open(
+      liveViewUrl,
+      "liveViewWindow",
+      "width=1920,height=1080"
+    );
+    liveViewWindowRef.current = nextWindow ?? null;
+    setIsLiveViewOpen(!!nextWindow && !nextWindow.closed);
   }, [accessCode]);
 
   // Clean up window reference when window is closed or component unmounts
   useEffect(() => {
     const checkWindowClosed = setInterval(() => {
-      if (liveViewWindowRef.current?.closed) {
+      const existing = liveViewWindowRef.current;
+      if (existing?.closed) {
         liveViewWindowRef.current = null;
+        setIsLiveViewOpen(false);
       }
     }, 1000);
 
@@ -636,11 +670,18 @@ export default function TrainerView() {
             {/* Open LiveView Button */}
             <button
               className="trainer-liveview-button"
-              onClick={handleOpenLiveView}
-              disabled={!accessCode || connectionStatus !== 'connected'}
-              title="Open projection display for in-room audience"
+              onClick={handleToggleLiveView}
+              disabled={
+                !isLiveViewOpen &&
+                (!accessCode || connectionStatus !== "connected")
+              }
+              title={
+                isLiveViewOpen
+                  ? "Close projection display"
+                  : "Open projection display for in-room audience"
+              }
             >
-              📺 Open LiveView
+              📺 {isLiveViewOpen ? "Close LiveView" : "Open LiveView"}
             </button>
 
             {/* OBS Capture (Pixels Only) */}
@@ -652,8 +693,8 @@ export default function TrainerView() {
                 <button
                   className="trainer-focus-button"
                   type="button"
-                  onClick={() => obsClientRef.current?.startCapture()}
-                  disabled={obsCapture.status === "capturing" || connectionStatus !== "connected"}
+                  onClick={handleStartObsCapture}
+                  disabled={startDisabled}
                   title="Start pixels-only capture (choose a window or tab)"
                 >
                   Start
@@ -661,8 +702,8 @@ export default function TrainerView() {
                 <button
                   className="trainer-focus-button trainer-focus-button--secondary"
                   type="button"
-                  onClick={() => obsClientRef.current?.stopCapture()}
-                  disabled={obsCapture.status !== "capturing"}
+                  onClick={handleStopObsCapture}
+                  disabled={stopDisabled}
                   title="Stop capture"
                 >
                   Stop
@@ -698,6 +739,11 @@ export default function TrainerView() {
                   {obsCapture.reason}
                 </p>
               ) : null}
+
+              <p className="trainer-text-muted trainer-panel-note" style={{ marginTop: "8px" }}>
+                Tip: sharing a dedicated slides window (instead of a browser tab) can reduce context switching. If the browser
+                switches away after you click Share, return to TrainerView.
+              </p>
             </div>
             
             {/* Session Metadata */}

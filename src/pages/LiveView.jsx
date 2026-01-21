@@ -108,13 +108,34 @@ export default function LiveView() {
     );
   }
 
-  // Try to attach local OBS stream (Option B — local handoff from TrainerView)
+  // Attach local OBS stream (local handoff from TrainerView).
+  // LiveView is local-only: we attach whenever `window.opener` exposes a live stream,
+  // regardless of server-reported OBS status (server status can drift due to gating/disconnects).
   useEffect(() => {
     let intervalId = null;
 
+    const isStreamActive = (stream) => {
+      const tracks = stream?.getVideoTracks?.() ?? [];
+      if (!tracks.length) return false;
+      return tracks.some((t) => t?.readyState === "live");
+    };
+
+    const detach = () => {
+      const node = slideVideoRef.current;
+      if (node?.srcObject) {
+        node.srcObject = null;
+      }
+      setHasLocalObsStream((prev) => (prev ? false : prev));
+    };
+
     const tryAttach = () => {
-      const stream =
-        window.opener?.__LIVEVIEW__?.getObsStream?.() ?? null;
+      let stream = null;
+      try {
+        // LiveView is local-only: requires an opener window to access the captured MediaStream.
+        stream = window.opener?.__LIVEVIEW__?.getObsStream?.() ?? null;
+      } catch (_) {
+        stream = null;
+      }
       if (!stream) {
         return false;
       }
@@ -123,21 +144,36 @@ export default function LiveView() {
         return false;
       }
 
+      if (!isStreamActive(stream)) {
+        return false;
+      }
+
       if (node.srcObject !== stream) {
         node.srcObject = stream;
       }
-      setHasLocalObsStream(true);
+      setHasLocalObsStream((prev) => (prev ? prev : true));
       return true;
     };
 
-    // Initial attempt and short polling while LiveView initializes.
-    tryAttach();
-    intervalId = window.setInterval(() => {
-      const ok = tryAttach();
-      if (ok) {
-        window.clearInterval(intervalId);
+    const tick = () => {
+      const attached = tryAttach();
+      if (attached) return;
+
+      // No attachable stream available right now. If we previously attached, detach.
+      const existing = slideVideoRef.current?.srcObject ?? null;
+      if (existing && !isStreamActive(existing)) {
+        detach();
+        return;
       }
-    }, 500);
+
+      // If there is no active stream from the opener, keep placeholder visible.
+      detach();
+    };
+
+    // Attempt immediately, then keep polling; attachment is local-only and can change
+    // even when the server state machine reports idle.
+    tick();
+    intervalId = window.setInterval(tick, 500);
 
     return () => {
       if (intervalId) {
@@ -189,15 +225,16 @@ export default function LiveView() {
           </div>
 
           <div className="liveview-slides-panel">
-            {hasLocalObsStream ? (
-              <video
-                ref={slideVideoRef}
-                className="liveview-slides-video"
-                autoPlay
-                playsInline
-                muted
-              />
-            ) : (
+            <video
+              ref={slideVideoRef}
+              className="liveview-slides-video"
+              autoPlay
+              playsInline
+              muted
+              style={{ display: hasLocalObsStream ? "block" : "none" }}
+            />
+
+            {!hasLocalObsStream ? (
               <div className="liveview-slides-placeholder">
                 <div className="liveview-slides-title">Slides</div>
                 <div className="liveview-slides-status">
@@ -208,7 +245,7 @@ export default function LiveView() {
                   Slides will appear here when LiveView can attach to the trainer&apos;s local capture.
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
