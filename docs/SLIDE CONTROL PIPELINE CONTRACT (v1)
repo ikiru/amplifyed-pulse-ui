@@ -27,11 +27,12 @@ and must not depend on application focus quirks.
 
 ### 2.2 SlideControlPipeline
 - Single authority inside the AmplifyEd system
-- Routes commands from TrainerView to the Local Agent
+- Validates, logs, and broadcasts state
 - Receives acknowledgements and broadcasts state
+- In v1, does NOT route commands (TrainerView communicates directly with Agent)
 
 ### 2.3 Local Slide Controller Agent
-- Runs on the trainer’s machine
+- Runs on the trainer's machine
 - Executes OS-level control actions
 - Enforces permissions, binding, rate limits
 - Returns explicit acknowledgements
@@ -46,7 +47,7 @@ and must not depend on application focus quirks.
 
 ### 3.1 v1 Design: TrainerView–Agent Local Channel
 
-In v1, the **Local Agent** runs on the trainer's machine and exposes a **local service** (HTTP or WebSocket on `localhost`). **TrainerView** delivers commands and binding requests directly to the Agent over this channel. The **SlideControlPipeline** does not sit in the execution path; it validates, logs, and broadcasts state. (Section 2.2's "Routes commands from TrainerView to the Local Agent" is thus realized in v1 by TrainerView performing that delivery; the Pipeline validates and broadcasts.)
+In v1, the **Local Agent** runs on the trainer's machine and exposes a **local service** (HTTP or WebSocket on `localhost`). **TrainerView** delivers commands and binding requests directly to the Agent over this channel. The **SlideControlPipeline** does not sit in the execution path; it validates, logs, and broadcasts state.
 
 - **TrainerView → Agent:** TrainerView sends commands (`SLIDE_NEXT`, `SLIDE_PREV`) and binding operations (`BIND_LIST_TARGETS`, `BIND_SELECT_TARGET`, `UNBIND`, `REBIND`) to the Agent over the local channel (e.g. `http://127.0.0.1:<port>/` or `ws://127.0.0.1:<port>/`). The Agent's port is discoverable by convention (well-known or configurable).
 - **Agent → TrainerView:** The Agent returns acknowledgements (success or rejection) over the same local channel. TrainerView receives the ack and updates the Slide Control Panel.
@@ -100,7 +101,7 @@ In v1, the **Local Agent** runs on the trainer's machine and exposes a **local s
 ## 5. Authority Rules (Non-Negotiable)
 
 1. TrainerView is the **only UI** allowed to issue slide control commands.
-2. SlideControlPipeline is the **only authority** allowed to forward commands.
+2. SlideControlPipeline is the **only authority** inside the AmplifyEd system for validation, logging, and state broadcasting.
 3. Local Agent is the **only component** allowed to execute OS-level actions.
 4. No other component (OBS, hotkeys, scripts) may issue slide commands unless explicitly declared as a Producer Override (out of scope for v1).
 5. TrainerView MUST NOT perform optimistic UI updates.
@@ -175,6 +176,28 @@ Each command MUST return exactly one acknowledgement:
 
 All rejections MUST include a reason code.
 
+### 8.3 Failure Semantics
+
+#### 8.3.1 Required Behaviors
+
+If slide control is unavailable:
+
+- TrainerView SHALL NOT attempt retries without visibility.
+- TrainerView SHALL NOT simulate success.
+- TrainerView SHALL present:
+  - Why it failed
+  - What the trainer can do next
+
+#### 8.3.2 Psychological Safety Consideration
+
+Failure messaging SHALL:
+
+- Avoid blame.
+- Avoid unnecessary technical jargon.
+- Preserve trainer confidence during live sessions.
+
+Silent failure is explicitly forbidden.
+
 ---
 
 ## 9. Queueing, Rate Limiting, and Timeouts
@@ -184,12 +207,13 @@ All rejections MUST include a reason code.
 - Additional commands MUST be rejected with `REJECTED_BUSY`.
 
 ### 9.2 Rate Limiting
-- Minimum execution interval: **200–350ms**
+- Minimum execution interval: **200–350ms** between commands (measured from command receipt to next command acceptance).
+- Rate limiting applies per command, not as a rolling window.
 - Duplicate `commandId` MUST be ignored.
 
 ### 9.3 Timeouts
-- If no acknowledgement is received within the timeout window,
-  the pipeline MUST mark the command as failed.
+- If no acknowledgement is received within **5 seconds** of command issuance, TrainerView MUST mark the command as failed.
+- The timeout window applies to the local channel between TrainerView and Agent.
 - Automatic retries are **not allowed** in v1.
 
 ---
@@ -197,11 +221,13 @@ All rejections MUST include a reason code.
 ## 10. Connection and Health Model
 
 ### 10.1 Agent Health
-- Agent MUST send heartbeats.
-- Pipeline MUST mark agent stale after missed heartbeats.
+- Agent MUST send heartbeats at least every **30 seconds** over the local channel.
+- TrainerView MUST mark agent as **stale** after **3 consecutive missed heartbeats** (approximately 90 seconds).
+- Pipeline MUST mark agent stale after TrainerView reports stale status.
+- Agent status states: `connected`, `stale`, `disconnected`
 
 ### 10.2 TrainerView Behavior
-- Slide controls MUST be disabled when agent is disconnected.
+- Slide controls MUST be disabled when agent is disconnected or stale.
 - Connection state MUST be visible at all times.
 
 ---
@@ -282,8 +308,8 @@ Future exclusive control modes are out of scope.
 
 ### Pipeline MUST log:
 - command receipt
-- forwarding
 - acknowledgement result
+- state broadcasts
 
 ### TrainerView MUST surface:
 - last command result and reason
@@ -312,7 +338,9 @@ Before going live, the system MUST support a **Slide Control Preflight**:
 - Agent connected
 - Permission OK
 - Target bound
-- One successful test command acknowledged
+- One successful test command (`SLIDE_NEXT`) acknowledged
+
+The preflight MUST verify all conditions and report any failures clearly.
 
 ---
 
@@ -329,3 +357,96 @@ TrainerView MUST NOT:
 ## 19. Contract Evolution
 
 Reserved for versioning and change process. TBD.
+
+---
+
+## 20. Distribution & Bundling Rules
+
+### 20.1 Distribution Model
+
+- TrainerView and Slide Controller MAY ship separately.
+- They SHALL be **presented together** in trainer-facing flows.
+
+### 20.2 Bundling (Soft Requirement)
+
+If a "Trainer Package" or equivalent exists:
+
+- The Slide Controller SHALL be included or explicitly paired.
+- Separate discovery paths are discouraged.
+
+---
+
+## 21. Non-Goals & Explicit Exclusions
+
+This contract explicitly excludes:
+
+- Turning TrainerView into a desktop app
+- Audience-facing slide control
+- Media playback control (audio/video)
+- OBS integration
+- Arbitrary keystroke automation
+- Multi-app orchestration
+
+Any expansion beyond next/previous slide REQUIRES a new contract.
+
+---
+
+## 22. Enforcement
+
+Any implementation that:
+
+- Treats Slide Control as optional
+- Hides installation steps
+- Fails silently
+- Bypasses OS permission models
+- Adds automation scope without contract revision
+
+Is considered **out of compliance**.
+
+---
+
+## 23. Future Compatibility Note (Non-Binding)
+
+This contract intentionally preserves the option to later:
+
+- Wrap TrainerView in a desktop shell
+- Embed the Slide Controller within a trainer-only client
+
+Such moves SHALL be additive and SHALL NOT invalidate this contract.
+
+---
+
+## Contract Hierarchy & Authority
+
+This contract governs the **mechanical and runtime behavior** of the
+Slide Control Pipeline and Local Slide Controller Agent.
+
+This contract operates under, and is constrained by, the following
+higher-level governance contract (if present):
+
+- **SLIDE_CONTROLLER_FIRST_CLASS_TRAINER.md** (optional; if not present, this contract is standalone)
+
+In the event of ambiguity or conflict:
+
+- The *First-Class Trainer Contract* (if present) takes precedence for:
+  - Product posture
+  - Trainer onboarding requirements
+  - Failure visibility and messaging
+  - Permission handling expectations
+  - Scope limitations
+
+- This contract remains authoritative for:
+  - Command routing
+  - Acknowledgment semantics
+  - Execution boundaries
+  - Agent behavior under live conditions
+
+This contract MUST NOT be interpreted in a way that:
+- Treats slide control as optional
+- Allows silent failure
+- Expands automation scope beyond next/previous slide
+- Bypasses OS permission models
+
+---
+
+**End of Contract**
