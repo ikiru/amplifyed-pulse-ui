@@ -59,6 +59,7 @@ export default function registerEventRouter(io, socket, pipelines = {}) {
     momentPipeline = null, // Added Phase 2.4.2
     confusionPipeline = null,
     obsPipeline = null,
+    slideControlPipeline = null,
   } = pipelines;
 
   const isProd = process.env.NODE_ENV === "production";
@@ -326,6 +327,11 @@ socket.on("audience:pulse", (payload = {}) => {
       obsPipeline.syncState(socket, sessionId);
     }
 
+    // Sync slide control state (if available)
+    if (slideControlPipeline?.syncState) {
+      slideControlPipeline.syncState(socket, sessionId);
+    }
+
     // Send success response to client
     socket.emit('session:joined', {
       sessionId,
@@ -374,6 +380,10 @@ socket.on("audience:pulse", (payload = {}) => {
 
     if (obsPipeline?.syncState) {
       obsPipeline.syncState(socket, sessionId);
+    }
+
+    if (slideControlPipeline?.syncState) {
+      slideControlPipeline.syncState(socket, sessionId);
     }
   });
 
@@ -461,6 +471,65 @@ socket.on("audience:pulse", (payload = {}) => {
         socketId: socket.id,
         ...payload,
       });
+    }
+  });
+
+  // ----------------------------------------------------
+  // SLIDE CONTROL PIPELINE (v1 local-channel)
+  // ----------------------------------------------------
+  socket.on("slide:command", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "slide:command")) return;
+    if (slideControlPipeline?.handleCommand) {
+      slideControlPipeline.handleCommand({ sessionId, socketId: socket.id, ...payload });
+    }
+  });
+
+  socket.on("slide:ack", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "slide:ack")) return;
+    if (slideControlPipeline?.handleAck) {
+      slideControlPipeline.handleAck({ sessionId, socketId: socket.id, ...payload });
+    }
+  });
+
+  socket.on("slide:bind:list", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "slide:bind:list")) return;
+    if (slideControlPipeline?.handleBindList) {
+      slideControlPipeline.handleBindList({ sessionId, socketId: socket.id, ...payload });
+    }
+  });
+
+  socket.on("slide:bind:select", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "slide:bind:select")) return;
+    if (slideControlPipeline?.handleBindSelect) {
+      slideControlPipeline.handleBindSelect({ sessionId, socketId: socket.id, ...payload });
+    }
+  });
+
+  socket.on("slide:bind:unbind", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "slide:bind:unbind")) return;
+    if (slideControlPipeline?.handleBindUnbind) {
+      slideControlPipeline.handleBindUnbind({ sessionId, socketId: socket.id, ...payload });
+    }
+  });
+
+  socket.on("slide:bind:rebind", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "slide:bind:rebind")) return;
+    if (slideControlPipeline?.handleBindRebind) {
+      slideControlPipeline.handleBindRebind({ sessionId, socketId: socket.id, ...payload });
+    }
+  });
+
+  socket.on("slide:agent_status", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "slide:agent_status")) return;
+    if (slideControlPipeline?.handleAgentStatus) {
+      slideControlPipeline.handleAgentStatus({ sessionId, socketId: socket.id, ...payload });
     }
   });
 

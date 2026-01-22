@@ -28,6 +28,8 @@ import { useSessionState } from "../hooks/useSessionState.js";
 import { SessionAccessPanel } from "../components/session/SessionAccessPanel.jsx";
 import { useObsCaptureState } from "../hooks/useObsCaptureState.js";
 import { createObsCaptureClient } from "../obs/obsCaptureClient.js";
+import { useSlideControlState } from "../hooks/useSlideControlState.js";
+import { SlideControlPanel } from "../components/slide/SlideControlPanel.jsx";
 import "./AudienceInput.css";
 import "./TrainerView.css";
 
@@ -154,12 +156,15 @@ export default function TrainerView() {
   }, []);
 
   // Session state hook
-  const { accessCode, participantCount } = useSessionState({
+  const { sessionId, accessCode, participantCount } = useSessionState({
     socket,
     emit,
     onEvent,
     offEvent,
   });
+
+  // Slide control (v1 local-channel)
+  const slideControl = useSlideControlState({ emit, onEvent, offEvent, sessionId });
 
   // Ensure this client is registered as a trainer (required for trainer-only Focus Box actions)
   useEffect(() => {
@@ -655,6 +660,23 @@ export default function TrainerView() {
             handleReorder={handleReorder}
             handleEditInPlace={handleEditInPlace}
             handleReviseByNew={handleReviseByNew}
+          />
+
+          <SlideControlPanel
+            agentStatus={slideControl.agentStatus}
+            bindingId={slideControl.bindingId}
+            boundTargetLabel={slideControl.boundTargetLabel}
+            lastResult={slideControl.lastResult}
+            pending={slideControl.pending}
+            permissionStatus={slideControl.permissionStatus}
+            handlePrev={slideControl.handlePrev}
+            handleNext={slideControl.handleNext}
+            handleBindList={slideControl.handleBindList}
+            handleBindSelect={slideControl.handleBindSelect}
+            handleUnbind={slideControl.handleUnbind}
+            handleRebind={slideControl.handleRebind}
+            handleRecheckPermissions={slideControl.handleRecheckPermissions}
+            handlePreflight={slideControl.handlePreflight}
           />
 
           {/* Session Info with Access */}

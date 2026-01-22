@@ -13,37 +13,47 @@ import { useState, useEffect } from 'react';
  * @returns {Object} Session metadata
  */
 export function useSessionState({ socket, emit, onEvent, offEvent }) {
+  const [sessionId, setSessionId] = useState(null);
   const [accessCode, setAccessCode] = useState(null);
   const [participantCount, setParticipantCount] = useState(0);
 
-  // Listen for session metadata updates
+  // Listen for session:joined (primary source for sessionId) and session:metadata
   useEffect(() => {
-    const handleSessionMetadata = (payload) => {
-      console.log('[useSessionState] session:metadata received:', payload);
-      
-      if (payload.accessCode) {
+    const handleSessionJoined = (payload) => {
+      if (typeof payload?.sessionId === "string") {
+        setSessionId(payload.sessionId);
+      }
+      if (payload?.accessCode) {
         setAccessCode(payload.accessCode);
       }
-      
-      if (typeof payload.participantCount === 'number') {
+    };
+
+    const handleSessionMetadata = (payload) => {
+      if (payload?.sessionId) {
+        setSessionId(payload.sessionId);
+      }
+      if (payload?.accessCode) {
+        setAccessCode(payload.accessCode);
+      }
+      if (typeof payload?.participantCount === "number") {
         setParticipantCount(payload.participantCount);
       }
     };
 
     const handleParticipantCount = (payload) => {
-      console.log('[useSessionState] session:participant_count received:', payload);
-      
-      if (typeof payload.count === 'number') {
+      if (typeof payload?.count === "number") {
         setParticipantCount(payload.count);
       }
     };
 
-    onEvent('session:metadata', handleSessionMetadata);
-    onEvent('session:participant_count', handleParticipantCount);
+    onEvent("session:joined", handleSessionJoined);
+    onEvent("session:metadata", handleSessionMetadata);
+    onEvent("session:participant_count", handleParticipantCount);
 
     return () => {
-      offEvent('session:metadata', handleSessionMetadata);
-      offEvent('session:participant_count', handleParticipantCount);
+      offEvent("session:joined", handleSessionJoined);
+      offEvent("session:metadata", handleSessionMetadata);
+      offEvent("session:participant_count", handleParticipantCount);
     };
   }, [onEvent, offEvent]);
 
@@ -56,6 +66,7 @@ export function useSessionState({ socket, emit, onEvent, offEvent }) {
   }, [socket?.connected, emit]);
 
   return {
+    sessionId,
     accessCode,
     participantCount,
   };

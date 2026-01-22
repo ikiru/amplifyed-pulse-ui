@@ -12,7 +12,8 @@
     "lint:fix": "eslint . --fix",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "slide-agent": "node scripts/slide-agent.js"
   },
   "dependencies": {
     "qrcode.react": "^4.2.0",
