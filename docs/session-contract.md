@@ -629,16 +629,26 @@ Session does not:
 
 ### 13.1 Session Start
 
-Sessions begin when:
+Sessions are created when:
 
-* First participant (typically trainer) initiates session
+* The trainer explicitly initiates Live via the GO LIVE action in TrainerView (see Stage to TrainerView Handoff Contract)
 * Access code and QR code are generated
+* Session state is initialized from the staging snapshot
 
-There is no:
+**Pre-Session Setup (Stage):**
 
-* pre-session setup
-* scheduled start time
-* required initialization
+Pre-session setup exists on Stage (see Stage Page Contract) but operates on **staging state**, not session state. Staging state is separate and independent until the Live transition.
+
+When the trainer initiates Live:
+1. Staging state is snapshotted (atomic operation)
+2. Session is created from the snapshot
+3. Session state becomes the authoritative source for the live session
+4. Staging state becomes read-only
+
+**There is no:**
+* Automatic session creation on page load
+* Scheduled start time
+* Session creation without explicit GO LIVE action
 
 ---
 
@@ -813,8 +823,9 @@ Session testing must **not** verify:
 * Multi-session views for trainers
 * Session migration or merging
 * Access code rotation
-* Pre-session lobby or waiting room
 * LiveView projection display
+
+**Note:** Pre-session setup (Stage) exists but operates on staging state, not session state. See Stage Page Contract and Stage to TrainerView Handoff Contract for details.
 
 ### 17.2 Intentionally Deferred
 

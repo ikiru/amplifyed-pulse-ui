@@ -8,7 +8,7 @@
 
 - **Exactly one active focus** at all times (default: “Open Conversation”).
 - **Audience sees only the active focus** (no history, no inactive list, no controls).
-- **Trainer can manage** focus entries and activate/reset focus (trainer-only controls/state).
+- **Trainer can activate** focus entries and manage focus state during live facilitation (trainer-only controls/state).
 - **Non-enforcement**: focus is orientation only; it must not restrict, judge, or coerce behavior.
 
 ## 1. Purpose
@@ -54,6 +54,9 @@ A stored focus statement visible only to the trainer and not part of shared room
 **Room**  
 All participants and observers experiencing the live session, including projected, recorded, or assistive views.
 
+**Focus Cue**  
+A Focus entry authored pre-session on Stage and consumed by the Focus Box during live facilitation.
+
 ---
 
 ## 3. Non-Negotiable Principles
@@ -95,7 +98,7 @@ All participants and observers experiencing the live session, including projecte
 - The trainer may see:
   - the active focus
   - a list of inactive focuses
-  - controls for adding, selecting, and editing focuses
+  - controls for selecting and activating focuses (authoring occurs pre-live on Stage)
 - Trainer-only affordances must not affect the audience view unless the active focus changes.
 
 ---
@@ -117,9 +120,16 @@ All participants and observers experiencing the live session, including projecte
    - In trainer view, the active focus must be unambiguously distinguished.
    - This distinction is semantic system state, not decorative styling.
 
+4. **Focus Ordering**
+   - Focus entries may be ordered intentionally prior to live facilitation.
+   - Ordering must not change once the session is live.
+   - Order conveys authorial intent and must be preserved.
+
 ---
 
 ## 6. Adding Focus
+
+**Note:** Focus entries may only be created pre-live on Stage. See Section 6A for temporal restrictions.
 
 1. **Creation Rule**
    - Submitting text creates a new focus entry.
@@ -131,6 +141,14 @@ All participants and observers experiencing the live session, including projecte
 
 3. **No Draft States**
    - Focus entries must not exist in hidden, partial, or provisional form.
+
+---
+
+## 6A. Focus Authoring (Pre-Live Only)
+
+- Focus entries may be authored, edited, and reordered only before the session is live.
+- Focus authoring occurs outside the Focus Box (e.g., Stage).
+- The Focus Box must not create or edit focus entries once the session is live.
 
 ---
 
@@ -149,7 +167,12 @@ All participants and observers experiencing the live session, including projecte
 
 ---
 
-## 8. Editing Focus
+## 8. Editing Focus (Temporal Restriction)
+
+**Temporal Rule:**
+- Editing focus text is permitted only before the session becomes live.
+- Once live, focus text must not be altered.
+- If intent must change during live facilitation, a new Focus entry must be activated instead.
 
 ### 8.1 Permitted Reasons for Editing
 
