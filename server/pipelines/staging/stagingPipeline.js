@@ -9,6 +9,7 @@ import * as StagingState from '../../staging/staging.state.js';
 import { validateAll, validateMediaCue } from '../../staging/validation.js';
 import * as SessionState from '../session/session.state.js';
 import { randomUUID } from 'crypto';
+import fs from 'fs';
 
 /**
  * Create staging pipeline
@@ -933,6 +934,11 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
    * @param {string} params.subsystem - Optional: 'media' | 'executor' | 'slideControl' | 'all'
    */
   function handleValidationRequest({ socket, sessionId, subsystem = 'all' } = {}) {
+    // #region agent log
+    try {
+      fs.appendFileSync('/Users/jeffwinkler/Documents/GitHub/amplifyed-pulse-ui/.cursor/debug.log', JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'1',location:'stagingPipeline.js:handleValidationRequest',message:'Validation request received',data:{sessionId,subsystem},timestamp:Date.now()}) + '\n');
+    } catch(e) {}
+    // #endregion
     console.log(`[stagingPipeline] Validation request received:`, { sessionId, subsystem });
     try {
       const stagingState = StagingState.getStagingStateBySessionId(sessionId);

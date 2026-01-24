@@ -11,6 +11,7 @@ import { registerFocusHandlers } from "./pipelines/focus/focusPipeline.js";
 import { createSessionPipeline } from "./pipelines/session/sessionPipeline.js";
 import { createStageEnginePipeline } from "./pipelines/stageEngine/stageEnginePipeline.js";
 import { createSlideControlPipeline } from "./pipelines/slideControl/slideControlPipeline.js";
+import { createStagingPipeline } from "./pipelines/staging/stagingPipeline.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -55,6 +56,11 @@ const trainerPipeline = createTrainerPipeline(io, pulsePipeline.momentBuilder);
 const focusPipeline = registerFocusHandlers({ io, sessionPipeline });
 const stageEnginePipeline = createStageEnginePipeline(io);
 const slideControlPipeline = createSlideControlPipeline(io);
+const stagingPipeline = createStagingPipeline(io, {
+  sessionPipeline,
+  stageEnginePipeline,
+  slideControlPipeline,
+});
 const safetyPipeline = null;
 // const emotionPipeline = createEmotionPipeline(io);
 // ----------------------------------------------------
@@ -96,6 +102,7 @@ io.on("connection", (socket) => {
     confusionPipeline,
     stageEnginePipeline,
     slideControlPipeline,
+    stagingPipeline,
   });
 });
 

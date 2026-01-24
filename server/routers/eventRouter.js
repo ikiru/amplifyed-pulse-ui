@@ -34,6 +34,8 @@ import {
   getActiveFocus,
 } from "../pipelines/focus/focus.state.js";
 
+import fs from 'fs';
+
 const DEFAULT_SESSION_ID = "session:default";
 const TRAINER_ROOM_SUFFIX = ":trainers";
 
@@ -267,6 +269,11 @@ socket.on("audience:pulse", (payload = {}) => {
   // SESSION JOIN - Enhanced with access code support
   // ----------------------------------------------------
   socket.on("session:join", (payload = {}) => {
+    // #region agent log
+    try {
+      fs.appendFileSync('/Users/jeffwinkler/Documents/GitHub/amplifyed-pulse-ui/.cursor/debug.log', JSON.stringify({sessionId:'debug-session',runId:'run2',hypothesisId:'2',location:'eventRouter.js:session:join',message:'Join received',data:{payload, socketId: socket.id},timestamp:Date.now()}) + '\n');
+    } catch(e) {}
+    // #endregion
     console.log("[ROUTER] session:join received:", { socketId: socket.id, payload });
 
     if (!sessionPipeline?.handleJoin) {
@@ -756,14 +763,32 @@ socket.on("audience:pulse", (payload = {}) => {
 
   // Validation Requests
   socket.on("stage:validate:request", (payload = {}) => {
+    // #region agent log
+    try {
+      fs.appendFileSync('/Users/jeffwinkler/Documents/GitHub/amplifyed-pulse-ui/.cursor/debug.log', JSON.stringify({sessionId:'debug-session',runId:'run2',hypothesisId:'2',location:'eventRouter.js:stage:validate:request',message:'Event received',data:{payload, socketId: socket.id},timestamp:Date.now()}) + '\n');
+    } catch(e) {}
+    // #endregion
     const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
-    if (!requireTrainer(sessionId, "stage:validate:request")) return;
+    if (!requireTrainer(sessionId, "stage:validate:request")) {
+        // #region agent log
+        try {
+          fs.appendFileSync('/Users/jeffwinkler/Documents/GitHub/amplifyed-pulse-ui/.cursor/debug.log', JSON.stringify({sessionId:'debug-session',runId:'run2',hypothesisId:'2',location:'eventRouter.js:stage:validate:request',message:'Auth failed',data:{sessionId},timestamp:Date.now()}) + '\n');
+        } catch(e) {}
+        // #endregion
+        return;
+    }
     if (stagingPipeline?.handleValidationRequest) {
       stagingPipeline.handleValidationRequest({
         socket,
         sessionId,
         subsystem: payload.subsystem,
       });
+    } else {
+        // #region agent log
+        try {
+          fs.appendFileSync('/Users/jeffwinkler/Documents/GitHub/amplifyed-pulse-ui/.cursor/debug.log', JSON.stringify({sessionId:'debug-session',runId:'run2',hypothesisId:'2',location:'eventRouter.js:stage:validate:request',message:'stagingPipeline missing',data:{hasPipeline: !!stagingPipeline},timestamp:Date.now()}) + '\n');
+        } catch(e) {}
+        // #endregion
     }
   });
 

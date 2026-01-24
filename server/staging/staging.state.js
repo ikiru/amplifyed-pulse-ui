@@ -386,6 +386,11 @@ export function getSnapshot(stagingId, snapshotId) {
  * @returns {string} 'DRAFT' or 'STAGED'
  */
 export function calculateReadiness(stagingState) {
+  // #region agent log
+  try {
+    fs.appendFileSync('/Users/jeffwinkler/Documents/GitHub/amplifyed-pulse-ui/.cursor/debug.log', JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'3',location:'staging.state.js:calculateReadiness',message:'Calculating readiness',data:{requirements: stagingState?.requirements, validation: stagingState?.validation},timestamp:Date.now()}) + '\n');
+  } catch(e) {}
+  // #endregion
   if (!stagingState) {
     return 'DRAFT';
   }

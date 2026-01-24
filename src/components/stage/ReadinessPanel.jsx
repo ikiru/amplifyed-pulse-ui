@@ -13,6 +13,9 @@ export default function ReadinessPanel({
   onRequirementToggle,
   onValidateRequest,
 }) {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ReadinessPanel.jsx:render',message:'Rendering ReadinessPanel',data:{validation, requirements, mediaCues},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'4'})}).catch(()=>{});
+  // #endregion
   const getStatusBadge = (status) => {
     const statusClass = `status-badge ${status}`;
     const statusText = status?.toUpperCase() || 'UNKNOWN';
