@@ -16,13 +16,38 @@ export default function MediaCueItem({ cue, isReadOnly, onEdit, onDelete, onVali
     return status.toUpperCase();
   };
 
-  const truncateUrl = (url) => {
-    if (!url) return '';
-    if (url.length > 50) {
-      return url.substring(0, 47) + '...';
+  const truncateText = (text) => {
+    if (!text) return '';
+    if (text.length > 50) {
+      return text.substring(0, 47) + '...';
     }
-    return url;
+    return text;
   };
+
+  const getSourceDisplay = () => {
+    const source = cue.source;
+    if (!source) return '';
+    
+    if (source.type === 'powerpoint') {
+      return source.filePath || '';
+    } else if (source.type === 'googleslides' || source.type === 'youtube') {
+      return source.url || '';
+    }
+    return '';
+  };
+
+  const getSourceTypeLabel = () => {
+    const source = cue.source;
+    if (!source) return '';
+    
+    if (source.type === 'powerpoint') return 'PowerPoint';
+    if (source.type === 'googleslides') return 'Google Slides';
+    if (source.type === 'youtube') return 'YouTube';
+    return '';
+  };
+
+  const sourceDisplay = getSourceDisplay();
+  const sourceTypeLabel = getSourceTypeLabel();
 
   return (
     <div className="media-cue-item">
@@ -32,11 +57,18 @@ export default function MediaCueItem({ cue, isReadOnly, onEdit, onDelete, onVali
       </div>
 
       <div className="media-cue-details">
-        <div className="media-cue-url" title={cue.source?.url}>
-          {truncateUrl(cue.source?.url)}
+        {sourceTypeLabel && (
+          <div style={{ fontSize: '11px', color: '#999', marginBottom: '4px', textTransform: 'uppercase' }}>
+            {sourceTypeLabel}
+          </div>
+        )}
+        <div className="media-cue-url" title={sourceDisplay}>
+          {truncateText(sourceDisplay)}
         </div>
         <div className="media-cue-meta">
-          <span>Audio: {cue.playback?.audioMode || 'videoOnly'}</span>
+          {cue.source?.type === 'youtube' && (
+            <span>Audio: {cue.playback?.audioMode || 'videoOnly'}</span>
+          )}
         </div>
       </div>
 

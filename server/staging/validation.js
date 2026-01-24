@@ -186,6 +186,170 @@ async function validateYouTubeUrl(url) {
 }
 
 /**
+ * Validate PowerPoint file path
+ * 
+ * @param {string} filePath - File path or filename
+ * @returns {Object} Validation result
+ */
+function validatePowerPointPath(filePath) {
+  if (typeof filePath !== 'string' || !filePath.trim()) {
+    return {
+      status: 'blocked',
+      reasons: ['PowerPoint file path is required'],
+    };
+  }
+
+  // Validate file extension
+  const validExtensions = ['.pptx', '.ppt'];
+  const lowerPath = filePath.toLowerCase();
+  const hasValidExtension = validExtensions.some(ext => lowerPath.endsWith(ext));
+
+  if (!hasValidExtension) {
+    return {
+      status: 'blocked',
+      reasons: ['Invalid file extension. PowerPoint files must be .pptx or .ppt'],
+    };
+  }
+
+  // Check if file exists (if path is accessible from server)
+  // Note: Browser security limits full path access, so we can only validate format
+  // In production, you may want to upload files to server or use server-side path resolution
+  try {
+    // Try to check if file exists (only works if path is server-accessible)
+    if (fs.existsSync && typeof fs.existsSync === 'function') {
+      // Only check if it's an absolute path (server-side)
+      if (filePath.startsWith('/') || filePath.match(/^[A-Z]:\\/)) {
+        if (fs.existsSync(filePath)) {
+          return {
+            status: 'ready',
+            reasons: [],
+          };
+        } else {
+          return {
+            status: 'warning',
+            reasons: ['File path not found. Ensure the file is accessible when executing this Media Cue.'],
+          };
+        }
+      }
+    }
+  } catch (error) {
+    // File check failed - mark as warning
+    console.warn(`[validation] Could not check file existence for ${filePath}:`, error.message);
+  }
+
+  // If we can't verify file existence, mark as warning (file may be accessible at execution time)
+  return {
+    status: 'warning',
+    reasons: ['File path format is valid, but accessibility cannot be verified. Ensure the file is accessible when executing this Media Cue.'],
+  };
+}
+
+/**
+ * Validate Google Slides URL
+ * 
+ * @param {string} url - Google Slides URL
+ * @returns {Promise<Object>} Validation result
+ */
+async function validateGoogleSlidesUrl(url) {
+  if (typeof url !== 'string' || !url.trim()) {
+    return {
+      status: 'blocked',
+      reasons: ['Google Slides URL is required'],
+    };
+  }
+
+  // Parse Google Slides URL patterns
+  const patterns = [
+    /^https?:\/\/(?:docs\.)?google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/,
+    /^https?:\/\/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)\/edit/,
+    /^https?:\/\/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)\/present/,
+  ];
+
+  let presentationId = null;
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) {
+      presentationId = match[1];
+      break;
+    }
+  }
+
+  if (!presentationId) {
+    return {
+      status: 'blocked',
+      reasons: ['Invalid Google Slides URL format. URL must be a Google Slides presentation link.'],
+    };
+  }
+
+  // Basic reachability check (similar to YouTube)
+  // Google Slides doesn't have a public oEmbed API, so we do a basic HEAD request
+  const VALIDATION_TIMEOUT_MS = 5000;
+  
+  try {
+    if (typeof fetch === 'undefined') {
+      return {
+        status: 'warning',
+        reasons: ['Reachability check unavailable - fetch API not available'],
+      };
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), VALIDATION_TIMEOUT_MS);
+
+    try {
+      // Try to fetch the presentation page (public view)
+      const publicUrl = `https://docs.google.com/presentation/d/${presentationId}/preview`;
+      const response = await fetch(publicUrl, {
+        method: 'HEAD',
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'AmplifyEd-Stage-Validator/1.0',
+        },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok || response.status === 302) {
+        // Presentation exists (200 OK or redirect to login)
+        return {
+          status: 'ready',
+          reasons: [],
+        };
+      } else if (response.status === 404) {
+        return {
+          status: 'blocked',
+          reasons: ['Presentation not found - the Google Slides URL does not exist or has been removed'],
+        };
+      } else {
+        return {
+          status: 'warning',
+          reasons: [`Unable to verify presentation reachability (HTTP ${response.status})`],
+        };
+      }
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+
+      if (fetchError.name === 'AbortError') {
+        return {
+          status: 'warning',
+          reasons: ['Reachability check timed out - presentation may be accessible but verification failed'],
+        };
+      }
+
+      return {
+        status: 'warning',
+        reasons: [`Unable to verify reachability - ${fetchError.message || 'network error'}`],
+      };
+    }
+  } catch (error) {
+    return {
+      status: 'warning',
+      reasons: [`Reachability check failed - ${error.message || 'unknown error'}`],
+    };
+  }
+}
+
+/**
  * Validate Media Cue
  * 
  * @param {Object} mediaCue - Media Cue object
@@ -199,28 +363,35 @@ export async function validateMediaCue(mediaCue) {
     };
   }
 
-  const { type, url } = mediaCue.source;
+  const { type, url, filePath } = mediaCue.source;
 
-  // v1 scope: YouTube only
-  if (type !== 'youtube') {
+  // Handle different source types
+  if (type === 'youtube') {
+    // Validate YouTube URL (includes reachability check)
+    const urlValidation = await validateYouTubeUrl(url);
+    
+    // If URL is blocked, return blocked
+    if (urlValidation.status === 'blocked') {
+      return urlValidation;
+    }
+
+    // OBS bindings are optional and ignored by default Stage Engine
+    // We do not fail validation if they are present or missing
+
+    return urlValidation;
+  } else if (type === 'powerpoint') {
+    // Validate PowerPoint file path
+    return validatePowerPointPath(filePath);
+  } else if (type === 'googleslides') {
+    // Validate Google Slides URL
+    return await validateGoogleSlidesUrl(url);
+  } else {
+    // Unknown source type
     return {
       status: 'blocked',
-      reasons: [`Unsupported source type: ${type}. Only 'youtube' is supported in v1.`],
+      reasons: [`Unsupported source type: ${type}. Supported types are 'youtube', 'powerpoint', and 'googleslides'.`],
     };
   }
-
-  // Validate YouTube URL (includes reachability check)
-  const urlValidation = await validateYouTubeUrl(url);
-  
-  // If URL is blocked, return blocked
-  if (urlValidation.status === 'blocked') {
-    return urlValidation;
-  }
-
-  // OBS bindings are optional and ignored by default Stage Engine
-  // We do not fail validation if they are present or missing
-
-  return urlValidation;
 }
 
 /**

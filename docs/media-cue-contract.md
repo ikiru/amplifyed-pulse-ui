@@ -72,13 +72,14 @@ MediaCue {
   id: string,                 // stable identity
   label: string,              // human-friendly name shown to trainer
   source: {
-    type: "youtube",          // v1 scope
-    url: string               // canonical link
+    type: "youtube" | "powerpoint" | "googleslides",
+    url?: string,             // for youtube/googleslides: canonical link
+    filePath?: string         // for powerpoint: file path or filename
   },
   playback: {
-    audioMode: "videoOnly" | "videoAndAudio",
-    startAtSec?: number,      // optional
-    endAtSec?: number         // optional
+    audioMode: "videoOnly" | "videoAndAudio",  // only applies to youtube
+    startAtSec?: number,      // optional, only applies to youtube
+    endAtSec?: number         // optional, only applies to youtube
   },
   binding: {
     executor: "obs",
@@ -106,13 +107,14 @@ MediaCue {
 - Trainer-authored
 
 **source** (required)
-- **type**: Media source type (v1: "youtube" only)
-- **url**: Canonical link to the media resource
+- **type**: Media source type ("youtube" | "powerpoint" | "googleslides")
+- **url**: Canonical link to the media resource (required for youtube/googleslides)
+- **filePath**: File path or filename (required for powerpoint)
 
 **playback** (required)
-- **audioMode**: "videoOnly" or "videoAndAudio"
-- **startAtSec**: Optional start time in seconds (for trimming)
-- **endAtSec**: Optional end time in seconds (for trimming)
+- **audioMode**: "videoOnly" or "videoAndAudio" (only applies to youtube, defaults to "videoOnly" for slides)
+- **startAtSec**: Optional start time in seconds (for trimming, only applies to youtube)
+- **endAtSec**: Optional end time in seconds (for trimming, only applies to youtube)
 
 **binding** (optional)
 - **executor**: Executor identifier (default: "obs")
@@ -142,9 +144,13 @@ Media Cues may only be created on Stage, only pre-live.
 Trainer submits a Media Cue with:
 
 1. **label** (required)
-2. **source URL** (YouTube, required)
-3. **audioMode** (default: "videoOnly")
-4. **Optional OBS binding** (scene/source)
+2. **source type** (youtube, powerpoint, or googleslides)
+3. **source data**:
+   - For YouTube/Google Slides: **url** (required)
+   - For PowerPoint: **filePath** (required)
+4. **audioMode** (default: "videoOnly", only applies to YouTube)
+5. **Optional playback settings** (startAtSec, endAtSec - only apply to YouTube)
+6. **Optional OBS binding** (scene/source)
 
 System assigns:
 - `id` (stable identifier)
@@ -174,7 +180,9 @@ Validation occurs:
 - On demand (trainer-initiated revalidation)
 - Before session reaches "Staged" readiness
 
-### Validation Criteria (v1 YouTube)
+### Validation Criteria
+
+#### YouTube
 
 **Checks:**
 - URL parses and matches allowed host patterns (`youtube.com` / `youtu.be`)
@@ -187,10 +195,33 @@ Validation occurs:
   - If unknown: WARNING
 
 **Validation Outputs:**
-
 - **READY**: valid URL + reachable + not known restricted
 - **WARNING**: valid URL but reachability/embeddability unconfirmed
 - **BLOCKED**: invalid URL OR known unavailable/restricted
+
+#### PowerPoint
+
+**Checks:**
+- File path provided
+- File extension is `.pptx` or `.ppt`
+- File existence (if path is server-accessible)
+
+**Validation Outputs:**
+- **READY**: valid file extension + file exists (if path accessible)
+- **WARNING**: valid format but file existence cannot be verified (common for browser-selected files)
+- **BLOCKED**: invalid file extension OR file path missing
+
+#### Google Slides
+
+**Checks:**
+- URL parses and matches Google Slides pattern (`docs.google.com/presentation/d/{id}`)
+- Presentation ID extractable
+- Basic reachability check (HEAD request to preview URL)
+
+**Validation Outputs:**
+- **READY**: valid URL format + presentation reachable
+- **WARNING**: valid URL format but reachability unconfirmed
+- **BLOCKED**: invalid URL format OR presentation not found
 
 ### Binding Validation
 
@@ -321,10 +352,12 @@ Media Cues may only be edited pre-live on Stage.
 
 **Editable fields:**
 - `label`
-- `source.url`
-- `playback.audioMode`
-- `playback.startAtSec`
-- `playback.endAtSec`
+- `source.type`
+- `source.url` (for youtube/googleslides)
+- `source.filePath` (for powerpoint)
+- `playback.audioMode` (only applies to youtube)
+- `playback.startAtSec` (only applies to youtube)
+- `playback.endAtSec` (only applies to youtube)
 - `binding.sceneId`
 - `binding.inputName`
 
@@ -456,9 +489,9 @@ Changes require explicit versioning and review, as it defines a core authoring a
 
 ### v1 Scope
 
-- YouTube only
-- OBS executor only
-- Basic validation (URL, reachability, embeddability)
+- YouTube, PowerPoint (.pptx/.ppt), and Google Slides
+- Stage Engine executor (formerly OBS)
+- Basic validation (URL format/reachability for YouTube/Google Slides, file format for PowerPoint)
 
 ### Future Expansions (Require Contract Revision)
 
