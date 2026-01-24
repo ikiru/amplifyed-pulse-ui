@@ -26,8 +26,8 @@ import { useMessageState } from "../hooks/useMessageState.js";
 import { useFocusState } from "../hooks/useFocusState.js";
 import { useSessionState } from "../hooks/useSessionState.js";
 import { SessionAccessPanel } from "../components/session/SessionAccessPanel.jsx";
-import { useObsCaptureState } from "../hooks/useObsCaptureState.js";
-import { createObsCaptureClient } from "../obs/obsCaptureClient.js";
+import { useStageExecutorState } from "../hooks/useStageExecutorState.js";
+import { createStageExecutorClient } from "../stage/stageExecutorClient.js";
 import { useSlideControlState } from "../hooks/useSlideControlState.js";
 import { SlideControlPanel } from "../components/slide/SlideControlPanel.jsx";
 import "./AudienceInput.css";
@@ -42,7 +42,7 @@ export default function TrainerView() {
   // Reference to LiveView window to prevent multiple instances
   const liveViewWindowRef = useRef(null);
   const [isLiveViewOpen, setIsLiveViewOpen] = useState(false);
-  const obsClientRef = useRef(null);
+  const executorClientRef = useRef(null);
   const [activeThreadLens, setActiveThreadLens] = useState("all");
   const [lastThreadMapViewedAt, setLastThreadMapViewedAt] = useState(() =>
     Date.now()
@@ -61,11 +61,17 @@ export default function TrainerView() {
   const [visibleInsights, setVisibleInsights] = useState(null);
   const [hiddenInsights, setHiddenInsights] = useState(null);
 
-  const [obsCapture, setObsCapture] = useState({
+  const [executorState, setExecutorState] = useState({
     status: "idle",
-    reason: null,
-    metrics: null,
-    captureSessionId: null,
+    reasons: [],
+    capture: {
+      status: "idle",
+      metrics: null,
+      sourceHint: null,
+    },
+    media: {
+      status: "stopped",
+    },
     ts: null,
   });
   
@@ -126,18 +132,18 @@ export default function TrainerView() {
     setFocus,
   });
 
-  useObsCaptureState({
+  useStageExecutorState({
     onEvent,
     offEvent,
-    setObsCapture,
+    setExecutorState,
   });
 
-  // Lazy init OBS capture client (browser-only capture; server tracks status)
-  if (!obsClientRef.current) {
-    obsClientRef.current = createObsCaptureClient({ emit });
+  // Lazy init Stage Executor client (browser-only capture; server tracks status)
+  if (!executorClientRef.current) {
+    executorClientRef.current = createStageExecutorClient({ emit });
   }
 
-  // Expose a safe, read-only OBS stream getter for LiveView (Option B: local handoff).
+  // Expose a safe, read-only Stage stream getter for LiveView (Option B: local handoff).
   // LiveView runs in a separate window opened by TrainerView and can access this via window.opener.
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -145,12 +151,12 @@ export default function TrainerView() {
     }
 
     window.__LIVEVIEW__ = window.__LIVEVIEW__ || {};
-    window.__LIVEVIEW__.getObsStream = () =>
-      obsClientRef.current?.getStream?.() ?? null;
+    window.__LIVEVIEW__.getStageStream = () =>
+      executorClientRef.current?.getStream?.() ?? null;
 
     return () => {
       if (window.__LIVEVIEW__) {
-        delete window.__LIVEVIEW__.getObsStream;
+        delete window.__LIVEVIEW__.getStageStream;
       }
     };
   }, []);
@@ -162,6 +168,67 @@ export default function TrainerView() {
     onEvent,
     offEvent,
   });
+
+  // Track session state (DRAFT/STAGED/LIVE) for GO LIVE button
+  const [sessionState, setSessionState] = useState('DRAFT');
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Listen for session state updates
+  useEffect(() => {
+    const handleStateUpdate = (payload) => {
+      if (payload.sessionId === sessionId && payload.state) {
+        setSessionState(payload.state);
+        setIsTransitioning(false);
+      }
+    };
+
+    const handleStateResponse = (payload) => {
+      if (payload.sessionId === sessionId && payload.state) {
+        setSessionState(payload.state);
+      }
+    };
+
+    const handleLiveAck = (payload) => {
+      if (payload.sessionId === sessionId) {
+        setSessionState('LIVE');
+        setIsTransitioning(false);
+      }
+    };
+
+    const handleLiveError = (payload) => {
+      if (payload.sessionId === sessionId) {
+        setIsTransitioning(false);
+        console.error('[TrainerView] GO LIVE failed:', payload.message);
+      }
+    };
+
+    onEvent('session:state:update', handleStateUpdate);
+    onEvent('session:state:response', handleStateResponse);
+    onEvent('session:live:ack', handleLiveAck);
+    onEvent('session:live:error', handleLiveError);
+
+    // Fetch current state on mount
+    if (sessionId && emit) {
+      emit('session:state:get', { sessionId });
+    }
+
+    return () => {
+      offEvent('session:state:update', handleStateUpdate);
+      offEvent('session:state:response', handleStateResponse);
+      offEvent('session:live:ack', handleLiveAck);
+      offEvent('session:live:error', handleLiveError);
+    };
+  }, [sessionId, emit, onEvent, offEvent]);
+
+  // Handle GO LIVE button click
+  const handleGoLive = () => {
+    if (!sessionId || !emit || sessionState !== 'STAGED' || isTransitioning) {
+      return;
+    }
+
+    setIsTransitioning(true);
+    emit('session:live:begin', { sessionId });
+  };
 
   // Slide control (v1 local-channel)
   const slideControl = useSlideControlState({ emit, onEvent, offEvent, sessionId });
@@ -442,24 +509,27 @@ export default function TrainerView() {
     }
   }, []);
 
-  const handleStartObsCapture = useCallback(async () => {
-    await obsClientRef.current?.startCapture?.();
+  const handleStartExecutorCapture = useCallback(async () => {
+    await executorClientRef.current?.startCapture?.();
     // Best-effort: the browser may shift focus to the captured surface after Share.
     // Browsers may ignore programmatic focus, but this helps when allowed.
     focusTrainerWindow();
     window.setTimeout(focusTrainerWindow, 250);
   }, [focusTrainerWindow]);
 
-  const handleStopObsCapture = useCallback(() => {
-    obsClientRef.current?.stopCapture?.();
+  const handleStopExecutorCapture = useCallback(() => {
+    executorClientRef.current?.stopCapture?.();
     focusTrainerWindow();
   }, [focusTrainerWindow]);
 
-  const hasLocalObsCapture = !!obsClientRef.current?.getStream?.();
+  const hasLocalCapture = !!executorClientRef.current?.getStream?.();
+  const captureStatus = executorState.capture?.status || 'idle';
+  const captureMetrics = executorState.capture?.metrics;
+  
   const startDisabled =
-    obsCapture.status === "capturing" || connectionStatus !== "connected";
+    captureStatus === "capturing" || connectionStatus !== "connected";
   const stopDisabled =
-    !hasLocalObsCapture && obsCapture.status !== "capturing";
+    !hasLocalCapture && captureStatus !== "capturing";
 
   // (Debug instrumentation removed)
 
@@ -688,6 +758,25 @@ export default function TrainerView() {
               accessCode={accessCode}
               showQr={false}
             />
+
+            {/* GO LIVE Button */}
+            {sessionState === 'STAGED' && (
+              <button
+                className="trainer-go-live-button"
+                onClick={handleGoLive}
+                disabled={isTransitioning || connectionStatus !== "connected"}
+                title="Start the live session"
+              >
+                {isTransitioning ? 'Going Live...' : 'GO LIVE'}
+              </button>
+            )}
+
+            {sessionState === 'LIVE' && (
+              <div className="trainer-live-indicator">
+                <span className="live-badge">LIVE</span>
+                <p>Session is live</p>
+              </div>
+            )}
             
             {/* Open LiveView Button */}
             <button
@@ -706,16 +795,16 @@ export default function TrainerView() {
               📺 {isLiveViewOpen ? "Close LiveView" : "Open LiveView"}
             </button>
 
-            {/* OBS Capture (Pixels Only) */}
+            {/* Stage Capture (Pixels Only) */}
             <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #e0e0e0" }}>
               <p style={{ margin: 0, fontSize: "0.75rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                OBS Capture
+                Stage Capture (Screen Share)
               </p>
               <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
                 <button
                   className="trainer-focus-button"
                   type="button"
-                  onClick={handleStartObsCapture}
+                  onClick={handleStartExecutorCapture}
                   disabled={startDisabled}
                   title="Start pixels-only capture (choose a window or tab)"
                 >
@@ -724,7 +813,7 @@ export default function TrainerView() {
                 <button
                   className="trainer-focus-button trainer-focus-button--secondary"
                   type="button"
-                  onClick={handleStopObsCapture}
+                  onClick={handleStopExecutorCapture}
                   disabled={stopDisabled}
                   title="Stop capture"
                 >
@@ -738,7 +827,7 @@ export default function TrainerView() {
                     Capture Status
                   </p>
                   <p style={{ margin: 0, fontSize: "1.0rem", fontWeight: "600", color: "#222" }}>
-                    {obsCapture.status}
+                    {captureStatus}
                   </p>
                 </div>
                 <div>
@@ -746,19 +835,19 @@ export default function TrainerView() {
                     Source Metrics
                   </p>
                   <p style={{ margin: 0, fontSize: "1.0rem", fontWeight: "600", color: "#222" }}>
-                    {obsCapture.metrics?.width && obsCapture.metrics?.height
-                      ? `${obsCapture.metrics.width}×${obsCapture.metrics.height}`
+                    {captureMetrics?.width && captureMetrics?.height
+                      ? `${captureMetrics.width}×${captureMetrics.height}`
                       : "—"}
-                    {typeof obsCapture.metrics?.frameRate === "number"
-                      ? ` @${Math.round(obsCapture.metrics.frameRate)}fps`
+                    {typeof captureMetrics?.frameRate === "number"
+                      ? ` @${Math.round(captureMetrics.frameRate)}fps`
                       : ""}
                   </p>
                 </div>
               </div>
 
-              {obsCapture.reason ? (
+              {executorState.reasons && executorState.reasons.length > 0 ? (
                 <p className="trainer-text-muted trainer-panel-note" style={{ marginTop: "8px" }}>
-                  {obsCapture.reason}
+                  {executorState.reasons.join(', ')}
                 </p>
               ) : null}
 
@@ -820,5 +909,3 @@ export default function TrainerView() {
     </div>
   );
 }
-
-

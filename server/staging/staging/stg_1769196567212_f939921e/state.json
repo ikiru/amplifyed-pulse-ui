@@ -1,0 +1,43 @@
+{
+  "sessionId": "session:default",
+  "stagingId": "stg_1769196567212_f939921e",
+  "state": "STAGED",
+  "createdAt": "2026-01-23T19:29:27.212Z",
+  "updatedAt": "2026-01-23T19:39:07.974Z",
+  "isReadOnly": false,
+  "focusCues": [
+    {
+      "id": "focus_system_1769196567212",
+      "text": "Open Conversation",
+      "order": 0,
+      "createdAt": "2026-01-23T19:29:27.212Z",
+      "isSystemDefault": true
+    }
+  ],
+  "mediaCues": [],
+  "entryState": {
+    "defaultFocusCueId": "focus_system_1769196567212",
+    "focusVisibleOnJoin": true,
+    "chatOpenOnJoin": true,
+    "anonymityDefault": "on"
+  },
+  "requirements": {
+    "obsRequired": false,
+    "slideControlRequired": false
+  },
+  "validation": {
+    "obs": {
+      "status": "warning",
+      "reasons": [
+        "OBS is not connected. If you add Media Cues that use OBS, they will not work until OBS is connected."
+      ],
+      "lastChecked": "2026-01-23T19:39:07.973Z"
+    },
+    "slideControl": {
+      "status": "ready",
+      "reasons": [],
+      "lastChecked": "2026-01-23T19:39:07.973Z"
+    },
+    "media": {}
+  }
+}

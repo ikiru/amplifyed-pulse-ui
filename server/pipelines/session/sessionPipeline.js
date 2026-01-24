@@ -7,14 +7,19 @@
 
 import { validateAccessCode, normalizeAccessCode } from './session.accessCode.js';
 import * as SessionState from './session.state.js';
+import * as StagingState from '../../staging/staging.state.js';
+import { calculateReadiness } from '../../staging/staging.state.js';
 
 const DEFAULT_SESSION_ID = 'session:default';
 
-export function createSessionPipeline(io) {
+export function createSessionPipeline(io, { stagingPipeline, focusPipeline } = {}) {
   const allowTrainerRole =
     process.env.ALLOW_TRAINER_ROLE === "true" ||
     (process.env.NODE_ENV !== "production" &&
       process.env.ALLOW_TRAINER_ROLE !== "false");
+  
+  // Store dependencies for orchestrator pattern
+  const dependencies = { stagingPipeline, focusPipeline };
   
   // Ensure default session exists
   if (!SessionState.sessionExists(DEFAULT_SESSION_ID)) {
@@ -286,10 +291,149 @@ export function createSessionPipeline(io) {
     return SessionState.getSessionByCode(accessCode);
   }
 
+  /**
+   * Handle session state get query
+   * 
+   * @param {Object} params
+   * @param {Object} params.socket - Socket instance
+   * @param {string} params.sessionId - Session identifier
+   */
+  function handleStateGet({ socket, sessionId } = {}) {
+    if (!sessionId) {
+      socket.emit('session:state:response', {
+        sessionId: null,
+        state: null,
+        error: 'sessionId required',
+      });
+      return;
+    }
+
+    // Ensure session exists
+    let session = SessionState.getSessionById(sessionId);
+    if (!session) {
+      session = SessionState.createSession(sessionId);
+    }
+
+    // Get or create staging state
+    const stagingState = StagingState.getOrCreateStagingState(sessionId);
+    
+    // Calculate readiness if not already set
+    const readinessState = stagingState.state || calculateReadiness(stagingState);
+    if (stagingState.state !== readinessState) {
+      StagingState.updateStagingState(stagingState.stagingId, {
+        state: readinessState,
+      });
+    }
+
+    // Get current session state (DRAFT/STAGED/LIVE)
+    const sessionState = SessionState.getSessionState(sessionId) || readinessState;
+
+    // Build staging payload (only if not LIVE)
+    let stagingPayload = null;
+    if (sessionState !== 'LIVE') {
+      stagingPayload = {
+        focusCues: stagingState.focusCues,
+        mediaCues: stagingState.mediaCues,
+        entryState: stagingState.entryState,
+        requirements: stagingState.requirements,
+        validation: stagingState.validation,
+        readinessState: stagingState.state,
+      };
+    }
+
+    socket.emit('session:state:response', {
+      sessionId,
+      state: sessionState,
+      stagingPayload,
+    });
+  }
+
+  /**
+   * Handle Live Begin (Orchestrator)
+   * 
+   * @param {Object} params
+   * @param {Object} params.socket - Socket instance
+   * @param {string} params.sessionId - Session identifier
+   */
+  function handleLiveBegin({ socket, sessionId } = {}) {
+    if (!sessionId) {
+      socket.emit('session:live:error', {
+        sessionId: null,
+        code: 'SESSION_ID_REQUIRED',
+        message: 'sessionId is required',
+      });
+      return;
+    }
+
+    try {
+      // Get staging state
+      const stagingState = StagingState.getStagingStateBySessionId(sessionId);
+      if (!stagingState) {
+        socket.emit('session:live:error', {
+          sessionId,
+          code: 'STAGING_STATE_NOT_FOUND',
+          message: 'Staging state not found',
+        });
+        return;
+      }
+
+      // Validate gating rules (check readiness)
+      const readinessState = calculateReadiness(stagingState);
+      if (readinessState !== 'STAGED') {
+        socket.emit('session:live:error', {
+          sessionId,
+          code: 'NOT_READY',
+          message: `Session is not ready. Current state: ${readinessState}. Must be STAGED to go live.`,
+        });
+        return;
+      }
+
+      // Create snapshot (atomic operation)
+      const snapshot = StagingState.createSnapshot(stagingState.stagingId);
+
+      // Initialize focus pipeline from snapshot (use dependency from closure)
+      if (dependencies.focusPipeline?.initializeFromSnapshot) {
+        dependencies.focusPipeline.initializeFromSnapshot(sessionId, {
+          focusCues: snapshot.focusCues,
+          entryState: snapshot.entryState,
+        });
+      } else {
+        console.warn('[sessionPipeline] focusPipeline.initializeFromSnapshot not available');
+      }
+
+      // Set session state to LIVE
+      SessionState.setSessionState(sessionId, 'LIVE');
+
+      // Broadcast state update to all clients
+      io.emit('session:state:update', {
+        sessionId,
+        state: 'LIVE',
+      });
+
+      // Emit ACK to requester
+      socket.emit('session:live:ack', {
+        sessionId,
+        state: 'LIVE',
+        snapshotId: snapshot.snapshotId,
+      });
+
+      console.log(`[sessionPipeline] Session went LIVE: ${sessionId} (snapshot: ${snapshot.snapshotId})`);
+    } catch (err) {
+      console.error(`[sessionPipeline] Error transitioning to Live: ${err.message}`);
+      socket.emit('session:live:error', {
+        sessionId,
+        code: 'INTERNAL_ERROR',
+        message: err.message,
+      });
+    }
+  }
+
   return {
     handleJoin,
     handleLeave,
     handleReconnect,
+    handleStateGet,
+    handleLiveBegin,
     getParticipants,
     getParticipant,
     getAllParticipants,

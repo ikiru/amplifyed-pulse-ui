@@ -166,10 +166,11 @@ It includes only participant-facing defaults and session-wide safety posture, no
 - `entry.chatOpenOnJoin` (boolean, required)
 - Default: `true` unless a safety posture requires otherwise
 
-**Anonymity Default**
-- `entry.anonymityDefault` (enum, required)
-- Default: anonymity ON
-- Depends on system's anonymity layer
+**Anonymity**
+- Anonymity is **always ON** and cannot be configured
+- This is a fundamental principle of the system (see `visual-meaning-and-anonymity-contract.md`)
+- The system always operates with participant anonymity enabled
+- No configuration option exists for this setting
 
 **Welcome Message**
 - `entry.welcomeMessage` (optional string)
@@ -252,7 +253,7 @@ To be STAGED, the session must satisfy:
 **Required:**
 1. Entry State Valid
    - `defaultFocusCueId` resolves
-   - `focusVisibleOnJoin`, `chatOpenOnJoin`, `anonymityDefault` present
+   - `focusVisibleOnJoin`, `chatOpenOnJoin` present
 2. At least one Focus Cue exists in staging
    - Includes the canonical default if trainer created none
 
@@ -532,7 +533,7 @@ Avoid `stage:focus:*` vs `focus:*` split unless you must. Keep pre-live under `s
 #### Session Entry State Configuration
 
 **Client → Server:**
-- `stage:entry:update { sessionId, entry: { defaultFocusCueId?, focusVisibleOnJoin?, chatOpenOnJoin?, anonymityDefault?, welcomeMessage? } }`
+- `stage:entry:update { sessionId, entry: { defaultFocusCueId?, focusVisibleOnJoin?, chatOpenOnJoin?, welcomeMessage? } }`
 
 **Server → Client:**
 - `stage:entry:ack { sessionId, opId, entryState_staging }`
@@ -622,7 +623,6 @@ stagingState = {
     defaultFocusCueId: string,
     focusVisibleOnJoin: boolean,
     chatOpenOnJoin: boolean,
-    anonymityDefault: string,
     welcomeMessage?: string
   },
   requirements: {

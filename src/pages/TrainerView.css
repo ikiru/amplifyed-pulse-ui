@@ -1221,6 +1221,64 @@
 }
 
 /* ================================
+   GO LIVE Button
+   ================================ */
+
+.trainer-go-live-button {
+  width: 100%;
+  margin: 16px 0;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 200ms;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.trainer-go-live-button:hover:not(:disabled) {
+  background: #218838;
+}
+
+.trainer-go-live-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.trainer-live-indicator {
+  width: 100%;
+  margin: 16px 0;
+  padding: 12px 20px;
+  background: #dc3545;
+  color: white;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.live-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: white;
+  color: #dc3545;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 12px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.trainer-live-indicator p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* ================================
    LiveView Button
    ================================ */
 

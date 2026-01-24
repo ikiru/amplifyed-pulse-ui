@@ -177,7 +177,8 @@ A session may transition to LIVE only if:
 
 1. **Entry State is valid**
    - `entryState_staging.defaultFocusCueId` resolves to a staged focus cue
-   - `focusVisibleOnJoin`, `chatOpenOnJoin`, `anonymityDefault` are present
+   - `focusVisibleOnJoin`, `chatOpenOnJoin` are present
+   - Note: Anonymity is always ON and is not configurable (see visual-meaning-and-anonymity-contract.md)
 
 2. **At least one staged focus cue exists**
    - including the canonical default if trainer authored none

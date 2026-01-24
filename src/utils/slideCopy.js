@@ -16,6 +16,7 @@ export function ackToHuman(ack, reason) {
     REJECTED_BUSY: "A command is in progress.",
     REJECTED_UNSUPPORTED_PLATFORM: "This platform is not supported.",
     REJECTED_UNKNOWN: "Something went wrong.",
+    // Timeout is a special case of REJECTED_UNKNOWN
   };
   return (map[ack] || ack) + r;
 }

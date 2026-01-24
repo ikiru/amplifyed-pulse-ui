@@ -102,9 +102,12 @@ interface EntryState {
   defaultFocusCueId: string;  // required, must resolve
   focusVisibleOnJoin: boolean;  // default: true
   chatOpenOnJoin: boolean;  // default: true
-  anonymityDefault: string;  // enum, default: "on"
   welcomeMessage?: string;  // optional
 }
+
+// Note: Anonymity is always ON and is not configurable.
+// This is a fundamental principle of the system (see visual-meaning-and-anonymity-contract.md).
+// The system always operates with participant anonymity enabled.
 
 interface Requirements {
   obsRequired: boolean;  // default: false

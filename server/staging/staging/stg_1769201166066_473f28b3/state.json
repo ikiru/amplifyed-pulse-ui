@@ -1,0 +1,39 @@
+{
+  "sessionId": "session:default",
+  "stagingId": "stg_1769201166066_473f28b3",
+  "state": "DRAFT",
+  "createdAt": "2026-01-23T20:46:06.067Z",
+  "updatedAt": "2026-01-23T20:46:06.067Z",
+  "isReadOnly": false,
+  "focusCues": [
+    {
+      "id": "focus_system_1769201166066",
+      "text": "Open Conversation",
+      "order": 0,
+      "createdAt": "2026-01-23T20:46:06.066Z",
+      "isSystemDefault": true
+    }
+  ],
+  "mediaCues": [],
+  "entryState": {
+    "defaultFocusCueId": "focus_system_1769201166066",
+    "focusVisibleOnJoin": true,
+    "chatOpenOnJoin": true,
+    "anonymityDefault": "on"
+  },
+  "requirements": {
+    "obsRequired": false,
+    "slideControlRequired": false
+  },
+  "validation": {
+    "obs": {
+      "status": "unvalidated",
+      "reasons": []
+    },
+    "slideControl": {
+      "status": "unvalidated",
+      "reasons": []
+    },
+    "media": {}
+  }
+}

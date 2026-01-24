@@ -178,8 +178,9 @@ This document provides a minimal wireframe and component structure for the Stage
 - Default Focus Cue (dropdown, populated from Focus Cues)
 - Focus Visibility On Join (toggle)
 - Chat Open On Join (toggle)
-- Anonymity Default (dropdown/radio)
 - Welcome Message (textarea, optional)
+
+**Note:** Anonymity is always ON and cannot be configured. This is a fundamental principle of the system (see visual-meaning-and-anonymity-contract.md).
 
 **Props:**
 ```typescript

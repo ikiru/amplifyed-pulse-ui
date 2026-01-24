@@ -4,6 +4,7 @@ import TrainerView from "./pages/TrainerView.jsx";
 import AudienceInput from "./pages/AudienceInput.jsx";
 import HISTEAdmin from "./pages/HISTEAdmin.jsx";
 import LiveView from "./pages/LiveView.jsx";
+import StageView from "./pages/StageView.jsx";
 
 /**
  * JoinRedirect Component
@@ -23,6 +24,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<TrainerView />} />
       <Route path="/trainer" element={<TrainerView />} />
+      <Route path="/stage" element={<StageView />} />
       <Route path="/audience" element={<AudienceInput />} />
       <Route path="/join" element={<JoinRedirect />} />
       <Route path="/live/:sessionCode" element={<LiveView />} />

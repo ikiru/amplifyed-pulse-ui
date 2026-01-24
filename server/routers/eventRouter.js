@@ -58,8 +58,9 @@ export default function registerEventRouter(io, socket, pipelines = {}) {
     trainerPipeline = null,
     momentPipeline = null, // Added Phase 2.4.2
     confusionPipeline = null,
-    obsPipeline = null,
+    stageEnginePipeline = null,
     slideControlPipeline = null,
+    stagingPipeline = null,
   } = pipelines;
 
   const isProd = process.env.NODE_ENV === "production";
@@ -322,9 +323,9 @@ socket.on("audience:pulse", (payload = {}) => {
       pulsePipeline.syncPulseState(socket, sessionId);
     }
 
-    // Sync OBS state (if available)
-    if (obsPipeline?.syncState) {
-      obsPipeline.syncState(socket, sessionId);
+    // Sync Stage Engine state (if available)
+    if (stageEnginePipeline?.syncState) {
+      stageEnginePipeline.syncState(socket, sessionId);
     }
 
     // Sync slide control state (if available)
@@ -348,6 +349,10 @@ socket.on("audience:pulse", (payload = {}) => {
       sessionPipeline.handleLeave({
         socketId: socket.id,
       });
+    }
+    // Clear slide control binding on session end (Contract §6.5)
+    if (slideControlPipeline?.clearSessionBinding) {
+      slideControlPipeline.clearSessionBinding(currentSessionId);
     }
     // Ensure the socket stops receiving session-scoped broadcasts.
     leaveRoomsForSession(currentSessionId);
@@ -378,8 +383,8 @@ socket.on("audience:pulse", (payload = {}) => {
       }
     }
 
-    if (obsPipeline?.syncState) {
-      obsPipeline.syncState(socket, sessionId);
+    if (stageEnginePipeline?.syncState) {
+      stageEnginePipeline.syncState(socket, sessionId);
     }
 
     if (slideControlPipeline?.syncState) {
@@ -388,13 +393,13 @@ socket.on("audience:pulse", (payload = {}) => {
   });
 
   // ----------------------------------------------------
-  // OBS PIPELINE (Pixels-only capture lifecycle)
+  // STAGE ENGINE PIPELINE (LiveView / Capture)
   // ----------------------------------------------------
-  socket.on("obs:capture:request", (payload = {}) => {
+  socket.on("stage:capture:request", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
-    if (!requireTrainer(sessionId, "obs:capture:request")) return;
-    if (obsPipeline?.handleCaptureRequest) {
-      obsPipeline.handleCaptureRequest({
+    if (!requireTrainer(sessionId, "stage:capture:request")) return;
+    if (stageEnginePipeline?.handleCaptureRequest) {
+      stageEnginePipeline.handleCaptureRequest({
         sessionId,
         socketId: socket.id,
         ...payload,
@@ -402,11 +407,11 @@ socket.on("audience:pulse", (payload = {}) => {
     }
   });
 
-  socket.on("obs:capture:started", (payload = {}) => {
+  socket.on("stage:capture:started", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
-    if (!requireTrainer(sessionId, "obs:capture:started")) return;
-    if (obsPipeline?.handleCaptureStarted) {
-      obsPipeline.handleCaptureStarted({
+    if (!requireTrainer(sessionId, "stage:capture:started")) return;
+    if (stageEnginePipeline?.handleCaptureStarted) {
+      stageEnginePipeline.handleCaptureStarted({
         sessionId,
         socketId: socket.id,
         ...payload,
@@ -414,11 +419,11 @@ socket.on("audience:pulse", (payload = {}) => {
     }
   });
 
-  socket.on("obs:capture:stopped", (payload = {}) => {
+  socket.on("stage:capture:stopped", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
-    if (!requireTrainer(sessionId, "obs:capture:stopped")) return;
-    if (obsPipeline?.handleCaptureStopped) {
-      obsPipeline.handleCaptureStopped({
+    if (!requireTrainer(sessionId, "stage:capture:stopped")) return;
+    if (stageEnginePipeline?.handleCaptureStopped) {
+      stageEnginePipeline.handleCaptureStopped({
         sessionId,
         socketId: socket.id,
         ...payload,
@@ -426,11 +431,11 @@ socket.on("audience:pulse", (payload = {}) => {
     }
   });
 
-  socket.on("obs:capture:interrupted", (payload = {}) => {
+  socket.on("stage:capture:interrupted", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
-    if (!requireTrainer(sessionId, "obs:capture:interrupted")) return;
-    if (obsPipeline?.handleCaptureInterrupted) {
-      obsPipeline.handleCaptureInterrupted({
+    if (!requireTrainer(sessionId, "stage:capture:interrupted")) return;
+    if (stageEnginePipeline?.handleCaptureInterrupted) {
+      stageEnginePipeline.handleCaptureInterrupted({
         sessionId,
         socketId: socket.id,
         ...payload,
@@ -438,11 +443,11 @@ socket.on("audience:pulse", (payload = {}) => {
     }
   });
 
-  socket.on("obs:capture:permission_denied", (payload = {}) => {
+  socket.on("stage:capture:permission_denied", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
-    if (!requireTrainer(sessionId, "obs:capture:permission_denied")) return;
-    if (obsPipeline?.handlePermissionDenied) {
-      obsPipeline.handlePermissionDenied({
+    if (!requireTrainer(sessionId, "stage:capture:permission_denied")) return;
+    if (stageEnginePipeline?.handlePermissionDenied) {
+      stageEnginePipeline.handlePermissionDenied({
         sessionId,
         socketId: socket.id,
         ...payload,
@@ -450,11 +455,11 @@ socket.on("audience:pulse", (payload = {}) => {
     }
   });
 
-  socket.on("obs:capture:not_supported", (payload = {}) => {
+  socket.on("stage:capture:not_supported", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
-    if (!requireTrainer(sessionId, "obs:capture:not_supported")) return;
-    if (obsPipeline?.handleNotSupported) {
-      obsPipeline.handleNotSupported({
+    if (!requireTrainer(sessionId, "stage:capture:not_supported")) return;
+    if (stageEnginePipeline?.handleNotSupported) {
+      stageEnginePipeline.handleNotSupported({
         sessionId,
         socketId: socket.id,
         ...payload,
@@ -462,17 +467,40 @@ socket.on("audience:pulse", (payload = {}) => {
     }
   });
 
-  socket.on("obs:capture:error", (payload = {}) => {
+  socket.on("stage:capture:error", (payload = {}) => {
     const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
-    if (!requireTrainer(sessionId, "obs:capture:error")) return;
-    if (obsPipeline?.handleError) {
-      obsPipeline.handleError({
+    if (!requireTrainer(sessionId, "stage:capture:error")) return;
+    if (stageEnginePipeline?.handleError) {
+      stageEnginePipeline.handleError({
         sessionId,
         socketId: socket.id,
         ...payload,
       });
     }
   });
+
+  // Media Playback
+  socket.on("stage:media:play", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:media:play")) return;
+    if (stageEnginePipeline?.handleMediaPlay) {
+      stageEnginePipeline.handleMediaPlay({
+        sessionId,
+        cueId: payload.cueId,
+      });
+    }
+  });
+
+  socket.on("stage:media:stop", (payload = {}) => {
+    const sessionId = socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:media:stop")) return;
+    if (stageEnginePipeline?.handleMediaStop) {
+      stageEnginePipeline.handleMediaStop({
+        sessionId,
+      });
+    }
+  });
+
 
   // ----------------------------------------------------
   // SLIDE CONTROL PIPELINE (v1 local-channel)
@@ -553,6 +581,190 @@ socket.on("audience:pulse", (payload = {}) => {
       accessCode,
       participantCount,
     });
+  });
+
+  // ----------------------------------------------------
+  // SESSION STATE QUERIES (for Stage page)
+  // ----------------------------------------------------
+  socket.on("session:state:get", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    
+    if (sessionPipeline?.handleStateGet) {
+      sessionPipeline.handleStateGet({
+        socket,
+        sessionId,
+      });
+    }
+  });
+
+  // ----------------------------------------------------
+  // SESSION LIVE BEGIN (orchestrator - TrainerView only)
+  // ----------------------------------------------------
+  socket.on("session:live:begin", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    
+    if (!requireTrainer(sessionId, "session:live:begin")) return;
+    
+    if (sessionPipeline?.handleLiveBegin) {
+      sessionPipeline.handleLiveBegin({
+        socket,
+        sessionId,
+      });
+    }
+  });
+
+  // ----------------------------------------------------
+  // STAGING PIPELINE (Stage page authoring)
+  // ----------------------------------------------------
+  // Focus Cue Authoring
+  socket.on("stage:focus:create", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:focus:create")) return;
+    if (stagingPipeline?.handleFocusCueCreate) {
+      stagingPipeline.handleFocusCueCreate({
+        socket,
+        sessionId,
+        text: payload.text,
+        insertAfterCueId: payload.insertAfterCueId,
+      });
+    }
+  });
+
+  socket.on("stage:focus:edit", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:focus:edit")) return;
+    if (stagingPipeline?.handleFocusCueEdit) {
+      stagingPipeline.handleFocusCueEdit({
+        socket,
+        sessionId,
+        cueId: payload.cueId,
+        text: payload.text,
+        editMode: payload.editMode,
+      });
+    }
+  });
+
+  socket.on("stage:focus:delete", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:focus:delete")) return;
+    if (stagingPipeline?.handleFocusCueDelete) {
+      stagingPipeline.handleFocusCueDelete({
+        socket,
+        sessionId,
+        cueId: payload.cueId,
+      });
+    }
+  });
+
+  socket.on("stage:focus:reorder", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:focus:reorder")) return;
+    if (stagingPipeline?.handleFocusCueReorder) {
+      stagingPipeline.handleFocusCueReorder({
+        socket,
+        sessionId,
+        orderedCueIds: payload.orderedCueIds,
+      });
+    }
+  });
+
+  socket.on("stage:focus:set_default", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:focus:set_default")) return;
+    if (stagingPipeline?.handleFocusCueSetDefault) {
+      stagingPipeline.handleFocusCueSetDefault({
+        socket,
+        sessionId,
+        defaultFocusCueId: payload.defaultFocusCueId,
+      });
+    }
+  });
+
+  // Media Cue Authoring
+  socket.on("stage:media:create", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:media:create")) return;
+    if (stagingPipeline?.handleMediaCueCreate) {
+      stagingPipeline.handleMediaCueCreate({
+        socket,
+        sessionId,
+        cueData: {
+          label: payload.label,
+          source: payload.source,
+          playback: payload.playback,
+          binding: payload.binding,
+        },
+      });
+    }
+  });
+
+  socket.on("stage:media:edit", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:media:edit")) return;
+    if (stagingPipeline?.handleMediaCueEdit) {
+      stagingPipeline.handleMediaCueEdit({
+        socket,
+        sessionId,
+        cueId: payload.cueId,
+        updates: {
+          label: payload.label,
+          source: payload.source,
+          playback: payload.playback,
+          binding: payload.binding,
+        },
+      });
+    }
+  });
+
+  socket.on("stage:media:delete", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:media:delete")) return;
+    if (stagingPipeline?.handleMediaCueDelete) {
+      stagingPipeline.handleMediaCueDelete({
+        socket,
+        sessionId,
+        cueId: payload.cueId,
+      });
+    }
+  });
+
+  // Entry State Configuration
+  socket.on("stage:entry:update", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:entry:update")) return;
+    if (stagingPipeline?.handleEntryStateUpdate) {
+      stagingPipeline.handleEntryStateUpdate({
+        socket,
+        sessionId,
+        entry: payload.entry,
+      });
+    }
+  });
+
+  // Requirements Toggles
+  socket.on("stage:requirements:update", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:requirements:update")) return;
+    if (stagingPipeline?.handleRequirementsUpdate) {
+      stagingPipeline.handleRequirementsUpdate({
+        socket,
+        sessionId,
+        requirements: payload.requirements,
+      });
+    }
+  });
+
+  // Validation Requests
+  socket.on("stage:validate:request", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:validate:request")) return;
+    if (stagingPipeline?.handleValidationRequest) {
+      stagingPipeline.handleValidationRequest({
+        socket,
+        sessionId,
+        subsystem: payload.subsystem,
+      });
+    }
   });
 
   // ----------------------------------------------------

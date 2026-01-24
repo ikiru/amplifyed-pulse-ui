@@ -43,7 +43,16 @@ export function createSlideControlPipeline(io) {
     handleCommand({ sessionId, socketId, ...payload } = {}) {
       if (!sessionId) return;
       getOrInit(sessionId);
-      console.log("[slideControl] slide:command", { sessionId, socketId, commandId: payload?.commandId, type: payload?.type });
+      // Contract §14: Pipeline MUST log command receipt
+      console.log("[slideControl] slide:command", {
+        sessionId,
+        socketId,
+        commandId: payload?.commandId,
+        type: payload?.type,
+        issuedAt: payload?.issuedAt,
+        bindingId: payload?.bindingId,
+        ts: now(),
+      });
     },
 
     handleAck({ sessionId, socketId, ack, commandId, reason, bindingId, boundTargetLabel } = {}) {
@@ -68,7 +77,16 @@ export function createSlideControlPipeline(io) {
         bindingId: s.bindingId,
         boundTargetLabel: s.boundTargetLabel,
       });
-      console.log("[slideControl] slide:ack", { sessionId, ack: s.lastAck, commandId: s.lastCommandId });
+      // Contract §14: Pipeline MUST log acknowledgement result
+      console.log("[slideControl] slide:ack", {
+        sessionId,
+        socketId,
+        ack: s.lastAck,
+        commandId: s.lastCommandId,
+        reason: s.lastResult?.reason,
+        bindingId: s.bindingId,
+        ts: now(),
+      });
     },
 
     handleAgentStatus({ sessionId, socketId, agentStatus, bindingId, boundTargetLabel } = {}) {
@@ -79,32 +97,52 @@ export function createSlideControlPipeline(io) {
       if (boundTargetLabel !== undefined) s.boundTargetLabel = boundTargetLabel ?? null;
       s.updatedAt = now();
 
+      // Clear binding on agent disconnect (Contract §6.5)
+      if (agentStatus === "disconnected" && s.bindingId) {
+        s.bindingId = null;
+        s.boundTargetLabel = null;
+      }
+
       broadcastToTrainers(sessionId, "slide:agent_status", {
         agentStatus: s.agentStatus,
         bindingId: s.bindingId,
         boundTargetLabel: s.boundTargetLabel,
       });
-      console.log("[slideControl] slide:agent_status", { sessionId, agentStatus: s.agentStatus });
+      // Contract §14: Pipeline MUST log state broadcasts
+      console.log("[slideControl] slide:agent_status", {
+        sessionId,
+        socketId,
+        agentStatus: s.agentStatus,
+        bindingId: s.bindingId,
+        boundTargetLabel: s.boundTargetLabel,
+        ts: now(),
+      });
     },
 
     handleBindList({ sessionId, socketId } = {}) {
       if (!sessionId) return;
-      console.log("[slideControl] slide:bind:list", { sessionId, socketId });
+      console.log("[slideControl] slide:bind:list", { sessionId, socketId, ts: now() });
     },
 
     handleBindSelect({ sessionId, socketId, targetId } = {}) {
       if (!sessionId) return;
-      console.log("[slideControl] slide:bind:select", { sessionId, socketId, targetId });
+      console.log("[slideControl] slide:bind:select", { sessionId, socketId, targetId, ts: now() });
     },
 
     handleBindUnbind({ sessionId, socketId } = {}) {
       if (!sessionId) return;
-      console.log("[slideControl] slide:bind:unbind", { sessionId, socketId });
+      console.log("[slideControl] slide:bind:unbind", { sessionId, socketId, ts: now() });
     },
 
     handleBindRebind({ sessionId, socketId } = {}) {
       if (!sessionId) return;
-      console.log("[slideControl] slide:bind:rebind", { sessionId, socketId });
+      console.log("[slideControl] slide:bind:rebind", { sessionId, socketId, ts: now() });
+    },
+
+    getAgentStatus(sessionId) {
+      if (!sessionId) return null;
+      const s = getOrInit(sessionId);
+      return s.agentStatus;
     },
 
     syncState(socket, sessionId) {
@@ -126,6 +164,23 @@ export function createSlideControlPipeline(io) {
         boundTargetLabel: s.boundTargetLabel,
         ts: s.updatedAt,
       });
+    },
+
+    // Clear binding on session end (Contract §6.5)
+    clearSessionBinding(sessionId) {
+      if (!sessionId) return;
+      const s = stateBySession.get(sessionId);
+      if (s && s.bindingId) {
+        s.bindingId = null;
+        s.boundTargetLabel = null;
+        s.updatedAt = now();
+        broadcastToTrainers(sessionId, "slide:agent_status", {
+          agentStatus: s.agentStatus,
+          bindingId: null,
+          boundTargetLabel: null,
+        });
+        console.log("[slideControl] Binding cleared for session", { sessionId });
+      }
     },
   };
 }

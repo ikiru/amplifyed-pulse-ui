@@ -29,7 +29,7 @@ export function SlideControlPanel({
   const [bindOpen, setBindOpen] = useState(false);
   const [preflightResult, setPreflightResult] = useState(null);
 
-  const disabled = agentStatus === "disconnected" || pending || !bindingId;
+  const disabled = agentStatus === "disconnected" || agentStatus === "stale" || pending || !bindingId;
   const permissionMissing = permissionStatus === "PERMISSION_MISSING";
 
   const onBindClick = async () => {
@@ -102,6 +102,26 @@ export function SlideControlPanel({
         </p>
       )}
 
+      {agentStatus === "stale" && !permissionMissing && (
+        <div
+          className="trainer-panel-note"
+          style={{
+            background: "#fff3cd",
+            border: "1px solid #ffc107",
+            borderRadius: 4,
+            padding: 10,
+            marginBottom: 10,
+          }}
+        >
+          <p style={{ margin: "0 0 8px 0", fontWeight: 600, color: "#856404" }}>
+            Agent connection stale
+          </p>
+          <p style={{ margin: 0, fontSize: "0.9em", color: "#856404" }}>
+            The slide control agent has not responded for 90 seconds. Slide controls are disabled. Check if the agent is still running.
+          </p>
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
         <button
           type="button"
@@ -134,7 +154,7 @@ export function SlideControlPanel({
           <button
             type="button"
             className="trainer-focus-button trainer-focus-button--secondary"
-            disabled={agentStatus === "disconnected"}
+            disabled={agentStatus === "disconnected" || agentStatus === "stale"}
             onClick={onBindClick}
           >
             Bind
@@ -142,7 +162,7 @@ export function SlideControlPanel({
           <button
             type="button"
             className="trainer-focus-button trainer-focus-button--secondary"
-            disabled={agentStatus === "disconnected"}
+            disabled={agentStatus === "disconnected" || agentStatus === "stale"}
             onClick={onRebindClick}
           >
             Rebind
@@ -150,7 +170,7 @@ export function SlideControlPanel({
           <button
             type="button"
             className="trainer-focus-button trainer-focus-button--secondary"
-            disabled={agentStatus === "disconnected" || !bindingId}
+            disabled={agentStatus === "disconnected" || agentStatus === "stale" || !bindingId}
             onClick={handleUnbind}
           >
             Unbind
@@ -198,7 +218,11 @@ export function SlideControlPanel({
         <p style={{ margin: 0, fontSize: "0.75rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.04em" }}>
           Agent
         </p>
-        <p style={{ margin: "4px 0 0 0", fontWeight: 600 }}>
+        <p style={{ 
+          margin: "4px 0 0 0", 
+          fontWeight: 600,
+          color: agentStatus === "connected" ? "#0b5fff" : agentStatus === "stale" ? "#856404" : "#666"
+        }}>
           {agentStatus === "connected" ? "Connected" : agentStatus === "stale" ? "Stale" : "Disconnected"}
         </p>
       </div>
@@ -216,15 +240,22 @@ export function SlideControlPanel({
         <button
           type="button"
           className="trainer-focus-button trainer-focus-button--secondary"
-          disabled={agentStatus === "disconnected" || !bindingId}
+          disabled={agentStatus === "disconnected" || agentStatus === "stale" || !bindingId}
           onClick={onPreflightClick}
         >
           Run Preflight
         </button>
         {preflightResult && (
-          <span style={{ marginLeft: 8, fontSize: "0.9em" }}>
-            {preflightResult.ok ? "Preflight OK" : `Preflight failed: ${preflightResult.step}`}
-          </span>
+          <div style={{ marginLeft: 8, fontSize: "0.9em" }}>
+            {preflightResult.ok ? (
+              <span style={{ color: "#0b5fff" }}>{preflightResult.message || "Preflight OK"}</span>
+            ) : (
+              <span style={{ color: "#d32f2f" }}>
+                Preflight failed: {preflightResult.step}
+                {preflightResult.message && ` — ${preflightResult.message}`}
+              </span>
+            )}
+          </div>
         )}
       </div>
     </section>

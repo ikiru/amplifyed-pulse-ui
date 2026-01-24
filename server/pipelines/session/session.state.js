@@ -50,6 +50,7 @@ export function createSession(sessionId) {
     accessCode,
     participants: {},
     createdAt: Date.now(),
+    state: 'DRAFT', // 'DRAFT' | 'STAGED' | 'LIVE'
   };
 
   sessions.set(sessionId, sessionData);
@@ -248,4 +249,39 @@ export function getSessionCount() {
  */
 export function getSessionIdBySocket(socketId) {
   return socketToSession.get(socketId) || null;
+}
+
+/**
+ * Set session state
+ * 
+ * @param {string} sessionId - Session identifier
+ * @param {string} state - Session state ('DRAFT' | 'STAGED' | 'LIVE')
+ * @returns {boolean} True if state was updated
+ */
+export function setSessionState(sessionId, state) {
+  const session = sessions.get(sessionId);
+  if (!session) {
+    return false;
+  }
+
+  const allowedStates = ['DRAFT', 'STAGED', 'LIVE'];
+  if (!allowedStates.includes(state)) {
+    console.warn(`[session.state] Invalid session state: ${state}`);
+    return false;
+  }
+
+  session.state = state;
+  console.log(`[session.state] Session state updated: ${sessionId} → ${state}`);
+  return true;
+}
+
+/**
+ * Get session state
+ * 
+ * @param {string} sessionId - Session identifier
+ * @returns {string|null} Session state or null if session not found
+ */
+export function getSessionState(sessionId) {
+  const session = sessions.get(sessionId);
+  return session ? (session.state || 'DRAFT') : null;
 }

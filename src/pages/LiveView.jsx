@@ -4,14 +4,14 @@ import { useSocket } from "../socket/SocketContext.jsx";
 import { useLiveViewSocket } from "../hooks/useLiveViewSocket.js";
 import { PulseTimeline } from "../components/pulse/PulseTimeline.jsx";
 import { QRCodeDisplay } from "../components/session/QRCodeDisplay.jsx";
-import { useObsCaptureState } from "../hooks/useObsCaptureState.js";
+import { useStageExecutorState } from "../hooks/useStageExecutorState.js";
 import "./LiveView.css";
 
 /**
  * LiveView
  * 
  * Projection-optimized display for live session activity.
- * Shows Session Info, Pulse, Focus, and Slides (OBS deck feed) in a layout designed for in-room projectors.
+ * Shows Session Info, Pulse, Focus, and Slides (Stage Executor deck feed) in a layout designed for in-room projectors.
  * 
  * Read-only display - no controls or interaction.
  * Launched from TrainerView via "Open LiveView" button.
@@ -27,16 +27,23 @@ export default function LiveView() {
   const [focus, setFocus] = useState(null);
   const [participantCount, setParticipantCount] = useState(null);
   const [sessionError, setSessionError] = useState(null);
-  const [obsCapture, setObsCapture] = useState({
+  
+  const [executorState, setExecutorState] = useState({
     status: "idle",
-    reason: null,
-    metrics: null,
-    captureSessionId: null,
+    reasons: [],
+    capture: {
+      status: "idle",
+      metrics: null,
+      sourceHint: null,
+    },
+    media: {
+      status: "stopped",
+    },
     ts: null,
   });
 
   const slideVideoRef = useRef(null);
-  const [hasLocalObsStream, setHasLocalObsStream] = useState(false);
+  const [hasLocalStream, setHasLocalStream] = useState(false);
   const lastJoinAttemptRef = useRef({ code: null, connected: false });
 
   // Subscribe to socket events
@@ -50,8 +57,8 @@ export default function LiveView() {
     setSessionError,
   });
 
-  // OBS status (server state machine)
-  useObsCaptureState({ onEvent, offEvent, setObsCapture });
+  // Stage Executor status (server state machine)
+  useStageExecutorState({ onEvent, offEvent, setExecutorState });
 
   // Join the session room using the access code from the URL param.
   useEffect(() => {
@@ -108,9 +115,9 @@ export default function LiveView() {
     );
   }
 
-  // Attach local OBS stream (local handoff from TrainerView).
+  // Attach local Stage stream (local handoff from TrainerView).
   // LiveView is local-only: we attach whenever `window.opener` exposes a live stream,
-  // regardless of server-reported OBS status (server status can drift due to gating/disconnects).
+  // regardless of server-reported status (server status can drift due to gating/disconnects).
   useEffect(() => {
     let intervalId = null;
 
@@ -125,14 +132,14 @@ export default function LiveView() {
       if (node?.srcObject) {
         node.srcObject = null;
       }
-      setHasLocalObsStream((prev) => (prev ? false : prev));
+      setHasLocalStream((prev) => (prev ? false : prev));
     };
 
     const tryAttach = () => {
       let stream = null;
       try {
         // LiveView is local-only: requires an opener window to access the captured MediaStream.
-        stream = window.opener?.__LIVEVIEW__?.getObsStream?.() ?? null;
+        stream = window.opener?.__LIVEVIEW__?.getStageStream?.() ?? null;
       } catch (_) {
         stream = null;
       }
@@ -151,7 +158,7 @@ export default function LiveView() {
       if (node.srcObject !== stream) {
         node.srcObject = stream;
       }
-      setHasLocalObsStream((prev) => (prev ? prev : true));
+      setHasLocalStream((prev) => (prev ? prev : true));
       return true;
     };
 
@@ -183,6 +190,7 @@ export default function LiveView() {
   }, []);
 
   const showReconnecting = connectionStatus !== "connected";
+  const captureStatus = executorState.capture?.status || 'idle';
 
   return (
     <div className="liveview-shell">
@@ -231,15 +239,14 @@ export default function LiveView() {
               autoPlay
               playsInline
               muted
-              style={{ display: hasLocalObsStream ? "block" : "none" }}
+              style={{ display: hasLocalStream ? "block" : "none" }}
             />
 
-            {!hasLocalObsStream ? (
+            {!hasLocalStream ? (
               <div className="liveview-slides-placeholder">
                 <div className="liveview-slides-title">Slides</div>
                 <div className="liveview-slides-status">
-                  OBS: {obsCapture.status}
-                  {obsCapture.reason ? ` — ${obsCapture.reason}` : ""}
+                  Executor: {captureStatus}
                 </div>
                 <div className="liveview-slides-subtle">
                   Slides will appear here when LiveView can attach to the trainer&apos;s local capture.

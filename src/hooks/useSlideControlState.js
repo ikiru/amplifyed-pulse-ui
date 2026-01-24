@@ -29,7 +29,17 @@ export function useSlideControlState({ emit, onEvent, offEvent, sessionId }) {
   const client = clientRef.current;
 
   const pendingCommandIdRef = useRef(null);
+  const lastHeartbeatRef = useRef(null);
+  const missedHeartbeatsRef = useRef(0);
+  const heartbeatIntervalRef = useRef(null);
+  const commandTimeoutRef = useRef(null);
+  const lastCommandAtRef = useRef(0);
   const sid = sessionId || "";
+
+  const HEARTBEAT_INTERVAL_MS = 30000; // 30 seconds
+  const STALE_THRESHOLD = 3; // 3 missed heartbeats = 90 seconds
+  const COMMAND_TIMEOUT_MS = 5000; // 5 seconds (Contract §9.3)
+  const MIN_COMMAND_INTERVAL_MS = 200; // Minimum 200ms between commands (Contract §9.2)
 
   const emitAgentStatus = useCallback(
     (status, bind = {}) => {
@@ -43,6 +53,40 @@ export function useSlideControlState({ emit, onEvent, offEvent, sessionId }) {
     [emit, bindingId, boundTargetLabel]
   );
 
+  // Heartbeat monitoring (Contract §10.1)
+  const checkHeartbeat = useCallback(async () => {
+    try {
+      const result = await client.heartbeat();
+      if (result.ok) {
+        lastHeartbeatRef.current = Date.now();
+        missedHeartbeatsRef.current = 0;
+        // If we were stale/disconnected and now have heartbeat, mark as connected
+        if (agentStatus !== "connected") {
+          setAgentStatus("connected");
+          emitAgentStatus("connected");
+        }
+      } else {
+        // Heartbeat failed
+        missedHeartbeatsRef.current += 1;
+        if (missedHeartbeatsRef.current >= STALE_THRESHOLD) {
+          setAgentStatus("stale");
+          emitAgentStatus("stale");
+        }
+      }
+    } catch (e) {
+      // Network error - agent unreachable
+      missedHeartbeatsRef.current += 1;
+      if (missedHeartbeatsRef.current >= STALE_THRESHOLD) {
+        setAgentStatus("stale");
+        emitAgentStatus("stale");
+      } else if (missedHeartbeatsRef.current === 1) {
+        // First failure - mark as disconnected
+        setAgentStatus("disconnected");
+        emitAgentStatus("disconnected");
+      }
+    }
+  }, [client, agentStatus, emitAgentStatus]);
+
   // Subscribe to server broadcasts
   useEffect(() => {
     if (!onEvent || !offEvent) return;
@@ -52,6 +96,11 @@ export function useSlideControlState({ emit, onEvent, offEvent, sessionId }) {
       if (p?.commandId === pendingCommandIdRef.current) {
         setPending(false);
         pendingCommandIdRef.current = null;
+        // Clear timeout if ack received
+        if (commandTimeoutRef.current) {
+          clearTimeout(commandTimeoutRef.current);
+          commandTimeoutRef.current = null;
+        }
       }
     };
 
@@ -85,17 +134,47 @@ export function useSlideControlState({ emit, onEvent, offEvent, sessionId }) {
       if (emit) emit("slide:ack", { ack: "REJECTED_NOT_BOUND", reason: "Not bound", sessionId: sid });
       return;
     }
+    // Rate limiting check (Contract §9.2: minimum 200ms between commands)
+    const now = Date.now();
+    const timeSinceLastCommand = now - lastCommandAtRef.current;
+    if (lastCommandAtRef.current > 0 && timeSinceLastCommand < MIN_COMMAND_INTERVAL_MS) {
+      setLastResult({ ack: "REJECTED_RATE_LIMIT", reason: `Wait ${MIN_COMMAND_INTERVAL_MS}ms between commands` });
+      if (emit) emit("slide:ack", { ack: "REJECTED_RATE_LIMIT", reason: `Wait ${MIN_COMMAND_INTERVAL_MS}ms between commands`, sessionId: sid });
+      return;
+    }
     const commandId = generateCommandId();
     pendingCommandIdRef.current = commandId;
+    lastCommandAtRef.current = now;
     setPending(true);
     if (emit) emit("slide:command", { type: "SLIDE_PREV", commandId, issuedAt: Date.now(), sessionId: sid, bindingId });
 
+    // Set timeout (Contract §9.3: 5 seconds)
+    commandTimeoutRef.current = setTimeout(() => {
+      if (pendingCommandIdRef.current === commandId) {
+        // Timeout expired - mark as failed
+        setPending(false);
+        pendingCommandIdRef.current = null;
+        const timeoutResult = { ack: "REJECTED_UNKNOWN", reason: "Timeout" };
+        setLastResult(timeoutResult);
+        if (emit) emit("slide:ack", { ...timeoutResult, commandId, sessionId: sid });
+      }
+    }, COMMAND_TIMEOUT_MS);
+
     const res = await client.command("SLIDE_PREV", { commandId, issuedAt: Date.now(), sessionId: sid, bindingId });
+    
+    // Clear timeout if command completed (even if failed)
+    if (commandTimeoutRef.current) {
+      clearTimeout(commandTimeoutRef.current);
+      commandTimeoutRef.current = null;
+    }
+
     if (res.ack === "REJECTED_NOT_CONNECTED") {
       setAgentStatus("disconnected");
       emitAgentStatus("disconnected");
     } else if (res.ack === "ACK_EXECUTED") {
       setAgentStatus("connected");
+      lastHeartbeatRef.current = Date.now();
+      missedHeartbeatsRef.current = 0;
       emitAgentStatus("connected");
     }
     if (emit) emit("slide:ack", { ack: res.ack, commandId, reason: res.reason, sessionId: sid });
@@ -111,17 +190,47 @@ export function useSlideControlState({ emit, onEvent, offEvent, sessionId }) {
       if (emit) emit("slide:ack", { ack: "REJECTED_NOT_BOUND", reason: "Not bound", sessionId: sid });
       return;
     }
+    // Rate limiting check (Contract §9.2: minimum 200ms between commands)
+    const now = Date.now();
+    const timeSinceLastCommand = now - lastCommandAtRef.current;
+    if (lastCommandAtRef.current > 0 && timeSinceLastCommand < MIN_COMMAND_INTERVAL_MS) {
+      setLastResult({ ack: "REJECTED_RATE_LIMIT", reason: `Wait ${MIN_COMMAND_INTERVAL_MS}ms between commands` });
+      if (emit) emit("slide:ack", { ack: "REJECTED_RATE_LIMIT", reason: `Wait ${MIN_COMMAND_INTERVAL_MS}ms between commands`, sessionId: sid });
+      return;
+    }
     const commandId = generateCommandId();
     pendingCommandIdRef.current = commandId;
+    lastCommandAtRef.current = now;
     setPending(true);
     if (emit) emit("slide:command", { type: "SLIDE_NEXT", commandId, issuedAt: Date.now(), sessionId: sid, bindingId });
 
+    // Set timeout (Contract §9.3: 5 seconds)
+    commandTimeoutRef.current = setTimeout(() => {
+      if (pendingCommandIdRef.current === commandId) {
+        // Timeout expired - mark as failed
+        setPending(false);
+        pendingCommandIdRef.current = null;
+        const timeoutResult = { ack: "REJECTED_UNKNOWN", reason: "Timeout" };
+        setLastResult(timeoutResult);
+        if (emit) emit("slide:ack", { ...timeoutResult, commandId, sessionId: sid });
+      }
+    }, COMMAND_TIMEOUT_MS);
+
     const res = await client.command("SLIDE_NEXT", { commandId, issuedAt: Date.now(), sessionId: sid, bindingId });
+    
+    // Clear timeout if command completed (even if failed)
+    if (commandTimeoutRef.current) {
+      clearTimeout(commandTimeoutRef.current);
+      commandTimeoutRef.current = null;
+    }
+
     if (res.ack === "REJECTED_NOT_CONNECTED") {
       setAgentStatus("disconnected");
       emitAgentStatus("disconnected");
     } else if (res.ack === "ACK_EXECUTED") {
       setAgentStatus("connected");
+      lastHeartbeatRef.current = Date.now();
+      missedHeartbeatsRef.current = 0;
       emitAgentStatus("connected");
     }
     if (emit) emit("slide:ack", { ack: res.ack, commandId, reason: res.reason, sessionId: sid });
@@ -138,6 +247,8 @@ export function useSlideControlState({ emit, onEvent, offEvent, sessionId }) {
       return out;
     }
     setAgentStatus("connected");
+    lastHeartbeatRef.current = Date.now();
+    missedHeartbeatsRef.current = 0;
     emitAgentStatus("connected");
     return out;
   }, [client, emitAgentStatus]);
@@ -153,6 +264,8 @@ export function useSlideControlState({ emit, onEvent, offEvent, sessionId }) {
       if (res.ack === "ACK_EXECUTED" && (res.bindingId != null || res.boundTargetLabel != null)) {
         setBindingId(res.bindingId ?? null);
         setBoundTargetLabel(res.boundTargetLabel ?? null);
+        lastHeartbeatRef.current = Date.now();
+        missedHeartbeatsRef.current = 0;
         emitAgentStatus("connected", { bindingId: res.bindingId ?? null, boundTargetLabel: res.boundTargetLabel ?? null });
       }
       return res;
@@ -184,6 +297,8 @@ export function useSlideControlState({ emit, onEvent, offEvent, sessionId }) {
     setPermissionStatus(out.status);
     if (out.status === "PERMISSION_OK") {
       setAgentStatus("connected");
+      lastHeartbeatRef.current = Date.now();
+      missedHeartbeatsRef.current = 0;
       emitAgentStatus("connected");
     } else {
       setAgentStatus("disconnected");
@@ -193,22 +308,34 @@ export function useSlideControlState({ emit, onEvent, offEvent, sessionId }) {
   }, [client, emitAgentStatus]);
 
   const handlePreflight = useCallback(async () => {
+    // Contract §17: Preflight MUST verify all conditions:
+    // 1. Agent connected
+    // 2. Permission OK
+    // 3. Target bound
+    // 4. One successful test command (SLIDE_NEXT) acknowledged
+
+    // Step 1: Check permission (also verifies agent is reachable)
     const perm = await client.getPermission();
     if (perm.status !== "PERMISSION_OK") {
-      return { ok: false, step: "Permission" };
+      return { ok: false, step: "Permission", message: "macOS Accessibility permission required" };
     }
-    setAgentStatus("connected");
     setPermissionStatus(perm.status);
 
+    // Step 2: Verify agent is connected (via listTargets - lightweight check)
     const list = await client.listTargets();
     if (list.ack && list.ack.startsWith("REJECTED_")) {
-      return { ok: false, step: "Agent" };
+      return { ok: false, step: "Agent", message: "Agent not connected or unreachable" };
     }
+    setAgentStatus("connected");
+    lastHeartbeatRef.current = Date.now();
+    missedHeartbeatsRef.current = 0;
 
+    // Step 3: Verify target is bound
     if (!bindingId) {
-      return { ok: false, step: "Binding" };
+      return { ok: false, step: "Binding", message: "No slide target bound. Select a target first." };
     }
 
+    // Step 4: Execute test command (SLIDE_NEXT per contract)
     const commandId = generateCommandId();
     const res = await client.command("SLIDE_NEXT", {
       commandId,
@@ -217,9 +344,15 @@ export function useSlideControlState({ emit, onEvent, offEvent, sessionId }) {
       bindingId,
     });
     if (res.ack !== "ACK_EXECUTED") {
-      return { ok: false, step: "Test command" };
+      return { 
+        ok: false, 
+        step: "Test command", 
+        message: `Test command failed: ${res.ack}${res.reason ? ` (${res.reason})` : ""}` 
+      };
     }
-    return { ok: true };
+
+    // All checks passed
+    return { ok: true, message: "Preflight OK - all systems ready" };
   }, [client, bindingId, sid]);
 
   // Initial permission check and optional health
@@ -229,10 +362,57 @@ export function useSlideControlState({ emit, onEvent, offEvent, sessionId }) {
       const p = await client.getPermission();
       if (cancelled) return;
       setPermissionStatus(p.status);
-      setAgentStatus(p.status === "PERMISSION_OK" ? "connected" : "disconnected");
+      if (p.status === "PERMISSION_OK") {
+        setAgentStatus("connected");
+        lastHeartbeatRef.current = Date.now();
+        missedHeartbeatsRef.current = 0;
+      } else {
+        setAgentStatus("disconnected");
+      }
     })();
     return () => { cancelled = true; };
   }, [client]);
+
+  // Heartbeat polling (Contract §10.1: every 30 seconds)
+  useEffect(() => {
+    // Start heartbeat polling
+    heartbeatIntervalRef.current = setInterval(() => {
+      checkHeartbeat();
+    }, HEARTBEAT_INTERVAL_MS);
+
+    // Initial heartbeat check
+    checkHeartbeat();
+
+    return () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
+      if (commandTimeoutRef.current) {
+        clearTimeout(commandTimeoutRef.current);
+        commandTimeoutRef.current = null;
+      }
+    };
+  }, [checkHeartbeat]);
+
+  // Binding cleanup on session end or agent disconnect (Contract §6.5)
+  useEffect(() => {
+    // Clear binding when sessionId changes (session end)
+    if (bindingId) {
+      setBindingId(null);
+      setBoundTargetLabel(null);
+      emitAgentStatus(agentStatus, { bindingId: null, boundTargetLabel: null });
+    }
+  }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Clear binding when agent disconnects (Contract §6.5)
+  useEffect(() => {
+    if (agentStatus === "disconnected" && bindingId) {
+      setBindingId(null);
+      setBoundTargetLabel(null);
+      emitAgentStatus("disconnected", { bindingId: null, boundTargetLabel: null });
+    }
+  }, [agentStatus, bindingId, emitAgentStatus]);
 
   return {
     agentStatus,

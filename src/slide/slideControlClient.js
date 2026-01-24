@@ -110,5 +110,12 @@ export function createSlideControlClient(opts = {}) {
       const out = await get("/permission");
       return { status: out.status === "PERMISSION_OK" ? "PERMISSION_OK" : "PERMISSION_MISSING" };
     },
+
+    async heartbeat() {
+      // Use permission endpoint as heartbeat check (lightweight)
+      const out = await get("/permission");
+      // Return success if we got any response (even PERMISSION_MISSING means agent is reachable)
+      return { ok: true, status: out.status };
+    },
   };
 }

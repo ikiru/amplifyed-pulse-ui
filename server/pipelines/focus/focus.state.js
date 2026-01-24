@@ -226,3 +226,67 @@ export function clearActiveFocus(sessionId) {
   // Legacy clear now means reset to default.
   resetFocusToDefault(sessionId);
 }
+
+/**
+ * Initialize focus pipeline from staging snapshot
+ * Called by session pipeline orchestrator when session goes Live
+ * 
+ * @param {string} sessionId - Session identifier
+ * @param {Object} snapshot - Snapshot data from staging
+ * @param {Array} snapshot.focusCues - Focus Cues from snapshot
+ * @param {Object} snapshot.entryState - Entry state from snapshot
+ */
+export function initializeFromSnapshot(sessionId, snapshot) {
+  if (!sessionId || !snapshot) {
+    throw new Error('[focus.state] sessionId and snapshot required');
+  }
+
+  const { focusCues = [], entryState = {} } = snapshot;
+  const defaultFocusCueId = entryState.defaultFocusCueId;
+
+  // Clear existing state for this session
+  focusStateBySession.delete(sessionId);
+
+  // Convert staging Focus Cues to focus pipeline entries
+  const entries = focusCues.map((cue, index) => {
+    // Map staging cue ID to focus pipeline format
+    // Use staging cue ID as focusId (preserve identity)
+    return {
+      focusId: cue.id, // Use staging cue ID
+      sessionId,
+      text: cue.text,
+      createdAt: cue.createdAt ? new Date(cue.createdAt).getTime() : nowMs(),
+      activatedAt: null,
+      deactivatedAt: null,
+      authorRole: cue.isSystemDefault ? 'system' : 'trainer',
+      revisedFromFocusId: null,
+      order: cue.order !== undefined ? cue.order : index,
+    };
+  });
+
+  // Ensure at least one entry exists
+  if (entries.length === 0) {
+    entries.push(buildDefaultEntry(sessionId));
+  }
+
+  // Determine active focus ID
+  let activeFocusId = defaultFocusCueId;
+  if (!activeFocusId || !entries.some((e) => e.focusId === activeFocusId)) {
+    // Fall back to first entry
+    activeFocusId = entries[0].focusId;
+  }
+
+  // Activate the default focus
+  const activeEntry = entries.find((e) => e.focusId === activeFocusId);
+  if (activeEntry) {
+    activeEntry.activatedAt = nowMs();
+  }
+
+  // Set state
+  focusStateBySession.set(sessionId, {
+    entries,
+    activeFocusId,
+  });
+
+  console.log(`[focus.state] Initialized from snapshot: ${sessionId} (${entries.length} entries, active: ${activeFocusId})`);
+}

@@ -1,5 +1,5 @@
 /**
- * OBS Capture Client (v1)
+ * Stage Executor Client (v1)
  *
  * Browser-only pixels capture via getDisplayMedia. No composition. No server streaming.
  * Emits lifecycle events to the backend pipeline over socket emit().
@@ -33,15 +33,15 @@ function computeSourceHint(track) {
   return "unknown";
 }
 
-const OBS_CAPTURE_SINGLETON_KEY = "__OBS_CAPTURE_V1__";
+const STAGE_CAPTURE_SINGLETON_KEY = "__STAGE_CAPTURE_V1__";
 
 function getCaptureSingleton() {
   if (typeof window === "undefined") {
     return null;
   }
 
-  if (!window[OBS_CAPTURE_SINGLETON_KEY]) {
-    window[OBS_CAPTURE_SINGLETON_KEY] = {
+  if (!window[STAGE_CAPTURE_SINGLETON_KEY]) {
+    window[STAGE_CAPTURE_SINGLETON_KEY] = {
       active: null, // { stream, captureSessionId }
       stopping: false,
       emit: null,
@@ -49,10 +49,10 @@ function getCaptureSingleton() {
     };
   }
 
-  return window[OBS_CAPTURE_SINGLETON_KEY];
+  return window[STAGE_CAPTURE_SINGLETON_KEY];
 }
 
-export function createObsCaptureClient({ emit }) {
+export function createStageExecutorClient({ emit }) {
   // Persist active capture across Vite HMR/reloads by storing it on window.
   // This ensures Stop can always stop the current shared track.
   const singleton = getCaptureSingleton();
@@ -83,7 +83,7 @@ export function createObsCaptureClient({ emit }) {
     if (!active?.stream) return;
 
     if (s) s.stopping = true;
-    safeEmit("obs:capture:stopped", {
+    safeEmit("stage:capture:stopped", {
       captureSessionId: active.captureSessionId,
       reason: "stopped",
       ts: Date.now(),
@@ -104,11 +104,11 @@ export function createObsCaptureClient({ emit }) {
     }
 
     if (!navigator?.mediaDevices?.getDisplayMedia) {
-      safeEmit("obs:capture:not_supported", { ts: Date.now() });
+      safeEmit("stage:capture:not_supported", { ts: Date.now() });
       return null;
     }
 
-    safeEmit("obs:capture:request", { ts: Date.now() });
+    safeEmit("stage:capture:request", { ts: Date.now() });
 
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -131,7 +131,7 @@ export function createObsCaptureClient({ emit }) {
         s.active = { stream, captureSessionId };
       }
 
-      safeEmit("obs:capture:started", {
+      safeEmit("stage:capture:started", {
         captureSessionId,
         metrics,
         sourceHint,
@@ -145,7 +145,7 @@ export function createObsCaptureClient({ emit }) {
         if (!active?.stream) return;
         if (s?.stopping) return;
 
-        safeEmit("obs:capture:stopped", {
+        safeEmit("stage:capture:stopped", {
           captureSessionId: active.captureSessionId ?? captureSessionId,
           reason: "track_ended",
           ts: Date.now(),
@@ -175,7 +175,7 @@ export function createObsCaptureClient({ emit }) {
       return stream;
     } catch (err) {
       // Permission denied / cancelled
-      safeEmit("obs:capture:permission_denied", { ts: Date.now() });
+      safeEmit("stage:capture:permission_denied", { ts: Date.now() });
       return null;
     }
   };
@@ -188,4 +188,3 @@ export function createObsCaptureClient({ emit }) {
     getStream,
   };
 }
-

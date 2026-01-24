@@ -10,10 +10,24 @@ import {
   reorderFocusEntries,
   resetFocusToDefault,
   reviseFocusByNew,
+  initializeFromSnapshot,
 } from "./focus.state.js";
+import * as SessionState from "../session/session.state.js";
 import { broadcastFocus } from "./focus.broadcast.js";
 
 export function registerFocusHandlers({ io, sessionPipeline } = {}) {
+  /**
+   * Check if session is LIVE (server-side guard)
+   * 
+   * @param {string} sessionId - Session identifier
+   * @returns {boolean} True if session is LIVE
+   */
+  function isSessionLive(sessionId) {
+    if (!sessionId) return false;
+    const sessionState = SessionState.getSessionState(sessionId);
+    return sessionState === 'LIVE';
+  }
+
   function getTrainerSocketIds(sessionId) {
     const participants = sessionPipeline?.getParticipants?.(sessionId) ?? {};
     return Object.entries(participants)
@@ -57,6 +71,19 @@ export function registerFocusHandlers({ io, sessionPipeline } = {}) {
   function handleAddEntry(payload = {}) {
     const { sessionId, text } = payload;
     if (!sessionId) return;
+
+    // Server-side guard: reject if LIVE
+    if (isSessionLive(sessionId)) {
+      console.warn(`[focusPipeline] Rejected focus:add: Session ${sessionId} is LIVE`);
+      // Emit error to trainers only
+      emitToTrainers(sessionId, "focus:write:rejected", {
+        sessionId,
+        reason: "SESSION_IS_LIVE",
+        message: "Cannot add focus entry: Session is Live",
+      });
+      return;
+    }
+
     addFocusEntry(sessionId, { text, authorRole: "trainer" });
     io.to(sessionId).emit("session:event", {
       type: "focus:entry_added",
@@ -99,6 +126,18 @@ export function registerFocusHandlers({ io, sessionPipeline } = {}) {
   function handleEditInPlace(payload = {}) {
     const { sessionId, focusId, text } = payload;
     if (!sessionId || !focusId) return;
+
+    // Server-side guard: reject if LIVE
+    if (isSessionLive(sessionId)) {
+      console.warn(`[focusPipeline] Rejected focus:edit: Session ${sessionId} is LIVE`);
+      emitToTrainers(sessionId, "focus:write:rejected", {
+        sessionId,
+        reason: "SESSION_IS_LIVE",
+        message: "Cannot edit focus entry: Session is Live",
+      });
+      return;
+    }
+
     editFocusInPlace(sessionId, focusId, { text });
     const active = getActiveFocus(sessionId);
     io.to(sessionId).emit("session:event", {
@@ -117,6 +156,18 @@ export function registerFocusHandlers({ io, sessionPipeline } = {}) {
   function handleReviseByNew(payload = {}) {
     const { sessionId, focusId, text } = payload;
     if (!sessionId) return;
+
+    // Server-side guard: reject if LIVE
+    if (isSessionLive(sessionId)) {
+      console.warn(`[focusPipeline] Rejected focus:revise: Session ${sessionId} is LIVE`);
+      emitToTrainers(sessionId, "focus:write:rejected", {
+        sessionId,
+        reason: "SESSION_IS_LIVE",
+        message: "Cannot revise focus entry: Session is Live",
+      });
+      return;
+    }
+
     reviseFocusByNew(sessionId, focusId, { text, authorRole: "trainer" });
     io.to(sessionId).emit("session:event", {
       type: "focus:revise_by_new",
@@ -130,6 +181,18 @@ export function registerFocusHandlers({ io, sessionPipeline } = {}) {
   function handleReorder(payload = {}) {
     const { sessionId, orderedFocusIds } = payload;
     if (!sessionId) return;
+
+    // Server-side guard: reject if LIVE
+    if (isSessionLive(sessionId)) {
+      console.warn(`[focusPipeline] Rejected focus:reorder: Session ${sessionId} is LIVE`);
+      emitToTrainers(sessionId, "focus:write:rejected", {
+        sessionId,
+        reason: "SESSION_IS_LIVE",
+        message: "Cannot reorder focus entries: Session is Live",
+      });
+      return;
+    }
+
     reorderFocusEntries(sessionId, orderedFocusIds);
     io.to(sessionId).emit("session:event", {
       type: "focus:reordered",
@@ -182,5 +245,6 @@ export function registerFocusHandlers({ io, sessionPipeline } = {}) {
     getActiveFocus,
     syncFocusState,
     getFocusState,
+    initializeFromSnapshot, // Export for session pipeline orchestrator
   };
 }
