@@ -39,6 +39,7 @@ export default function StageView() {
     createMediaCue,
     editMediaCue,
     deleteMediaCue,
+    validateMediaCue,
     updateEntryState,
     updateRequirements,
     requestValidation,
@@ -110,10 +111,12 @@ export default function StageView() {
 
           <MediaCuesPanel
             mediaCues={stagingState?.mediaCues || []}
+            validation={stagingState?.validation}
             isReadOnly={isReadOnly}
             onCreate={createMediaCue}
             onEdit={editMediaCue}
             onDelete={deleteMediaCue}
+            onValidate={validateMediaCue}
           />
         </div>
 

@@ -9,10 +9,12 @@ import MediaCueForm from './MediaCueForm.jsx';
  */
 export default function MediaCuesPanel({
   mediaCues,
+  validation,
   isReadOnly,
   onCreate,
   onEdit,
   onDelete,
+  onValidate,
 }) {
   const [showForm, setShowForm] = useState(false);
   const [editingCue, setEditingCue] = useState(null);
@@ -68,15 +70,24 @@ export default function MediaCuesPanel({
                 <p>No Media Cues yet. Add one below.</p>
               </div>
             ) : (
-              mediaCues.map((cue) => (
-                <MediaCueItem
-                  key={cue.id}
-                  cue={cue}
-                  isReadOnly={isReadOnly}
-                  onEdit={handleEdit}
-                  onDelete={onDelete}
-                />
-              ))
+              mediaCues.map((cue) => {
+                // Merge validation state from validation.media[cueId] into the cue
+                const cueWithValidation = {
+                  ...cue,
+                  validation: validation?.media?.[cue.id] || cue.validation,
+                };
+                
+                return (
+                  <MediaCueItem
+                    key={cue.id}
+                    cue={cueWithValidation}
+                    isReadOnly={isReadOnly}
+                    onEdit={handleEdit}
+                    onDelete={onDelete}
+                    onValidate={onValidate}
+                  />
+                );
+              })
             )}
           </div>
 

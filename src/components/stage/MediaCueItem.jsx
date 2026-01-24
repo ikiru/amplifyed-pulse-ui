@@ -5,7 +5,7 @@ import React from 'react';
  * 
  * Individual Media Cue display with validation status
  */
-export default function MediaCueItem({ cue, isReadOnly, onEdit, onDelete }) {
+export default function MediaCueItem({ cue, isReadOnly, onEdit, onDelete, onValidate }) {
   const getValidationBadgeClass = () => {
     const status = cue.validation?.status || 'unvalidated';
     return `validation-badge ${status}`;
@@ -52,6 +52,13 @@ export default function MediaCueItem({ cue, isReadOnly, onEdit, onDelete }) {
 
       {!isReadOnly && (
         <div className="media-cue-actions">
+          <button
+            onClick={() => onValidate && onValidate(cue.id)}
+            className="media-cue-action-btn validate"
+            title="Validate Now"
+          >
+            Validate Now
+          </button>
           <button
             onClick={() => onEdit(cue.id)}
             className="media-cue-action-btn"

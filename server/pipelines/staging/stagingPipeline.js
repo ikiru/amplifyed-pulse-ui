@@ -517,7 +517,7 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
    * @param {string} params.sessionId - Session identifier
    * @param {Object} params.cueData - Media Cue data
    */
-  function handleMediaCueCreate({ socket, sessionId, cueData } = {}) {
+  async function handleMediaCueCreate({ socket, sessionId, cueData } = {}) {
     const opId = generateOpId();
 
     try {
@@ -542,8 +542,8 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
         return;
       }
 
-      // Validate Media Cue
-      const validation = validateMediaCue(cueData);
+      // Validate Media Cue (now async - checks reachability)
+      const validation = await validateMediaCue(cueData);
       
       // Create Media Cue
       const newCue = {
@@ -608,7 +608,7 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
    * @param {string} params.cueId - Media Cue ID
    * @param {Object} params.updates - Partial Media Cue updates
    */
-  function handleMediaCueEdit({ socket, sessionId, cueId, updates } = {}) {
+  async function handleMediaCueEdit({ socket, sessionId, cueId, updates } = {}) {
     const opId = generateOpId();
 
     try {
@@ -650,9 +650,9 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
         ...updates,
       };
 
-      // Re-validate if source changed
+      // Re-validate if source changed (now async - checks reachability)
       if (updates.source) {
-        const validation = validateMediaCue(updatedCue);
+        const validation = await validateMediaCue(updatedCue);
         updatedCue.validation = {
           status: validation.status,
           reasons: validation.reasons || [],
@@ -775,6 +775,84 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
       });
     } catch (err) {
       console.error(`[stagingPipeline] Error deleting Media Cue: ${err.message}`);
+      emitError(socket, 'stage:media:error', {
+        sessionId,
+        opId,
+        code: 'INTERNAL_ERROR',
+        message: err.message,
+      });
+    }
+  }
+
+  /**
+   * Handle Media Cue Validate
+   * 
+   * Validates a single media cue's reachability
+   * 
+   * @param {Object} params
+   * @param {Object} params.socket - Socket instance
+   * @param {string} params.sessionId - Session identifier
+   * @param {string} params.cueId - Media Cue ID
+   */
+  async function handleMediaCueValidate({ socket, sessionId, cueId } = {}) {
+    const opId = generateOpId();
+
+    try {
+      const stagingState = StagingState.getStagingStateBySessionId(sessionId);
+      if (!stagingState) {
+        emitError(socket, 'stage:media:error', {
+          sessionId,
+          opId,
+          code: 'STAGING_STATE_NOT_FOUND',
+          message: 'Staging state not found',
+        });
+        return;
+      }
+
+      const cue = stagingState.mediaCues.find((c) => c.id === cueId);
+      if (!cue) {
+        emitError(socket, 'stage:media:error', {
+          sessionId,
+          opId,
+          code: 'CUE_NOT_FOUND',
+          message: 'Media Cue not found',
+        });
+        return;
+      }
+
+      // Validate the media cue (checks reachability)
+      console.log(`[stagingPipeline] Validating media cue ${cueId}:`, cue.source?.url);
+      const validation = await validateMediaCue(cue);
+      console.log(`[stagingPipeline] Validation result for ${cueId}:`, validation);
+
+      // Update validation state
+      const updatedValidation = {
+        ...stagingState.validation,
+        media: {
+          ...(stagingState.validation?.media || {}),
+          [cueId]: {
+            status: validation.status,
+            reasons: validation.reasons || [],
+            lastChecked: new Date().toISOString(),
+          },
+        },
+      };
+
+      const updated = StagingState.updateStagingState(stagingState.stagingId, {
+        validation: updatedValidation,
+      });
+
+      const readinessState = StagingState.calculateReadiness(updated);
+
+      emitAck(socket, 'stage:media:ack', {
+        sessionId,
+        opId,
+        mediaCues_staging: updated.mediaCues,
+        validation_staging: updated.validation,
+        readinessState,
+      });
+    } catch (err) {
+      console.error(`[stagingPipeline] Error validating Media Cue: ${err.message}`);
       emitError(socket, 'stage:media:error', {
         sessionId,
         opId,
@@ -933,7 +1011,7 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
    * @param {string} params.sessionId - Session identifier
    * @param {string} params.subsystem - Optional: 'media' | 'executor' | 'slideControl' | 'all'
    */
-  function handleValidationRequest({ socket, sessionId, subsystem = 'all' } = {}) {
+  async function handleValidationRequest({ socket, sessionId, subsystem = 'all' } = {}) {
     // #region agent log
     try {
       fs.appendFileSync('/Users/jeffwinkler/Documents/GitHub/amplifyed-pulse-ui/.cursor/debug.log', JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'1',location:'stagingPipeline.js:handleValidationRequest',message:'Validation request received',data:{sessionId,subsystem},timestamp:Date.now()}) + '\n');
@@ -953,8 +1031,8 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
       }
 
       console.log(`[stagingPipeline] Staging state found, running validation...`);
-      // Run validation
-      const validationResults = validateAll({
+      // Run validation (now async - checks reachability for all media cues)
+      const validationResults = await validateAll({
         stageEnginePipeline,
         slideControlPipeline,
         sessionId,
@@ -1040,6 +1118,7 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
     handleMediaCueCreate,
     handleMediaCueEdit,
     handleMediaCueDelete,
+    handleMediaCueValidate,
     handleEntryStateUpdate,
     handleRequirementsUpdate,
     handleValidationRequest,

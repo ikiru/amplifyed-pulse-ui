@@ -170,12 +170,28 @@ export function useStageState({ sessionId, socket, emit, onEvent, offEvent }) {
       const opId = payload.opId;
       const pending = pendingOpsRef.current.get(opId);
 
-      if (payload.mediaCues_staging) {
-        setStagingState((prev) => ({
-          ...prev,
-          mediaCues: payload.mediaCues_staging,
-          validation: payload.validation_staging || prev?.validation,
-        }));
+      // Update state if mediaCues or validation are present
+      if (payload.mediaCues_staging || payload.validation_staging) {
+        console.log('[useStageState] Media ACK received:', {
+          hasMediaCues: !!payload.mediaCues_staging,
+          hasValidation: !!payload.validation_staging,
+          validationMedia: payload.validation_staging?.media,
+        });
+        
+        setStagingState((prev) => {
+          const updated = { ...prev };
+          
+          if (payload.mediaCues_staging) {
+            updated.mediaCues = payload.mediaCues_staging;
+          }
+          
+          if (payload.validation_staging) {
+            updated.validation = payload.validation_staging;
+            console.log('[useStageState] Updated validation state:', updated.validation);
+          }
+          
+          return updated;
+        });
       }
 
       if (payload.readinessState) {
@@ -620,6 +636,18 @@ export function useStageState({ sessionId, socket, emit, onEvent, offEvent }) {
     });
   }, [sessionId, emit, isReadOnly, generateOpId, saveStateForRollback]);
 
+  const validateMediaCue = useCallback((cueId) => {
+    if (!sessionId || !emit) return;
+
+    // Note: No optimistic update for validation - we wait for server response
+    // to show accurate validation status
+
+    emit('stage:media:validate', {
+      sessionId,
+      cueId,
+    });
+  }, [sessionId, emit]);
+
   // Entry State operations
   const updateEntryState = useCallback((updates) => {
     if (!sessionId || !emit || isReadOnly) return;
@@ -714,6 +742,7 @@ export function useStageState({ sessionId, socket, emit, onEvent, offEvent }) {
     createMediaCue,
     editMediaCue,
     deleteMediaCue,
+    validateMediaCue,
 
     // Entry State operations
     updateEntryState,

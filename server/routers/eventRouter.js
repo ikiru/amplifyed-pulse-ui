@@ -735,6 +735,18 @@ socket.on("audience:pulse", (payload = {}) => {
     }
   });
 
+  socket.on("stage:media:validate", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "stage:media:validate")) return;
+    if (stagingPipeline?.handleMediaCueValidate) {
+      stagingPipeline.handleMediaCueValidate({
+        socket,
+        sessionId,
+        cueId: payload.cueId,
+      });
+    }
+  });
+
   // Entry State Configuration
   socket.on("stage:entry:update", (payload = {}) => {
     const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
