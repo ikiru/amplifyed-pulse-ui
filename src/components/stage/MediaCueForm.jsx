@@ -17,8 +17,6 @@ export default function MediaCueForm({ cue, onSave, onCancel }) {
   const [endAtSec, setEndAtSec] = useState(
     cue?.playback?.endAtSec?.toString() || ''
   );
-  const [sceneId, setSceneId] = useState(cue?.binding?.sceneId || '');
-  const [inputName, setInputName] = useState(cue?.binding?.inputName || '');
 
   useEffect(() => {
     if (cue) {
@@ -27,8 +25,6 @@ export default function MediaCueForm({ cue, onSave, onCancel }) {
       setAudioMode(cue.playback?.audioMode || 'videoOnly');
       setStartAtSec(cue.playback?.startAtSec?.toString() || '');
       setEndAtSec(cue.playback?.endAtSec?.toString() || '');
-      setSceneId(cue.binding?.sceneId || '');
-      setInputName(cue.binding?.inputName || '');
     }
   }, [cue]);
 
@@ -46,13 +42,6 @@ export default function MediaCueForm({ cue, onSave, onCancel }) {
         startAtSec: startAtSec ? parseInt(startAtSec, 10) : undefined,
         endAtSec: endAtSec ? parseInt(endAtSec, 10) : undefined,
       },
-      binding: sceneId || inputName
-        ? {
-            executor: 'default',
-            sceneId: sceneId || undefined,
-            inputName: inputName || undefined,
-          }
-        : undefined,
     };
 
     onSave(cueData);
@@ -118,32 +107,6 @@ export default function MediaCueForm({ cue, onSave, onCancel }) {
             onChange={(e) => setEndAtSec(e.target.value)}
             placeholder="0"
             min="0"
-          />
-        </div>
-      </div>
-
-      <div className="form-section">
-        <h3>Executor Binding (Optional)</h3>
-        <p className="form-hint">Advanced: Bind to specific scenes/inputs in external executors (if used).</p>
-        <div className="form-group">
-          <label htmlFor="media-scene-id">Scene ID</label>
-          <input
-            id="media-scene-id"
-            type="text"
-            value={sceneId}
-            onChange={(e) => setSceneId(e.target.value)}
-            placeholder="Scene name"
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="media-input-name">Input Name</label>
-          <input
-            id="media-input-name"
-            type="text"
-            value={inputName}
-            onChange={(e) => setInputName(e.target.value)}
-            placeholder="Source name"
           />
         </div>
       </div>

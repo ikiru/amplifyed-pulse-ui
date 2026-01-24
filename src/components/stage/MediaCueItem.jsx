@@ -37,9 +37,6 @@ export default function MediaCueItem({ cue, isReadOnly, onEdit, onDelete }) {
         </div>
         <div className="media-cue-meta">
           <span>Audio: {cue.playback?.audioMode || 'videoOnly'}</span>
-          {cue.binding?.executor && (
-            <span>Executor: {cue.binding.executor}</span>
-          )}
         </div>
       </div>
 
