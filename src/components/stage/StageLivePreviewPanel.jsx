@@ -13,20 +13,34 @@ function toGoogleSlidesEmbedUrl(url) {
   return `https://docs.google.com/presentation/d/${id}/embed?start=false&loop=false&rm=minimal`;
 }
 
-export default function StageLivePreviewPanel({ cues = [], defaultFocusCueId }) {
+export default function StageLivePreviewPanel({
+  cues = [],
+  defaultFocusCueId,
+  focusCueId,
+  presentationCueId,
+}) {
   const { focusText, presentationCue } = useMemo(() => {
+    const effectiveFocusCueId = focusCueId || defaultFocusCueId || null;
     const focusCue =
-      defaultFocusCueId
-        ? cues.find((c) => c?.type === 'focus' && c.id === defaultFocusCueId)
+      effectiveFocusCueId
+        ? cues.find((c) => c?.type === 'focus' && c.id === effectiveFocusCueId)
         : null;
-    const focusTextResolved = focusCue?.data?.text || 'Open Conversation';
+    const focusTextResolved = focusCue?.data?.text || focusCue?.text || 'Open Conversation';
 
-    const presentation = [...cues]
+    const selectedPresentation =
+      presentationCueId
+        ? cues.find((c) => c?.type === 'presentation' && c.id === presentationCueId)
+        : null;
+
+    const firstPresentation = [...cues]
       .filter((c) => c?.type === 'presentation' && typeof c.position === 'number')
       .sort((a, b) => a.position - b.position)[0];
 
-    return { focusText: focusTextResolved, presentationCue: presentation || null };
-  }, [cues, defaultFocusCueId]);
+    return {
+      focusText: focusTextResolved,
+      presentationCue: selectedPresentation || firstPresentation || null,
+    };
+  }, [cues, defaultFocusCueId, focusCueId, presentationCueId]);
 
   const slides = useMemo(() => {
     if (!presentationCue) {

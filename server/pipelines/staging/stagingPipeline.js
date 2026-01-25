@@ -472,8 +472,11 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
       }
 
       // Verify cue exists
-      const cueExists = stagingState.focusCues.some((c) => c.id === defaultFocusCueId);
-      if (!cueExists) {
+      const focusCues = Array.isArray(stagingState.focusCues) ? stagingState.focusCues : [];
+      const unifiedCues = Array.isArray(stagingState.cues) ? stagingState.cues : [];
+      const cueExistsInLegacy = focusCues.some((c) => c?.id === defaultFocusCueId);
+      const cueExistsInUnified = unifiedCues.some((c) => c?.type === 'focus' && c?.id === defaultFocusCueId);
+      if (!cueExistsInLegacy && !cueExistsInUnified) {
         emitError(socket, 'stage:focus:error', {
           sessionId,
           opId,
@@ -961,8 +964,11 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
 
       // Validate defaultFocusCueId if provided
       if (entry.defaultFocusCueId) {
-        const cueExists = stagingState.focusCues.some((c) => c.id === entry.defaultFocusCueId);
-        if (!cueExists) {
+        const focusCues = Array.isArray(stagingState.focusCues) ? stagingState.focusCues : [];
+        const unifiedCues = Array.isArray(stagingState.cues) ? stagingState.cues : [];
+        const cueExistsInLegacy = focusCues.some((c) => c?.id === entry.defaultFocusCueId);
+        const cueExistsInUnified = unifiedCues.some((c) => c?.type === 'focus' && c?.id === entry.defaultFocusCueId);
+        if (!cueExistsInLegacy && !cueExistsInUnified) {
           emitError(socket, 'stage:entry:error', {
             sessionId,
             opId,

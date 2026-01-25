@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSocket } from '../socket/SocketContext.jsx';
 import { useSessionState } from '../hooks/useSessionState.js';
 import { useStageState } from '../hooks/useStageState.js';
@@ -12,6 +12,9 @@ import './StageView.css';
 export default function StageView() {
   const { socket, emit, onEvent, offEvent, connectionStatus } = useSocket();
   const { sessionId } = useSessionState({ socket, emit, onEvent, offEvent });
+  const [selectedCueId, setSelectedCueId] = useState(null);
+  const [selectedFocusCueId, setSelectedFocusCueId] = useState(null);
+  const [selectedPresentationCueId, setSelectedPresentationCueId] = useState(null);
 
   // Ensure this client is registered as a trainer (required for stage:* operations)
   useEffect(() => {
@@ -35,7 +38,6 @@ export default function StageView() {
     editFocusCue,
     deleteFocusCue,
     reorderFocusCues,
-    setDefaultFocusCue,
     createMediaCue,
     editMediaCue,
     deleteMediaCue,
@@ -58,6 +60,29 @@ export default function StageView() {
     onEvent,
     offEvent,
   });
+
+  const resolvedCues = useMemo(() => {
+    const baseCues = stagingState?.cues || [];
+
+    return baseCues.map((cue) => {
+      if (!cue || (cue.type !== 'media' && cue.type !== 'presentation')) {
+        return cue;
+      }
+
+      const validationFromSummary = stagingState?.validation?.media?.[cue.id];
+      if (!validationFromSummary) {
+        return cue;
+      }
+
+      return {
+        ...cue,
+        data: {
+          ...cue.data,
+          validation: validationFromSummary,
+        },
+      };
+    });
+  }, [stagingState?.cues, stagingState?.validation]);
 
   // Show loading state
   if (isLoading) {
@@ -92,25 +117,6 @@ export default function StageView() {
       </div>
     );
   }
-
-  const resolvedCues = (stagingState?.cues || []).map((cue) => {
-    if (!cue || (cue.type !== 'media' && cue.type !== 'presentation')) {
-      return cue;
-    }
-
-    const validationFromSummary = stagingState?.validation?.media?.[cue.id];
-    if (!validationFromSummary) {
-      return cue;
-    }
-
-    return {
-      ...cue,
-      data: {
-        ...cue.data,
-        validation: validationFromSummary,
-      },
-    };
-  });
 
   const shouldShowReadinessDetails = (() => {
     const validation = stagingState?.validation;
@@ -153,20 +159,36 @@ export default function StageView() {
             defaultFocusCueId={stagingState?.entryState?.defaultFocusCueId}
             validation={stagingState?.validation}
             isReadOnly={isReadOnly}
+            selectedCueId={selectedCueId}
             onCreate={(type, data, position) => createCue(type, data, position)}
             onEdit={(cueId, data) => editCue(cueId, data)}
             onDelete={deleteCue}
             onReorder={reorderCues}
             onSetDefault={(cueId) => {
-              setDefaultFocusCue(cueId);
+              updateEntryState({ defaultFocusCueId: cueId });
+              setSelectedCueId(cueId);
+              setSelectedFocusCueId(cueId);
+            }}
+            onSelectCue={(cue) => {
+              const cueId = cue?.id ?? null;
+              if (!cueId) return;
+
+              setSelectedCueId(cueId);
+              if (cue?.type === 'focus') {
+                setSelectedFocusCueId(cueId);
+              } else if (cue?.type === 'presentation') {
+                setSelectedPresentationCueId(cueId);
+              }
             }}
           />
         </div>
 
         <div className="stage-config-panels">
           <StageLivePreviewPanel
-            cues={stagingState?.cues || []}
+            cues={resolvedCues}
             defaultFocusCueId={stagingState?.entryState?.defaultFocusCueId}
+            focusCueId={selectedFocusCueId}
+            presentationCueId={selectedPresentationCueId}
           />
 
           {shouldShowReadinessDetails && (

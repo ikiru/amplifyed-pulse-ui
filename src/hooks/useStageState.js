@@ -328,9 +328,6 @@ export function useStageState({ sessionId, socket, emit, onEvent, offEvent }) {
    */
   useEffect(() => {
     const handleValidateResult = (payload) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useStageState.js:handleValidateResult',message:'Validation result received',data:{payload},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'2'})}).catch(()=>{});
-      // #endregion
       if (payload.sessionId !== sessionId) return;
 
       console.log('[useStageState] Validation result received:', payload);
@@ -368,9 +365,6 @@ export function useStageState({ sessionId, socket, emit, onEvent, offEvent }) {
     };
 
     const handleValidateComplete = (payload) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useStageState.js:handleValidateComplete',message:'Validation complete',data:{payload},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'2'})}).catch(()=>{});
-      // #endregion
       if (payload.sessionId !== sessionId) return;
 
       console.log('[useStageState] Validation complete:', payload);
@@ -708,9 +702,6 @@ export function useStageState({ sessionId, socket, emit, onEvent, offEvent }) {
 
   // Validation operations
   const requestValidation = useCallback((subsystem = 'all') => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useStageState.js:requestValidation',message:'Requesting validation',data:{sessionId,subsystem},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'1'})}).catch(()=>{});
-    // #endregion
     if (!sessionId || !emit) {
       console.warn('[useStageState] Cannot validate: missing sessionId or emit', { 
         sessionId, 

@@ -12,6 +12,7 @@ export default function UnifiedCueStackPanel({
   cues = [],
   currentPosition = -1,
   defaultFocusCueId,
+  selectedCueId,
   validation = {},
   isReadOnly,
   onCreate,
@@ -19,6 +20,7 @@ export default function UnifiedCueStackPanel({
   onDelete,
   onReorder,
   onSetDefault,
+  onSelectCue,
 }) {
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState(null);
@@ -144,11 +146,12 @@ export default function UnifiedCueStackPanel({
                 <div
                   key={cue.id}
                   draggable={!isReadOnly && currentPosition < 0}
+                  onClick={() => onSelectCue?.(cue)}
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDrop={(e) => handleDrop(e, index)}
                   onDragEnd={handleDragEnd}
-                  className={`cue-wrapper ${draggedIndex === index ? 'dragging' : ''} ${currentPosition >= 0 && cue.position <= currentPosition ? 'executed' : ''}`}
+                  className={`cue-wrapper ${draggedIndex === index ? 'dragging' : ''} ${currentPosition >= 0 && cue.position <= currentPosition ? 'executed' : ''} ${selectedCueId === cue.id ? 'selected' : ''}`}
                 >
                   {!isReadOnly && currentPosition < 0 && (
                     <div className="drag-handle" title="Drag to reorder">
@@ -162,6 +165,7 @@ export default function UnifiedCueStackPanel({
                     isReadOnly={isReadOnly}
                     isDefault={cue.type === 'focus' && cue.id === defaultFocusCueId}
                     onEdit={handleEdit}
+                    onUpdate={onEdit}
                     onDelete={onDelete}
                     onSetDefault={onSetDefault}
                   />

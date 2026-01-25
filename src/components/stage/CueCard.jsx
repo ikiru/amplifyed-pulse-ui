@@ -13,11 +13,13 @@ export default function CueCard({
   isReadOnly,
   isDefault,
   onEdit,
+  onUpdate,
   onDelete,
   onSetDefault,
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(cue.type === 'focus' ? cue.data.text : '');
+  const focusText = cue?.data?.text ?? cue?.text ?? '';
+  const [editText, setEditText] = useState(cue.type === 'focus' ? focusText : '');
 
   const isExecuted = currentPosition >= 0 && position <= currentPosition;
   const canEdit = !isReadOnly && (
@@ -28,14 +30,14 @@ export default function CueCard({
   const canDelete = !isReadOnly && !isExecuted && !isDefault;
 
   const handleSave = () => {
-    if (cue.type === 'focus' && editText.trim() && editText !== cue.data.text) {
-      onEdit(cue.id, { text: editText.trim() });
+    if (cue.type === 'focus' && editText.trim() && editText !== focusText) {
+      onUpdate?.(cue.id, { text: editText.trim() });
     }
     setIsEditing(false);
   };
 
   const handleCancel = () => {
-    setEditText(cue.type === 'focus' ? cue.data.text : '');
+    setEditText(cue.type === 'focus' ? focusText : '');
     setIsEditing(false);
   };
 
@@ -124,7 +126,7 @@ export default function CueCard({
                 onClick={() => canEdit && setIsEditing(true)}
                 title={canEdit ? 'Click to edit' : ''}
               >
-                {cue.data.text}
+                {focusText}
                 {isDefault && <span className="default-badge">Default</span>}
               </div>
             )}
@@ -168,14 +170,10 @@ export default function CueCard({
               Set Default
             </button>
           )}
-          {canEdit && (
+          {canEdit && cue.type !== 'focus' && (
             <button
               onClick={() => {
-                if (cue.type === 'focus') {
-                  setIsEditing(true);
-                } else {
-                  onEdit && onEdit(cue.id);
-                }
+                onEdit && onEdit(cue.id);
               }}
               className="cue-action-btn"
               title="Edit"
