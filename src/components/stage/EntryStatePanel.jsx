@@ -7,13 +7,22 @@ import React from 'react';
  */
 export default function EntryStatePanel({
   entryState,
-  focusCues,
+  focusCues, // Legacy: kept for backward compatibility
+  cues, // Unified stack: primary source
   isReadOnly,
   onUpdate,
 }) {
   const handleDefaultFocusChange = (e) => {
     onUpdate({ defaultFocusCueId: e.target.value });
   };
+
+  // Get focus cues from unified stack or legacy array
+  const focusCuesList = cues 
+    ? cues.filter(c => c.type === 'focus').map(c => ({
+        id: c.id,
+        text: c.data.text,
+      }))
+    : focusCues || [];
 
   return (
     <div className="entry-state-panel">
@@ -34,7 +43,7 @@ export default function EntryStatePanel({
             disabled={isReadOnly}
             required
           >
-            {focusCues.map((cue) => (
+            {focusCuesList.map((cue) => (
               <option key={cue.id} value={cue.id}>
                 {cue.text}
               </option>

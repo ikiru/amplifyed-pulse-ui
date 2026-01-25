@@ -8,7 +8,8 @@ import React from 'react';
 export default function ReadinessPanel({
   validation,
   requirements,
-  mediaCues,
+  mediaCues, // Legacy: kept for backward compatibility
+  cues, // Unified stack: primary source
   isReadOnly,
   onRequirementToggle,
   onValidateRequest,
@@ -114,13 +115,20 @@ export default function ReadinessPanel({
   };
 
   const getMediaSummary = () => {
-    if (!mediaCues || mediaCues.length === 0) {
+    // Get media cues from unified stack or legacy array
+    const mediaCuesList = cues
+      ? cues.filter(c => c.type === 'media')
+      : mediaCues || [];
+
+    if (!mediaCuesList || mediaCuesList.length === 0) {
       return { ready: 0, warning: 0, blocked: 0 };
     }
 
     const summary = { ready: 0, warning: 0, blocked: 0 };
-    mediaCues.forEach((cue) => {
-      const status = cue.validation?.status || 'unvalidated';
+    mediaCuesList.forEach((cue) => {
+      const status = cue.type === 'media' 
+        ? (cue.data.validation?.status || 'unvalidated')
+        : (cue.validation?.status || 'unvalidated');
       if (status === 'ready') summary.ready++;
       else if (status === 'warning') summary.warning++;
       else if (status === 'blocked') summary.blocked++;
@@ -165,7 +173,7 @@ export default function ReadinessPanel({
               {mediaSummary.blocked} blocked
             </span>
           </div>
-          {(!mediaCues || mediaCues.length === 0) && (
+          {((!cues || cues.filter(c => c.type === 'media').length === 0) && (!mediaCues || mediaCues.length === 0)) && (
             <div className="status-details">
               <div className="status-guidance">
                 <p>No Media Cues to validate. Add Media Cues in the left panel to validate their URLs.</p>

@@ -59,6 +59,10 @@ export function useStageState({ sessionId, socket, emit, onEvent, offEvent }) {
 
       if (payload.stagingPayload) {
         const newStagingState = {
+          // Unified stack (primary)
+          cues: payload.stagingPayload.cues || [],
+          currentPosition: payload.stagingPayload.currentPosition !== undefined ? payload.stagingPayload.currentPosition : -1,
+          // Legacy arrays (for backward compatibility)
           focusCues: payload.stagingPayload.focusCues || [],
           mediaCues: payload.stagingPayload.mediaCues || [],
           entryState: payload.stagingPayload.entryState || {},
@@ -722,6 +726,260 @@ export function useStageState({ sessionId, socket, emit, onEvent, offEvent }) {
     });
   }, [sessionId, emit]);
 
+  // Unified Cue Stack operations
+  const getCueStack = useCallback(() => {
+    if (!sessionId || !emit) return;
+    emit('cue:stack:get', { sessionId });
+  }, [sessionId, emit]);
+
+  const createCue = useCallback((type, data, position) => {
+    if (!sessionId || !emit || isReadOnly) return;
+
+    const opId = generateOpId();
+    const previousState = saveStateForRollback();
+
+    // Optimistic update
+    const newCue = {
+      id: `${type}_temp_${Date.now()}`,
+      type,
+      position: typeof position === 'number' ? position : (stagingState?.cues?.length || 0),
+      data: type === 'focus' 
+        ? { text: data.text, isDefault: data.isDefault || false }
+        : {
+            label: data.label || 'Untitled Media',
+            source: data.source || {},
+            playback: data.playback || { audioMode: 'videoOnly' },
+            binding: data.binding,
+            validation: { status: 'unvalidated' },
+          },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setStagingState((prev) => ({
+      ...prev,
+      cues: [...(prev?.cues || []), newCue],
+    }));
+
+    pendingOpsRef.current.set(opId, {
+      type: 'cue:create',
+      optimisticState: previousState,
+    });
+
+    emit('cue:create', {
+      sessionId,
+      type,
+      data,
+      position,
+    });
+  }, [sessionId, emit, isReadOnly, stagingState, generateOpId, saveStateForRollback]);
+
+  const editCue = useCallback((cueId, data) => {
+    if (!sessionId || !emit || isReadOnly) return;
+
+    const opId = generateOpId();
+    const previousState = saveStateForRollback();
+
+    // Optimistic update
+    setStagingState((prev) => ({
+      ...prev,
+      cues: (prev?.cues || []).map((cue) =>
+        cue.id === cueId ? { ...cue, data: { ...cue.data, ...data }, updatedAt: new Date().toISOString() } : cue
+      ),
+    }));
+
+    pendingOpsRef.current.set(opId, {
+      type: 'cue:edit',
+      optimisticState: previousState,
+    });
+
+    emit('cue:edit', {
+      sessionId,
+      cueId,
+      data,
+    });
+  }, [sessionId, emit, isReadOnly, generateOpId, saveStateForRollback]);
+
+  const deleteCue = useCallback((cueId) => {
+    if (!sessionId || !emit || isReadOnly) return;
+
+    const opId = generateOpId();
+    const previousState = saveStateForRollback();
+
+    // Optimistic update
+    setStagingState((prev) => ({
+      ...prev,
+      cues: (prev?.cues || []).filter((cue) => cue.id !== cueId),
+    }));
+
+    pendingOpsRef.current.set(opId, {
+      type: 'cue:delete',
+      optimisticState: previousState,
+    });
+
+    emit('cue:delete', {
+      sessionId,
+      cueId,
+    });
+  }, [sessionId, emit, isReadOnly, generateOpId, saveStateForRollback]);
+
+  const reorderCues = useCallback((orderedCueIds) => {
+    if (!sessionId || !emit || isReadOnly) return;
+
+    const opId = generateOpId();
+    const previousState = saveStateForRollback();
+
+    // Optimistic update
+    setStagingState((prev) => {
+      const cueMap = new Map((prev?.cues || []).map((cue) => [cue.id, cue]));
+      const reordered = orderedCueIds
+        .map((id) => cueMap.get(id))
+        .filter(Boolean)
+        .map((cue, index) => ({ ...cue, position: index }));
+
+      return {
+        ...prev,
+        cues: reordered,
+      };
+    });
+
+    pendingOpsRef.current.set(opId, {
+      type: 'cue:reorder',
+      optimisticState: previousState,
+    });
+
+    emit('cue:stack:update', {
+      sessionId,
+      orderedCueIds,
+    });
+  }, [sessionId, emit, isReadOnly, generateOpId, saveStateForRollback]);
+
+  const advancePosition = useCallback(() => {
+    if (!sessionId || !emit) return;
+    emit('cue:stack:position:advance', { sessionId });
+  }, [sessionId, emit]);
+
+  const rewindPosition = useCallback(() => {
+    if (!sessionId || !emit) return;
+    emit('cue:stack:position:rewind', { sessionId });
+  }, [sessionId, emit]);
+
+  // Handle unified stack ACK responses
+  useEffect(() => {
+    const handleCueStackResponse = (payload) => {
+      if (payload.sessionId !== sessionId) return;
+      setStagingState((prev) => ({
+        ...prev,
+        cues: payload.cues || [],
+        currentPosition: payload.currentPosition !== undefined ? payload.currentPosition : -1,
+      }));
+    };
+
+    const handleCueAck = (payload) => {
+      if (payload.sessionId !== sessionId) return;
+
+      const opId = payload.opId;
+      const pending = pendingOpsRef.current.get(opId);
+
+      if (payload.cues) {
+        setStagingState((prev) => ({
+          ...prev,
+          cues: payload.cues,
+          currentPosition: payload.currentPosition !== undefined ? payload.currentPosition : (prev?.currentPosition ?? -1),
+        }));
+      }
+
+      if (payload.readinessState) {
+        setReadinessState(payload.readinessState);
+      }
+
+      if (pending) {
+        pendingOpsRef.current.delete(opId);
+      }
+    };
+
+    const handleCueError = (payload) => {
+      if (payload.sessionId !== sessionId) return;
+
+      const opId = payload.opId;
+      const pending = pendingOpsRef.current.get(opId);
+
+      setError(payload.message || payload.code);
+
+      if (pending?.optimisticState) {
+        setStagingState(pending.optimisticState);
+      }
+
+      if (pending) {
+        pendingOpsRef.current.delete(opId);
+      }
+    };
+
+    const handleCueStackAck = (payload) => {
+      if (payload.sessionId !== sessionId) return;
+
+      const opId = payload.opId;
+      const pending = pendingOpsRef.current.get(opId);
+
+      if (payload.cues) {
+        setStagingState((prev) => ({
+          ...prev,
+          cues: payload.cues,
+          currentPosition: payload.currentPosition !== undefined ? payload.currentPosition : (prev?.currentPosition ?? -1),
+        }));
+      }
+
+      if (payload.readinessState) {
+        setReadinessState(payload.readinessState);
+      }
+
+      if (pending) {
+        pendingOpsRef.current.delete(opId);
+      }
+    };
+
+    const handleCueStackError = (payload) => {
+      if (payload.sessionId !== sessionId) return;
+
+      const opId = payload.opId;
+      const pending = pendingOpsRef.current.get(opId);
+
+      setError(payload.message || payload.code);
+
+      if (pending?.optimisticState) {
+        setStagingState(pending.optimisticState);
+      }
+
+      if (pending) {
+        pendingOpsRef.current.delete(opId);
+      }
+    };
+
+    const handlePositionAck = (payload) => {
+      if (payload.sessionId !== sessionId) return;
+      setStagingState((prev) => ({
+        ...prev,
+        currentPosition: payload.currentPosition !== undefined ? payload.currentPosition : (prev?.currentPosition ?? -1),
+      }));
+    };
+
+    onEvent('cue:stack:response', handleCueStackResponse);
+    onEvent('cue:ack', handleCueAck);
+    onEvent('cue:error', handleCueError);
+    onEvent('cue:stack:ack', handleCueStackAck);
+    onEvent('cue:stack:error', handleCueStackError);
+    onEvent('cue:stack:position:ack', handlePositionAck);
+
+    return () => {
+      offEvent('cue:stack:response', handleCueStackResponse);
+      offEvent('cue:ack', handleCueAck);
+      offEvent('cue:error', handleCueError);
+      offEvent('cue:stack:ack', handleCueStackAck);
+      offEvent('cue:stack:error', handleCueStackError);
+      offEvent('cue:stack:position:ack', handlePositionAck);
+    };
+  }, [sessionId, onEvent, offEvent]);
+
   return {
     // State
     stagingState,
@@ -752,6 +1010,15 @@ export function useStageState({ sessionId, socket, emit, onEvent, offEvent }) {
 
     // Validation operations
     requestValidation,
+
+    // Unified Cue Stack operations
+    getCueStack,
+    createCue,
+    editCue,
+    deleteCue,
+    reorderCues,
+    advancePosition,
+    rewindPosition,
 
     // Utility
     refetch: fetchStagingState,

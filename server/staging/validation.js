@@ -402,11 +402,6 @@ export async function validateMediaCue(mediaCue) {
  * @returns {Object} Validation result
  */
 export function validateStageExecutor(stageEnginePipeline, sessionId) {
-  // #region agent log
-  try {
-    fs.appendFileSync('/Users/jeffwinkler/Documents/GitHub/amplifyed-pulse-ui/.cursor/debug.log', JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'1',location:'validation.js:validateStageExecutor',message:'Validating Stage Executor',data:{sessionId, hasPipeline: !!stageEnginePipeline},timestamp:Date.now()}) + '\n');
-  } catch(e) {}
-  // #endregion
   if (!stageEnginePipeline) {
     return {
       status: 'blocked',
@@ -443,11 +438,6 @@ export function validateStageExecutor(stageEnginePipeline, sessionId) {
  * @returns {Object} Validation result
  */
 export function validateSlideControl(slideControlPipeline, sessionId) {
-  // #region agent log
-  try {
-    fs.appendFileSync('/Users/jeffwinkler/Documents/GitHub/amplifyed-pulse-ui/.cursor/debug.log', JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'3',location:'validation.js:validateSlideControl',message:'Validating Slide Control',data:{sessionId, hasPipeline: !!slideControlPipeline},timestamp:Date.now()}) + '\n');
-  } catch(e) {}
-  // #endregion
   if (!slideControlPipeline) {
     return {
       status: 'blocked',
@@ -491,11 +481,6 @@ export function validateSlideControl(slideControlPipeline, sessionId) {
  * @returns {Promise<Object>} Validation results for all subsystems
  */
 export async function validateAll({ stageEnginePipeline, slideControlPipeline, sessionId, mediaCues = [] }) {
-  // #region agent log
-  try {
-    fs.appendFileSync('/Users/jeffwinkler/Documents/GitHub/amplifyed-pulse-ui/.cursor/debug.log', JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'1',location:'validation.js:validateAll',message:'Validating All',data:{sessionId, mediaCuesCount: mediaCues.length},timestamp:Date.now()}) + '\n');
-  } catch(e) {}
-  // #endregion
   const results = {
     executor: validateStageExecutor(stageEnginePipeline, sessionId),
     slideControl: validateSlideControl(slideControlPipeline, sessionId),

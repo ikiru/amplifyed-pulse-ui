@@ -1,4 +1,3 @@
-cat > .gitignore << 'EOF'
 # Node
 node_modules/
 node_modules/.vite/
@@ -22,5 +21,9 @@ logs/
 # Env files
 .env
 .env.*
-EOF
 
+# Cursor / IDE
+.cursor/
+
+# Server staging artifacts (generated)
+server/staging/staging/stg_*/

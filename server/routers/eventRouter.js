@@ -805,6 +805,94 @@ socket.on("audience:pulse", (payload = {}) => {
   });
 
   // ----------------------------------------------------
+  // UNIFIED CUE STACK EVENTS
+  // ----------------------------------------------------
+
+  socket.on("cue:stack:get", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "cue:stack:get")) return;
+    if (stagingPipeline?.handleCueStackGet) {
+      stagingPipeline.handleCueStackGet({
+        socket,
+        sessionId,
+      });
+    }
+  });
+
+  socket.on("cue:create", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "cue:create")) return;
+    if (stagingPipeline?.handleCueCreate) {
+      stagingPipeline.handleCueCreate({
+        socket,
+        sessionId,
+        type: payload.type,
+        data: payload.data,
+        position: payload.position,
+      });
+    }
+  });
+
+  socket.on("cue:edit", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "cue:edit")) return;
+    if (stagingPipeline?.handleCueEdit) {
+      stagingPipeline.handleCueEdit({
+        socket,
+        sessionId,
+        cueId: payload.cueId,
+        data: payload.data,
+      });
+    }
+  });
+
+  socket.on("cue:delete", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "cue:delete")) return;
+    if (stagingPipeline?.handleCueDelete) {
+      stagingPipeline.handleCueDelete({
+        socket,
+        sessionId,
+        cueId: payload.cueId,
+      });
+    }
+  });
+
+  socket.on("cue:stack:update", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "cue:stack:update")) return;
+    if (stagingPipeline?.handleCueStackUpdate) {
+      stagingPipeline.handleCueStackUpdate({
+        socket,
+        sessionId,
+        orderedCueIds: payload.orderedCueIds,
+      });
+    }
+  });
+
+  socket.on("cue:stack:position:advance", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "cue:stack:position:advance")) return;
+    if (stagingPipeline?.handleCueStackPositionAdvance) {
+      stagingPipeline.handleCueStackPositionAdvance({
+        socket,
+        sessionId,
+      });
+    }
+  });
+
+  socket.on("cue:stack:position:rewind", (payload = {}) => {
+    const sessionId = payload.sessionId ?? socket.sessionId ?? DEFAULT_SESSION_ID;
+    if (!requireTrainer(sessionId, "cue:stack:position:rewind")) return;
+    if (stagingPipeline?.handleCueStackPositionRewind) {
+      stagingPipeline.handleCueStackPositionRewind({
+        socket,
+        sessionId,
+      });
+    }
+  });
+
+  // ----------------------------------------------------
   // SAFETY PIPELINE (Step 6.4 — Scaffold Only)
   // No logic runs yet — scaffolding only.
   // ----------------------------------------------------

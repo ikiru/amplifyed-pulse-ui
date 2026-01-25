@@ -1,9 +1,10 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 /**
  * StageHeader Component
  * 
- * Displays session status and readiness indicator
+ * Displays session status and readiness indicator with navigation to TrainerView
  * 
  * @param {Object} props
  * @param {string} props.sessionState - Session state: 'DRAFT' | 'STAGED' | 'LIVE'
@@ -42,6 +43,9 @@ export default function StageHeader({ sessionState, readinessState, validationSu
             {getReadinessText()}
           </span>
         </div>
+        <Link to="/trainer" className="stage-nav-button">
+          Go to Trainer View
+        </Link>
       </div>
       {sessionState === 'LIVE' && (
         <div className="read-only-banner">

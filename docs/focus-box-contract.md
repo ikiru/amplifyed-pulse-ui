@@ -1,6 +1,6 @@
 # Status: Canonical
 # Owner: TBD
-# Last reviewed: 2026-01-18
+# Last reviewed: 2026-01-24
 
 # FOCUS BOX CONTRACT
 
@@ -122,14 +122,15 @@ A Focus entry authored pre-session on Stage and consumed by the Focus Box during
 
 4. **Focus Ordering**
    - Focus entries may be ordered intentionally prior to live facilitation.
-   - Ordering must not change once the session is live.
-   - Order conveys authorial intent and must be preserved.
+   - Ordering of executed cues must not change once the session is live.
+   - Unexecuted cues (`position > currentPosition`) may be reordered during live.
+   - Order conveys authorial intent and must be preserved for executed cues.
 
 ---
 
 ## 6. Adding Focus
 
-**Note:** Focus entries may only be created pre-live on Stage. See Section 6A for temporal restrictions.
+**Note:** Focus entries are primarily created pre-live on Stage. During live sessions, TrainerView may insert new focus cues ahead of the current execution position. See Section 6A for temporal restrictions and Section 6B for live insertion rules.
 
 1. **Creation Rule**
    - Submitting text creates a new focus entry.
@@ -144,11 +145,25 @@ A Focus entry authored pre-session on Stage and consumed by the Focus Box during
 
 ---
 
-## 6A. Focus Authoring (Pre-Live Only)
+## 6A. Focus Authoring (Pre-Live and Live)
 
-- Focus entries may be authored, edited, and reordered only before the session is live.
-- Focus authoring occurs outside the Focus Box (e.g., Stage).
-- The Focus Box must not create or edit focus entries once the session is live.
+- Focus entries are primarily authored, edited, and reordered before the session is live (on Stage).
+- During live sessions, TrainerView may insert new focus cues ahead of the current execution position (`currentPosition`).
+- Focus cues may be edited if unexecuted (`position > currentPosition`).
+- Executed focus cues are immutable.
+- Focus authoring occurs outside the Focus Box (e.g., Stage for pre-live, TrainerView for live insertion).
+
+---
+
+## 6B. Live Insertion Rules
+
+During live sessions, TrainerView may insert new focus cues with the following constraints:
+
+1. **Position Constraint**: Cues must be inserted strictly ahead of `currentPosition` (i.e., `position > currentPosition`)
+2. **No Validation Required**: Focus cues do not require validation (unlike media cues)
+3. **Immediate Availability**: Inserted focus cues are immediately available for activation
+4. **Editing Permissions**: Inserted focus cues follow the same editing rules as pre-live cues (editable if unexecuted)
+5. **No Silent Failures**: Trainer must see clear feedback if insertion fails (e.g., position constraint violation)
 
 ---
 
@@ -169,10 +184,15 @@ A Focus entry authored pre-session on Stage and consumed by the Focus Box during
 
 ## 8. Editing Focus (Temporal Restriction)
 
-**Temporal Rule:**
-- Editing focus text is permitted only before the session becomes live.
-- Once live, focus text must not be altered.
-- If intent must change during live facilitation, a new Focus entry must be activated instead.
+**Temporal Rules:**
+
+**Pre-live:**
+- All focus entries editable on Stage
+
+**Live:**
+- Focus entries may be edited if `position > currentPosition` (unexecuted)
+- Executed focus entries are immutable
+- If intent must change for an executed focus, create a new focus entry instead
 
 ### 8.1 Permitted Reasons for Editing
 

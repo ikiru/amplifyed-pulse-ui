@@ -8,6 +8,7 @@
 import * as StagingState from '../../staging/staging.state.js';
 import { validateAll, validateMediaCue } from '../../staging/validation.js';
 import * as SessionState from '../session/session.state.js';
+import * as Snapshot from '../../staging/snapshot.js';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 
@@ -809,13 +810,36 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
         return;
       }
 
-      const cue = stagingState.mediaCues.find((c) => c.id === cueId);
+      // Check unified stack first, then legacy array
+      let cue = null;
+      let cueFromUnifiedStack = null;
+      
+      if (stagingState.cues && Array.isArray(stagingState.cues)) {
+        // Support both media and presentation cues
+        cueFromUnifiedStack = stagingState.cues.find((c) => (c.type === 'media' || c.type === 'presentation') && c.id === cueId);
+      }
+      
+      if (cueFromUnifiedStack) {
+        // Convert unified stack format to legacy format for validateMediaCue
+        cue = {
+          id: cueFromUnifiedStack.id,
+          label: cueFromUnifiedStack.data.label,
+          source: cueFromUnifiedStack.data.source,
+          playback: cueFromUnifiedStack.data.playback,
+          binding: cueFromUnifiedStack.data.binding,
+          validation: cueFromUnifiedStack.data.validation,
+        };
+      } else {
+        // Fallback to legacy array
+        cue = stagingState.mediaCues?.find((c) => c.id === cueId);
+      }
+
       if (!cue) {
         emitError(socket, 'stage:media:error', {
           sessionId,
           opId,
           code: 'CUE_NOT_FOUND',
-          message: 'Media Cue not found',
+          message: 'Media or Presentation Cue not found',
         });
         return;
       }
@@ -838,8 +862,48 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
         },
       };
 
+      // Update unified stack if cue came from there
+      let updatedCues = stagingState.cues;
+      if (cueFromUnifiedStack && stagingState.cues) {
+        updatedCues = stagingState.cues.map((c) => {
+          if (c.id === cueId && c.type === 'media') {
+            return {
+              ...c,
+              data: {
+                ...c.data,
+                validation: {
+                  status: validation.status,
+                  reasons: validation.reasons || [],
+                },
+              },
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return c;
+        });
+      }
+
+      // Update legacy mediaCues array if needed
+      let updatedMediaCues = stagingState.mediaCues;
+      if (updatedMediaCues) {
+        updatedMediaCues = updatedMediaCues.map((c) => {
+          if (c.id === cueId) {
+            return {
+              ...c,
+              validation: {
+                status: validation.status,
+                reasons: validation.reasons || [],
+              },
+            };
+          }
+          return c;
+        });
+      }
+
       const updated = StagingState.updateStagingState(stagingState.stagingId, {
         validation: updatedValidation,
+        cues: updatedCues,
+        mediaCues: updatedMediaCues,
       });
 
       const readinessState = StagingState.calculateReadiness(updated);
@@ -1012,11 +1076,6 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
    * @param {string} params.subsystem - Optional: 'media' | 'executor' | 'slideControl' | 'all'
    */
   async function handleValidationRequest({ socket, sessionId, subsystem = 'all' } = {}) {
-    // #region agent log
-    try {
-      fs.appendFileSync('/Users/jeffwinkler/Documents/GitHub/amplifyed-pulse-ui/.cursor/debug.log', JSON.stringify({sessionId:'debug-session',runId:'run1',hypothesisId:'1',location:'stagingPipeline.js:handleValidationRequest',message:'Validation request received',data:{sessionId,subsystem},timestamp:Date.now()}) + '\n');
-    } catch(e) {}
-    // #endregion
     console.log(`[stagingPipeline] Validation request received:`, { sessionId, subsystem });
     try {
       const stagingState = StagingState.getStagingStateBySessionId(sessionId);
@@ -1109,7 +1168,694 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
     }
   }
 
+  /**
+   * Handle Cue Stack Get
+   * Fetch unified cue stack
+   * 
+   * @param {Object} params
+   * @param {Object} params.socket - Socket instance
+   * @param {string} params.sessionId - Session identifier
+   */
+  function handleCueStackGet({ socket, sessionId } = {}) {
+    try {
+      const stagingState = StagingState.getStagingStateBySessionId(sessionId);
+      if (!stagingState) {
+        socket.emit('cue:stack:error', {
+          sessionId,
+          code: 'STAGING_STATE_NOT_FOUND',
+          message: 'Staging state not found',
+        });
+        return;
+      }
+
+      // Ensure unified stack format
+      if (!stagingState.cues || !Array.isArray(stagingState.cues)) {
+        socket.emit('cue:stack:error', {
+          sessionId,
+          code: 'INVALID_STATE',
+          message: 'Staging state does not have unified stack format',
+        });
+        return;
+      }
+
+      socket.emit('cue:stack:response', {
+        sessionId,
+        cues: stagingState.cues,
+        currentPosition: stagingState.currentPosition !== undefined ? stagingState.currentPosition : -1,
+      });
+    } catch (err) {
+      console.error(`[stagingPipeline] Error getting cue stack: ${err.message}`);
+      socket.emit('cue:stack:error', {
+        sessionId,
+        code: 'INTERNAL_ERROR',
+        message: err.message,
+      });
+    }
+  }
+
+  /**
+   * Handle Cue Create
+   * Create new cue (type-aware: focus or media)
+   * 
+   * @param {Object} params
+   * @param {Object} params.socket - Socket instance
+   * @param {string} params.sessionId - Session identifier
+   * @param {string} params.type - Cue type: 'focus' | 'media'
+   * @param {Object} params.data - Cue data (type-specific)
+   * @param {number} params.position - Optional: position to insert at (default: end)
+   */
+  async function handleCueCreate({ socket, sessionId, type, data, position } = {}) {
+    const opId = generateOpId();
+
+    try {
+      const stagingState = StagingState.getStagingStateBySessionId(sessionId);
+      if (!stagingState) {
+        emitError(socket, 'cue:error', {
+          sessionId,
+          opId,
+          code: 'STAGING_STATE_NOT_FOUND',
+          message: 'Staging state not found',
+        });
+        return;
+      }
+
+      // Ensure unified stack format
+      if (!stagingState.cues || !Array.isArray(stagingState.cues)) {
+        emitError(socket, 'cue:error', {
+          sessionId,
+          opId,
+          code: 'INVALID_STATE',
+          message: 'Staging state does not have unified stack format',
+        });
+        return;
+      }
+
+      // Validate type
+      if (type !== 'focus' && type !== 'media' && type !== 'presentation') {
+        emitError(socket, 'cue:error', {
+          sessionId,
+          opId,
+          code: 'INVALID_TYPE',
+          message: 'Cue type must be "focus", "media", or "presentation"',
+        });
+        return;
+      }
+
+      // Validate data based on type
+      if (type === 'focus') {
+        if (!data || !data.text || typeof data.text !== 'string' || !data.text.trim()) {
+          emitError(socket, 'cue:error', {
+            sessionId,
+            opId,
+            code: 'INVALID_INPUT',
+            message: 'Focus cue requires text',
+          });
+          return;
+        }
+      } else if (type === 'media' || type === 'presentation') {
+        if (!data || !data.label || !data.source) {
+          emitError(socket, 'cue:error', {
+            sessionId,
+            opId,
+            code: 'INVALID_INPUT',
+            message: `${type === 'presentation' ? 'Presentation' : 'Media'} cue requires label and source`,
+          });
+          return;
+        }
+      }
+
+      // Determine insertion position
+      let insertPosition = stagingState.cues.length;
+      if (typeof position === 'number' && position >= 0 && position <= stagingState.cues.length) {
+        insertPosition = position;
+      }
+
+      // Create new cue
+      const newCue = {
+        id: `${type}_${Date.now()}_${randomUUID().slice(0, 8)}`,
+        type,
+        position: insertPosition,
+        data: type === 'focus' 
+          ? { text: data.text.trim(), isDefault: data.isDefault || false }
+          : {
+              label: data.label,
+              source: data.source,
+              playback: data.playback || { audioMode: 'videoOnly' },
+              binding: data.binding,
+              validation: { status: 'unvalidated' },
+            },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Validate media/presentation cue if type is media or presentation
+      if (type === 'media' || type === 'presentation') {
+        const validation = await validateMediaCue({
+          label: newCue.data.label,
+          source: newCue.data.source,
+          playback: newCue.data.playback,
+          binding: newCue.data.binding,
+        });
+        newCue.data.validation = {
+          status: validation.status,
+          reasons: validation.reasons || [],
+        };
+      }
+
+      // Insert cue at position
+      const updatedCues = [...stagingState.cues];
+      updatedCues.splice(insertPosition, 0, newCue);
+      
+      // Re-index positions
+      updatedCues.forEach((cue, index) => {
+        cue.position = index;
+      });
+
+      // Update legacy arrays for backward compatibility
+      let updatedFocusCues = stagingState.focusCues || [];
+      let updatedMediaCues = stagingState.mediaCues || [];
+
+      if (type === 'focus') {
+        const legacyFocusCue = {
+          id: newCue.id,
+          text: newCue.data.text,
+          order: newCue.position,
+          createdAt: newCue.createdAt,
+          isSystemDefault: newCue.data.isDefault,
+        };
+        updatedFocusCues = [...updatedFocusCues, legacyFocusCue];
+      } else if (type === 'media' || type === 'presentation') {
+        // Presentations are stored in mediaCues array for backward compatibility
+        const legacyMediaCue = {
+          id: newCue.id,
+          label: newCue.data.label,
+          source: newCue.data.source,
+          playback: newCue.data.playback,
+          binding: newCue.data.binding,
+          validation: newCue.data.validation,
+          createdAt: newCue.createdAt,
+        };
+        updatedMediaCues = [...updatedMediaCues, legacyMediaCue];
+      }
+
+      // Update staging state with both unified stack and legacy arrays
+      const updated = StagingState.updateStagingState(stagingState.stagingId, {
+        cues: updatedCues,
+        focusCues: updatedFocusCues,
+        mediaCues: updatedMediaCues,
+      });
+
+      const readinessState = StagingState.calculateReadiness(updated);
+
+      // Emit ACK
+      emitAck(socket, 'cue:ack', {
+        sessionId,
+        opId,
+        cues: updated.cues,
+        currentPosition: updated.currentPosition,
+        readinessState,
+      });
+    } catch (err) {
+      console.error(`[stagingPipeline] Error creating cue: ${err.message}`);
+      emitError(socket, 'cue:error', {
+        sessionId,
+        opId,
+        code: 'INTERNAL_ERROR',
+        message: err.message,
+      });
+    }
+  }
+
+  /**
+   * Handle Cue Edit
+   * Edit existing cue (if allowed per contract rules)
+   * 
+   * @param {Object} params
+   * @param {Object} params.socket - Socket instance
+   * @param {string} params.sessionId - Session identifier
+   * @param {string} params.cueId - Cue ID
+   * @param {Object} params.data - Updated cue data
+   */
+  async function handleCueEdit({ socket, sessionId, cueId, data } = {}) {
+    const opId = generateOpId();
+
+    try {
+      const stagingState = StagingState.getStagingStateBySessionId(sessionId);
+      if (!stagingState) {
+        emitError(socket, 'cue:error', {
+          sessionId,
+          opId,
+          code: 'STAGING_STATE_NOT_FOUND',
+          message: 'Staging state not found',
+        });
+        return;
+      }
+
+      if (!stagingState.cues || !Array.isArray(stagingState.cues)) {
+        emitError(socket, 'cue:error', {
+          sessionId,
+          opId,
+          code: 'INVALID_STATE',
+          message: 'Staging state does not have unified stack format',
+        });
+        return;
+      }
+
+      const cueIndex = stagingState.cues.findIndex(c => c.id === cueId);
+      if (cueIndex < 0) {
+        emitError(socket, 'cue:error', {
+          sessionId,
+          opId,
+          code: 'CUE_NOT_FOUND',
+          message: 'Cue not found',
+        });
+        return;
+      }
+
+      const cue = stagingState.cues[cueIndex];
+      const isLive = isSessionLive(sessionId);
+
+      // Check editing rules per contract
+      if (isLive) {
+        // Live: Focus cues editable if unexecuted, Media/Presentation cues editable only if unvalidated
+        if (cue.type === 'focus') {
+          // Check if executed (position <= currentPosition)
+          if (stagingState.currentPosition >= 0 && cue.position <= stagingState.currentPosition) {
+            emitError(socket, 'cue:error', {
+              sessionId,
+              opId,
+              code: 'CUE_EXECUTED',
+              message: 'Cannot edit executed focus cue',
+            });
+            return;
+          }
+        } else if (cue.type === 'media' || cue.type === 'presentation') {
+          // Media/Presentation cues immutable once validated
+          if (cue.data.validation && cue.data.validation.status !== 'unvalidated') {
+            emitError(socket, 'cue:error', {
+              sessionId,
+              opId,
+              code: 'CUE_VALIDATED',
+              message: `Cannot edit validated ${cue.type} cue`,
+            });
+            return;
+          }
+        }
+      }
+
+      // Update cue data
+      const updatedCue = {
+        ...cue,
+        data: {
+          ...cue.data,
+          ...data,
+        },
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Re-validate media/presentation cue if source changed
+      if ((cue.type === 'media' || cue.type === 'presentation') && data.source) {
+        const validation = await validateMediaCue({
+          label: updatedCue.data.label,
+          source: updatedCue.data.source,
+          playback: updatedCue.data.playback,
+          binding: updatedCue.data.binding,
+        });
+        updatedCue.data.validation = {
+          status: validation.status,
+          reasons: validation.reasons || [],
+        };
+      }
+
+      // Update cues array
+      const updatedCues = [...stagingState.cues];
+      updatedCues[cueIndex] = updatedCue;
+
+      const updated = StagingState.updateStagingState(stagingState.stagingId, {
+        cues: updatedCues,
+      });
+
+      const readinessState = StagingState.calculateReadiness(updated);
+
+      emitAck(socket, 'cue:ack', {
+        sessionId,
+        opId,
+        cues: updated.cues,
+        currentPosition: updated.currentPosition,
+        readinessState,
+      });
+    } catch (err) {
+      console.error(`[stagingPipeline] Error editing cue: ${err.message}`);
+      emitError(socket, 'cue:error', {
+        sessionId,
+        opId,
+        code: 'INTERNAL_ERROR',
+        message: err.message,
+      });
+    }
+  }
+
+  /**
+   * Handle Cue Delete
+   * Delete cue (if allowed per contract rules)
+   * 
+   * @param {Object} params
+   * @param {Object} params.socket - Socket instance
+   * @param {string} params.sessionId - Session identifier
+   * @param {string} params.cueId - Cue ID
+   */
+  function handleCueDelete({ socket, sessionId, cueId } = {}) {
+    const opId = generateOpId();
+
+    try {
+      const stagingState = StagingState.getStagingStateBySessionId(sessionId);
+      if (!stagingState) {
+        emitError(socket, 'cue:error', {
+          sessionId,
+          opId,
+          code: 'STAGING_STATE_NOT_FOUND',
+          message: 'Staging state not found',
+        });
+        return;
+      }
+
+      if (!stagingState.cues || !Array.isArray(stagingState.cues)) {
+        emitError(socket, 'cue:error', {
+          sessionId,
+          opId,
+          code: 'INVALID_STATE',
+          message: 'Staging state does not have unified stack format',
+        });
+        return;
+      }
+
+      const cueIndex = stagingState.cues.findIndex(c => c.id === cueId);
+      if (cueIndex < 0) {
+        emitError(socket, 'cue:error', {
+          sessionId,
+          opId,
+          code: 'CUE_NOT_FOUND',
+          message: 'Cue not found',
+        });
+        return;
+      }
+
+      const cue = stagingState.cues[cueIndex];
+      const isLive = isSessionLive(sessionId);
+
+      // Check deletion rules per contract
+      if (isLive) {
+        // Cannot delete executed cues
+        if (stagingState.currentPosition >= 0 && cue.position <= stagingState.currentPosition) {
+          emitError(socket, 'cue:error', {
+            sessionId,
+            opId,
+            code: 'CUE_EXECUTED',
+            message: 'Cannot delete executed cue',
+          });
+          return;
+        }
+      }
+
+      // Prevent deleting default focus cue
+      if (cue.type === 'focus' && cue.data.isDefault) {
+        emitError(socket, 'cue:error', {
+          sessionId,
+          opId,
+          code: 'CANNOT_DELETE_DEFAULT',
+          message: 'Cannot delete default focus cue',
+        });
+        return;
+      }
+
+      // Remove cue
+      const updatedCues = stagingState.cues.filter(c => c.id !== cueId);
+      
+      // Re-index positions
+      updatedCues.forEach((c, index) => {
+        c.position = index;
+      });
+
+      const updated = StagingState.updateStagingState(stagingState.stagingId, {
+        cues: updatedCues,
+      });
+
+      const readinessState = StagingState.calculateReadiness(updated);
+
+      emitAck(socket, 'cue:ack', {
+        sessionId,
+        opId,
+        cues: updated.cues,
+        currentPosition: updated.currentPosition,
+        readinessState,
+      });
+    } catch (err) {
+      console.error(`[stagingPipeline] Error deleting cue: ${err.message}`);
+      emitError(socket, 'cue:error', {
+        sessionId,
+        opId,
+        code: 'INTERNAL_ERROR',
+        message: err.message,
+      });
+    }
+  }
+
+  /**
+   * Handle Cue Stack Update (Reorder)
+   * Update entire stack order
+   * 
+   * @param {Object} params
+   * @param {Object} params.socket - Socket instance
+   * @param {string} params.sessionId - Session identifier
+   * @param {string[]} params.orderedCueIds - Ordered array of cue IDs
+   */
+  function handleCueStackUpdate({ socket, sessionId, orderedCueIds } = {}) {
+    const opId = generateOpId();
+
+    try {
+      const stagingState = StagingState.getStagingStateBySessionId(sessionId);
+      if (!stagingState) {
+        emitError(socket, 'cue:stack:error', {
+          sessionId,
+          opId,
+          code: 'STAGING_STATE_NOT_FOUND',
+          message: 'Staging state not found',
+        });
+        return;
+      }
+
+      if (!stagingState.cues || !Array.isArray(stagingState.cues)) {
+        emitError(socket, 'cue:stack:error', {
+          sessionId,
+          opId,
+          code: 'INVALID_STATE',
+          message: 'Staging state does not have unified stack format',
+        });
+        return;
+      }
+
+      if (!Array.isArray(orderedCueIds) || orderedCueIds.length === 0) {
+        emitError(socket, 'cue:stack:error', {
+          sessionId,
+          opId,
+          code: 'INVALID_INPUT',
+          message: 'orderedCueIds must be a non-empty array',
+        });
+        return;
+      }
+
+      const isLive = isSessionLive(sessionId);
+      const currentPosition = stagingState.currentPosition || -1;
+
+      // Build cue map
+      const cueMap = new Map(stagingState.cues.map(c => [c.id, c]));
+      const reordered = [];
+
+      // Reorder cues
+      orderedCueIds.forEach((id, index) => {
+        const cue = cueMap.get(id);
+        if (cue) {
+          // Check if reordering is allowed (only unexecuted cues)
+          if (isLive && currentPosition >= 0 && cue.position <= currentPosition) {
+            // Cannot reorder executed cues
+            return;
+          }
+          reordered.push({
+            ...cue,
+            position: index,
+          });
+        }
+      });
+
+      // Add any cues not in ordered list (shouldn't happen, but defensive)
+      stagingState.cues.forEach(cue => {
+        if (!orderedCueIds.includes(cue.id)) {
+          reordered.push({
+            ...cue,
+            position: reordered.length,
+          });
+        }
+      });
+
+      const updated = StagingState.updateStagingState(stagingState.stagingId, {
+        cues: reordered,
+      });
+
+      const readinessState = StagingState.calculateReadiness(updated);
+
+      emitAck(socket, 'cue:stack:ack', {
+        sessionId,
+        opId,
+        cues: updated.cues,
+        currentPosition: updated.currentPosition,
+        readinessState,
+      });
+    } catch (err) {
+      console.error(`[stagingPipeline] Error updating cue stack: ${err.message}`);
+      emitError(socket, 'cue:stack:error', {
+        sessionId,
+        opId,
+        code: 'INTERNAL_ERROR',
+        message: err.message,
+      });
+    }
+  }
+
+  /**
+   * Handle Cue Stack Position Advance
+   * Advance execution position
+   * 
+   * @param {Object} params
+   * @param {Object} params.socket - Socket instance
+   * @param {string} params.sessionId - Session identifier
+   */
+  function handleCueStackPositionAdvance({ socket, sessionId } = {}) {
+    const opId = generateOpId();
+
+    try {
+      if (!isSessionLive(sessionId)) {
+        emitError(socket, 'cue:stack:position:error', {
+          sessionId,
+          opId,
+          code: 'SESSION_NOT_LIVE',
+          message: 'Cannot advance position: Session is not live',
+        });
+        return;
+      }
+
+      const stagingState = StagingState.getStagingStateBySessionId(sessionId);
+      if (!stagingState) {
+        emitError(socket, 'cue:stack:position:error', {
+          sessionId,
+          opId,
+          code: 'STAGING_STATE_NOT_FOUND',
+          message: 'Staging state not found',
+        });
+        return;
+      }
+
+      const currentPosition = stagingState.currentPosition !== undefined ? stagingState.currentPosition : -1;
+      const maxPosition = stagingState.cues ? stagingState.cues.length - 1 : -1;
+
+      if (currentPosition >= maxPosition) {
+        emitError(socket, 'cue:stack:position:error', {
+          sessionId,
+          opId,
+          code: 'ALREADY_AT_END',
+          message: 'Already at end of cue stack',
+        });
+        return;
+      }
+
+      const newPosition = currentPosition + 1;
+      const updated = StagingState.updateStagingState(stagingState.stagingId, {
+        currentPosition: newPosition,
+      });
+
+      emitAck(socket, 'cue:stack:position:ack', {
+        sessionId,
+        opId,
+        currentPosition: newPosition,
+      });
+    } catch (err) {
+      console.error(`[stagingPipeline] Error advancing position: ${err.message}`);
+      emitError(socket, 'cue:stack:position:error', {
+        sessionId,
+        opId,
+        code: 'INTERNAL_ERROR',
+        message: err.message,
+      });
+    }
+  }
+
+  /**
+   * Handle Cue Stack Position Rewind
+   * Rewind execution position
+   * 
+   * @param {Object} params
+   * @param {Object} params.socket - Socket instance
+   * @param {string} params.sessionId - Session identifier
+   */
+  function handleCueStackPositionRewind({ socket, sessionId } = {}) {
+    const opId = generateOpId();
+
+    try {
+      if (!isSessionLive(sessionId)) {
+        emitError(socket, 'cue:stack:position:error', {
+          sessionId,
+          opId,
+          code: 'SESSION_NOT_LIVE',
+          message: 'Cannot rewind position: Session is not live',
+        });
+        return;
+      }
+
+      const stagingState = StagingState.getStagingStateBySessionId(sessionId);
+      if (!stagingState) {
+        emitError(socket, 'cue:stack:position:error', {
+          sessionId,
+          opId,
+          code: 'STAGING_STATE_NOT_FOUND',
+          message: 'Staging state not found',
+        });
+        return;
+      }
+
+      const currentPosition = stagingState.currentPosition !== undefined ? stagingState.currentPosition : -1;
+
+      if (currentPosition <= -1) {
+        emitError(socket, 'cue:stack:position:error', {
+          sessionId,
+          opId,
+          code: 'ALREADY_AT_START',
+          message: 'Already at start of cue stack',
+        });
+        return;
+      }
+
+      const newPosition = currentPosition - 1;
+      const updated = StagingState.updateStagingState(stagingState.stagingId, {
+        currentPosition: newPosition,
+      });
+
+      emitAck(socket, 'cue:stack:position:ack', {
+        sessionId,
+        opId,
+        currentPosition: newPosition,
+      });
+    } catch (err) {
+      console.error(`[stagingPipeline] Error rewinding position: ${err.message}`);
+      emitError(socket, 'cue:stack:position:error', {
+        sessionId,
+        opId,
+        code: 'INTERNAL_ERROR',
+        message: err.message,
+      });
+    }
+  }
+
   return {
+    // Legacy handlers (backward compatibility)
     handleFocusCueCreate,
     handleFocusCueEdit,
     handleFocusCueDelete,
@@ -1122,5 +1868,13 @@ export function createStagingPipeline(io, { sessionPipeline, stageEnginePipeline
     handleEntryStateUpdate,
     handleRequirementsUpdate,
     handleValidationRequest,
+    // Unified stack handlers
+    handleCueStackGet,
+    handleCueCreate,
+    handleCueEdit,
+    handleCueDelete,
+    handleCueStackUpdate,
+    handleCueStackPositionAdvance,
+    handleCueStackPositionRewind,
   };
 }

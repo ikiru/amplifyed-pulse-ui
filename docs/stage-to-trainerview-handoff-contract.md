@@ -2,7 +2,7 @@
 
 ## Status: Canonical
 ## Owner: TBD
-## Last reviewed: 2026-01-22
+## Last reviewed: 2026-01-24
 
 ---
 
@@ -82,10 +82,15 @@ TrainerView may:
 - initiate Live via explicit action
 - activate focus cues (live)
 - trigger media cue execution (live)
+- insert new focus cues ahead of `currentPosition` (live)
+- insert new media cues ahead of `currentPosition` (live, with immediate validation)
+- edit unexecuted focus cues (`position > currentPosition`)
+- edit unvalidated media cues (newly inserted, not yet validated)
 
 TrainerView must never:
-- create/edit/reorder focus cues
-- create/edit/reorder media cues
+- create/edit/reorder cues at or before `currentPosition`
+- edit validated media cues
+- edit executed cues of any type
 - modify entry state defaults once Live begins
 - auto-transition to Live on page load
 
@@ -127,14 +132,47 @@ No staged objects are transmitted from TrainerView at this time; the server is a
 On receiving `session:live:begin` the server must perform an atomic operation:
 
 1. Re-check gating rules (Section 5)
-2. Create a **live snapshot** of staged data:
-   - `*_staging` → `*_live`
+2. Create a **baseline snapshot** (immutable) of staged data:
+   - `*_staging` → `*_live` (baseline snapshot)
+   - Baseline represents "what we planned"
+   - Baseline is never modified after creation
 3. Set `session.state = LIVE`
 4. Emit `session:state:update { state: LIVE }` to all connected clients (Stage + TrainerView + LiveView as applicable)
 5. Return ACK to TrainerView:
-   - `session:live:ack { state: LIVE, snapshotId }`
+   - `session:live:ack { state: LIVE, snapshotId }` (baseline snapshot ID)
 
 The snapshot operation must be atomic: no partial live state is permitted.
+
+### 3.4 Hybrid Snapshot Model
+
+The snapshot system uses a hybrid approach to support both planned intent and live adaptation:
+
+**Baseline Snapshot** (created at Live transition):
+- Immutable copy of all staged cues at the moment of Live transition
+- Represents planned session flow ("what we planned")
+- Never modified after creation
+- Preserved for audit trail
+- Contains: `focusCues_live[]`, `mediaCues_live[]`, `entryState_live{}`, `requirements_live{}`, `snapshotMeta{}`
+
+**Incremental Revisions** (created during live):
+- Created when cues are inserted during live sessions
+- Contains only the new insertions (not a full replacement)
+- References baseline snapshot for executed cues
+- Preserved for audit trail ("what actually happened")
+- Each revision has a unique revision ID and timestamp
+
+**Audit Trail**:
+- Baseline snapshot ID recorded at Live transition
+- Each incremental revision ID recorded when created
+- Full reconstruction possible: baseline + all revisions
+- Executed cues must remain identical across all snapshot versions
+- Provides clear separation: "what we planned" vs "what actually happened"
+
+**Implementation Notes**:
+- Baseline snapshot stored as: `snapshot_baseline_<snapshotId>.json`
+- Incremental revisions stored as: `snapshot_revision_<revisionId>.json`
+- Metadata tracks which cues came from baseline vs revisions
+- Executed cues are never modified in any revision
 
 ---
 
@@ -237,10 +275,9 @@ No partial state changes are permitted.
 
 - Persistence of staging payload across sessions/templates
 - Replays and recording semantics
-- Mid-live creation of new cues
 - Participant proposals for focus/media
 
-These require separate contracts.
+**Note:** Mid-live creation of new cues is now in scope (see Section 2.2 for TrainerView authority).
 
 ---
 
@@ -250,7 +287,9 @@ Any implementation that:
 - allows Stage to mutate staged data after LIVE
 - auto-starts Live on TrainerView open
 - snapshots without explicit Go Live action
-- permits TrainerView to author cues
+- permits TrainerView to author cues at or before `currentPosition`
+- modifies baseline snapshot after Live transition
+- modifies executed cues in any snapshot revision
 
 is **non-compliant**.
 

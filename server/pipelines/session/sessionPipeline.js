@@ -332,8 +332,12 @@ export function createSessionPipeline(io, { stagingPipeline, focusPipeline } = {
     let stagingPayload = null;
     if (sessionState !== 'LIVE') {
       stagingPayload = {
-        focusCues: stagingState.focusCues,
-        mediaCues: stagingState.mediaCues,
+        // Unified stack (primary)
+        cues: stagingState.cues || [],
+        currentPosition: stagingState.currentPosition !== undefined ? stagingState.currentPosition : -1,
+        // Legacy arrays (for backward compatibility)
+        focusCues: stagingState.focusCues || [],
+        mediaCues: stagingState.mediaCues || [],
         entryState: stagingState.entryState,
         requirements: stagingState.requirements,
         validation: stagingState.validation,

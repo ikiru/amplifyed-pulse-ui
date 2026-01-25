@@ -127,6 +127,23 @@
   color: #856404;
 }
 
+/* Stage Header Navigation */
+.stage-nav-button {
+  display: inline-block;
+  padding: 10px 20px;
+  background: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.stage-nav-button:hover {
+  background: #0056b3;
+}
+
 /* Stage Content Layout */
 .stage-content {
   display: grid;
@@ -151,7 +168,8 @@
 .focus-cues-panel,
 .media-cues-panel,
 .entry-state-panel,
-.readiness-panel {
+.readiness-panel,
+.unified-cue-stack-panel {
   background: white;
   padding: 20px;
   border-radius: 8px;
@@ -649,6 +667,288 @@
 
 .read-only-overlay-link:hover {
   background: #0056b3;
+}
+
+/* Unified Cue Stack */
+.position-indicator {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: #e7f3ff;
+  border-left: 3px solid #007bff;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #0056b3;
+  font-weight: 500;
+}
+
+.cue-stack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.cue-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.cue-wrapper:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+}
+
+.cue-wrapper.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+.cue-wrapper.executed {
+  background: #f8f9fa;
+  border-color: #d0d0d0;
+}
+
+.cue-wrapper.executed .cue-card {
+  opacity: 0.7;
+}
+
+.cue-wrapper .drag-handle {
+  cursor: grab;
+  color: #6c757d;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 4px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.cue-wrapper .drag-handle:hover {
+  color: #007bff;
+}
+
+.cue-wrapper .drag-handle:active {
+  cursor: grabbing;
+}
+
+.cue-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cue-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cue-position {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 20px;
+  padding: 0 6px;
+  background: #6c757d;
+  color: white;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.cue-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.cue-type-badge.cue-type-focus {
+  background: #007bff;
+  color: white;
+}
+
+.cue-type-badge.cue-type-media {
+  background: #28a745;
+  color: white;
+}
+
+.cue-type-badge.cue-type-presentation {
+  background: #17a2b8;
+  color: white;
+}
+
+.executed-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #6c757d;
+  color: white;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.cue-card-content {
+  padding: 0;
+}
+
+.cue-text {
+  padding: 6px 10px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: #333;
+  cursor: text;
+  transition: background-color 0.2s;
+}
+
+.cue-text:hover {
+  background: #e9ecef;
+}
+
+.cue-edit-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 2px solid #007bff;
+  border-radius: 4px;
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.cue-label {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.cue-source-type {
+  font-size: 13px;
+  color: #6c757d;
+  margin-bottom: 2px;
+  text-transform: capitalize;
+}
+
+.cue-source-url {
+  font-size: 14px;
+  color: #495057;
+  word-break: break-all;
+  margin-bottom: 4px;
+}
+
+.cue-meta {
+  font-size: 13px;
+  color: #6c757d;
+  margin-top: 2px;
+}
+
+.cue-warnings {
+  margin-top: 6px;
+  padding: 8px;
+  background: #fff3cd;
+  border-left: 3px solid #ffc107;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.cue-warnings ul {
+  margin: 4px 0 0 0;
+  padding-left: 20px;
+  color: #856404;
+}
+
+.cue-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+  border-top: 1px solid #e9ecef;
+  margin-top: 4px;
+}
+
+.cue-action-btn {
+  padding: 4px 10px;
+  font-size: 13px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.cue-action-btn:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+}
+
+.cue-action-btn.validate {
+  color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.cue-action-btn.validate:hover {
+  background: #0d6efd;
+  color: white;
+}
+
+.cue-action-btn.delete {
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.cue-action-btn.delete:hover {
+  background: #dc3545;
+  color: white;
+}
+
+.cue-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cue-form-container {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  border: 1px solid #e0e0e0;
+}
+
+.cue-add-controls {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e9ecef;
+}
+
+.cue-type-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cue-type-selector .btn-secondary {
+  flex: 1;
+  min-width: 120px;
+  padding: 8px 14px;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 /* Empty State */

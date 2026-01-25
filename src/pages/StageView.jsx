@@ -3,8 +3,7 @@ import { useSocket } from '../socket/SocketContext.jsx';
 import { useSessionState } from '../hooks/useSessionState.js';
 import { useStageState } from '../hooks/useStageState.js';
 import StageHeader from '../components/stage/StageHeader.jsx';
-import FocusCuesPanel from '../components/stage/FocusCuesPanel.jsx';
-import MediaCuesPanel from '../components/stage/MediaCuesPanel.jsx';
+import UnifiedCueStackPanel from '../components/stage/UnifiedCueStackPanel.jsx';
 import EntryStatePanel from '../components/stage/EntryStatePanel.jsx';
 import ReadinessPanel from '../components/stage/ReadinessPanel.jsx';
 import ReadOnlyOverlay from '../components/stage/ReadOnlyOverlay.jsx';
@@ -31,6 +30,7 @@ export default function StageView() {
     isReadOnly,
     isLoading,
     error,
+    // Legacy operations (backward compatibility)
     createFocusCue,
     editFocusCue,
     deleteFocusCue,
@@ -40,6 +40,13 @@ export default function StageView() {
     editMediaCue,
     deleteMediaCue,
     validateMediaCue,
+    // Unified stack operations
+    createCue,
+    editCue,
+    deleteCue,
+    reorderCues,
+    advancePosition,
+    rewindPosition,
     updateEntryState,
     updateRequirements,
     requestValidation,
@@ -98,31 +105,36 @@ export default function StageView() {
 
       <div className="stage-content">
         <div className="stage-main-panels">
-          <FocusCuesPanel
-            focusCues={stagingState?.focusCues || []}
+          <UnifiedCueStackPanel
+            cues={stagingState?.cues || []}
+            currentPosition={stagingState?.currentPosition !== undefined ? stagingState.currentPosition : -1}
             defaultFocusCueId={stagingState?.entryState?.defaultFocusCueId}
-            isReadOnly={isReadOnly}
-            onCreate={createFocusCue}
-            onEdit={editFocusCue}
-            onDelete={deleteFocusCue}
-            onReorder={reorderFocusCues}
-            onSetDefault={setDefaultFocusCue}
-          />
-
-          <MediaCuesPanel
-            mediaCues={stagingState?.mediaCues || []}
             validation={stagingState?.validation}
             isReadOnly={isReadOnly}
-            onCreate={createMediaCue}
-            onEdit={editMediaCue}
-            onDelete={deleteMediaCue}
-            onValidate={validateMediaCue}
+            onCreate={(type, data, position) => {
+              if (type === 'focus') {
+                createCue('focus', data, position);
+              } else if (type === 'media') {
+                createCue('media', data, position);
+              } else if (type === 'presentation') {
+                createCue('presentation', data, position);
+              }
+            }}
+            onEdit={(cueId, data) => {
+              editCue(cueId, data);
+            }}
+            onDelete={deleteCue}
+            onReorder={reorderCues}
+            onSetDefault={(cueId) => {
+              setDefaultFocusCue(cueId);
+            }}
           />
         </div>
 
         <div className="stage-config-panels">
           <EntryStatePanel
             entryState={stagingState?.entryState || {}}
+            cues={stagingState?.cues || []}
             focusCues={stagingState?.focusCues || []}
             isReadOnly={isReadOnly}
             onUpdate={updateEntryState}
@@ -131,6 +143,7 @@ export default function StageView() {
           <ReadinessPanel
             validation={stagingState?.validation || {}}
             requirements={stagingState?.requirements || {}}
+            cues={stagingState?.cues || []}
             mediaCues={stagingState?.mediaCues || []}
             isReadOnly={isReadOnly}
             onRequirementToggle={updateRequirements}

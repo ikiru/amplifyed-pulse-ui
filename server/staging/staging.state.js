@@ -99,12 +99,108 @@ function buildDefaultFocusCue(sessionId) {
 }
 
 /**
+ * Migrate staging state from separate arrays to unified stack
+ * Lazy migration: converts old format to new format on read
+ * 
+ * @param {Object} stagingState - Staging state (may be old or new format)
+ * @returns {Object} Staging state with unified stack
+ */
+function migrateToUnifiedStack(stagingState) {
+  if (!stagingState) {
+    return null;
+  }
+
+  // Already migrated if cues array exists
+  if (stagingState.cues && Array.isArray(stagingState.cues)) {
+    return stagingState;
+  }
+
+  // Convert separate arrays to unified stack
+  const cues = [];
+  let position = 0;
+
+  // Convert focus cues
+  if (stagingState.focusCues && Array.isArray(stagingState.focusCues)) {
+    stagingState.focusCues.forEach(cue => {
+      cues.push({
+        id: cue.id,
+        type: 'focus',
+        position: position++,
+        data: {
+          text: cue.text,
+          isDefault: cue.isDefault || cue.id === stagingState.entryState?.defaultFocusCueId,
+        },
+        createdAt: cue.createdAt || new Date().toISOString(),
+        updatedAt: cue.updatedAt || cue.createdAt || new Date().toISOString(),
+      });
+    });
+  }
+
+  // Convert media cues
+  if (stagingState.mediaCues && Array.isArray(stagingState.mediaCues)) {
+    stagingState.mediaCues.forEach(cue => {
+      cues.push({
+        id: cue.id,
+        type: 'media',
+        position: position++,
+        data: {
+          label: cue.label,
+          source: cue.source || {},
+          playback: cue.playback || {},
+          binding: cue.binding,
+          validation: cue.validation || { status: 'unvalidated' },
+        },
+        createdAt: cue.createdAt || new Date().toISOString(),
+        updatedAt: cue.updatedAt || cue.createdAt || new Date().toISOString(),
+      });
+    });
+  }
+
+  // Create migrated state
+  const migrated = {
+    ...stagingState,
+    cues,
+    currentPosition: stagingState.currentPosition !== undefined ? stagingState.currentPosition : -1,
+    // Keep old arrays for backward compat during transition
+    focusCues: stagingState.focusCues,
+    mediaCues: stagingState.mediaCues,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Save migrated state back to disk
+  if (stagingState.stagingId) {
+    try {
+      const filePath = getStateFilePath(stagingState.stagingId);
+      fs.writeFileSync(filePath, JSON.stringify(migrated, null, 2));
+      console.log(`[staging.state] Migrated staging state to unified stack: ${stagingState.stagingId}`);
+    } catch (err) {
+      console.error(`[staging.state] Error saving migrated state: ${err.message}`);
+    }
+  }
+
+  return migrated;
+}
+
+/**
  * Create default staging state structure
  * @param {string} sessionId - Session identifier
  * @returns {Object} Default staging state
  */
 function createDefaultStagingState(sessionId) {
   const defaultFocusCue = buildDefaultFocusCue(sessionId);
+  
+  // Create unified stack with default focus cue
+  const defaultCue = {
+    id: defaultFocusCue.id,
+    type: 'focus',
+    position: 0,
+    data: {
+      text: defaultFocusCue.text,
+      isDefault: true,
+    },
+    createdAt: defaultFocusCue.createdAt,
+    updatedAt: defaultFocusCue.createdAt,
+  };
   
   return {
     sessionId,
@@ -113,6 +209,10 @@ function createDefaultStagingState(sessionId) {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     isReadOnly: false,
+    // Unified stack (primary)
+    cues: [defaultCue],
+    currentPosition: -1, // Not started
+    // Legacy arrays (for backward compatibility during transition)
     focusCues: [defaultFocusCue],
     mediaCues: [],
     entryState: {
@@ -185,6 +285,7 @@ export function getOrCreateStagingState(sessionId) {
 
 /**
  * Get staging state by session ID
+ * Migrates to unified stack format if needed
  * 
  * @param {string} sessionId - Session identifier
  * @returns {Object|null} Staging state or null if not found
@@ -213,7 +314,8 @@ export function getStagingStateBySessionId(sessionId) {
         const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
         if (state.sessionId === sessionId) {
           stagingBySessionId.set(sessionId, state.stagingId);
-          return state;
+          // Migrate to unified stack if needed
+          return migrateToUnifiedStack(state);
         }
       } catch (err) {
         console.error(`[staging.state] Error reading staging state: ${err.message}`);
@@ -226,6 +328,7 @@ export function getStagingStateBySessionId(sessionId) {
 
 /**
  * Get staging state by staging ID
+ * Migrates to unified stack format if needed
  * 
  * @param {string} stagingId - Staging identifier
  * @returns {Object|null} Staging state or null if not found
@@ -249,7 +352,8 @@ export function getStagingState(stagingId) {
       stagingBySessionId.set(state.sessionId, stagingId);
     }
     
-    return state;
+    // Migrate to unified stack if needed
+    return migrateToUnifiedStack(state);
   } catch (err) {
     console.error(`[staging.state] Error reading staging state: ${err.message}`);
     return null;
@@ -258,6 +362,7 @@ export function getStagingState(stagingId) {
 
 /**
  * Update staging state
+ * Ensures unified stack format before update
  * 
  * @param {string} stagingId - Staging identifier
  * @param {Object} updates - Partial state updates
@@ -272,6 +377,11 @@ export function updateStagingState(stagingId, updates = {}, options = {}) {
   const currentState = getStagingState(stagingId);
   if (!currentState) {
     throw new Error(`[staging.state] Staging state not found: ${stagingId}`);
+  }
+
+  // Ensure unified format (migration happens in getStagingState)
+  if (!currentState.cues || !Array.isArray(currentState.cues)) {
+    throw new Error(`[staging.state] Staging state must have unified stack format: ${stagingId}`);
   }
 
   // Check read-only
@@ -299,11 +409,12 @@ export function updateStagingState(stagingId, updates = {}, options = {}) {
 }
 
 /**
- * Create snapshot from staging state
+ * Create baseline snapshot from staging state
  * Atomic operation - locks staging state during snapshot creation
+ * Creates immutable baseline snapshot per hybrid snapshot model
  * 
  * @param {string} stagingId - Staging identifier
- * @returns {Object} Snapshot object with snapshotId
+ * @returns {Object} Baseline snapshot object with snapshotId
  * @throws {Error} If staging state is locked or read-only
  */
 export function createSnapshot(stagingId) {
@@ -321,32 +432,35 @@ export function createSnapshot(stagingId) {
     }
 
     // Generate snapshot ID
-    const snapshotId = `snapshot_${Date.now()}_${randomUUID().slice(0, 8)}`;
+    const snapshotId = `snapshot_baseline_${Date.now()}_${randomUUID().slice(0, 8)}`;
 
-    // Deep clone staging state
-    const snapshot = {
+    // Create baseline snapshot (immutable copy of unified stack)
+    const baselineSnapshot = {
       snapshotId,
       sessionId: stagingState.sessionId,
       createdAt: new Date().toISOString(),
-      isSnapshot: true,
-      // Deep copy all staging data
-      focusCues: JSON.parse(JSON.stringify(stagingState.focusCues)),
-      mediaCues: JSON.parse(JSON.stringify(stagingState.mediaCues)),
+      isBaseline: true,
+      // Deep copy unified stack
+      cues: JSON.parse(JSON.stringify(stagingState.cues || [])),
+      currentPosition: -1, // Always -1 for baseline
       entryState: JSON.parse(JSON.stringify(stagingState.entryState)),
       requirements: JSON.parse(JSON.stringify(stagingState.requirements)),
       validation: JSON.parse(JSON.stringify(stagingState.validation)),
+      // Keep legacy arrays for backward compatibility
+      focusCues: JSON.parse(JSON.stringify(stagingState.focusCues || [])),
+      mediaCues: JSON.parse(JSON.stringify(stagingState.mediaCues || [])),
     };
 
-    // Save snapshot to disk
+    // Save baseline snapshot to disk
     const snapshotPath = getSnapshotFilePath(stagingId, snapshotId);
-    fs.writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2));
+    fs.writeFileSync(snapshotPath, JSON.stringify(baselineSnapshot, null, 2));
 
     // Mark staging state as read-only
     updateStagingState(stagingId, { isReadOnly: true }, { checkReadOnly: false });
 
-    console.log(`[staging.state] Created snapshot: ${snapshotId} for staging: ${stagingId}`);
+    console.log(`[staging.state] Created baseline snapshot: ${snapshotId} for staging: ${stagingId}`);
 
-    return snapshot;
+    return baselineSnapshot;
   } finally {
     // Always release lock
     releaseLock(stagingId);
@@ -381,6 +495,7 @@ export function getSnapshot(stagingId, snapshotId) {
 
 /**
  * Calculate readiness state (DRAFT or STAGED)
+ * Works with both unified stack and legacy format
  * 
  * @param {Object} stagingState - Staging state
  * @returns {string} 'DRAFT' or 'STAGED'
@@ -400,14 +515,29 @@ export function calculateReadiness(stagingState) {
     return 'DRAFT';
   }
 
-  if (!stagingState.focusCues || stagingState.focusCues.length === 0) {
+  // Check for focus cues (unified stack or legacy format)
+  let hasFocusCues = false;
+  let defaultExists = false;
+
+  if (stagingState.cues && Array.isArray(stagingState.cues)) {
+    // Unified stack format
+    const focusCues = stagingState.cues.filter(cue => cue.type === 'focus');
+    hasFocusCues = focusCues.length > 0;
+    defaultExists = focusCues.some(
+      (cue) => cue.id === stagingState.entryState.defaultFocusCueId
+    );
+  } else if (stagingState.focusCues && Array.isArray(stagingState.focusCues)) {
+    // Legacy format
+    hasFocusCues = stagingState.focusCues.length > 0;
+    defaultExists = stagingState.focusCues.some(
+      (cue) => cue.id === stagingState.entryState.defaultFocusCueId
+    );
+  }
+
+  if (!hasFocusCues) {
     return 'DRAFT';
   }
 
-  // Check if default Focus Cue exists
-  const defaultExists = stagingState.focusCues.some(
-    (cue) => cue.id === stagingState.entryState.defaultFocusCueId
-  );
   if (!defaultExists) {
     return 'DRAFT';
   }

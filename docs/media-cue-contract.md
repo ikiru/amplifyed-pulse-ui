@@ -1,6 +1,6 @@
 # Status: Canonical
 # Owner: TBD
-# Last reviewed: 2026-01-XX
+# Last reviewed: 2026-01-24
 
 # MEDIA CUE CONTRACT
 
@@ -15,11 +15,12 @@ They are a declarative cue sheet.
 
 ## TL;DR (Guarantees)
 
-- **Authored pre-live** (Stage only)
-- **Validated pre-live** (Stage only)
+- **Authored pre-live** (Stage) or **inserted live** (TrainerView, ahead of currentPosition)
+- **Validated pre-live** (Stage) or **immediately upon live insertion** (TrainerView)
 - **Executed live** (TrainerView trigger)
 - **Rendered/played by a single executor** (OBS pipeline by default)
 - **Never audience-editable, never audience-visible as a list**
+- **Immutable once validated** (cannot be edited after validation status is set)
 
 ---
 
@@ -29,13 +30,17 @@ They are a declarative cue sheet.
    - Media Cues describe intent, not execution steps
    - Execution is deterministic and handled by the executor
 
-2. **Pre-Live Authoring Only**
-   - Media Cues may only be created, edited, or deleted before the session is live
-   - Once live, Media Cues become read-only
+2. **Authoring and Live Insertion**
+   - Media Cues are primarily authored pre-live on Stage
+   - During live sessions, TrainerView may insert new media cues ahead of the current execution position (`currentPosition`)
+   - Once validated, media cues become immutable (cannot be edited)
+   - Executed media cues are always immutable
 
 3. **Validation Before Execution**
-   - All Media Cues must be validated before the session becomes live
-   - Validation status determines readiness
+   - All Media Cues must be validated before execution
+   - Pre-live cues are validated on Stage before session becomes live
+   - Live-inserted cues are validated immediately upon insertion
+   - Validation status determines readiness and insertion eligibility
 
 4. **Executor Independence**
    - Media Cues are executor-agnostic in structure
@@ -59,7 +64,7 @@ The system component responsible for deterministic execution of Media Cues. Defa
 The association between a Media Cue and executor-specific resources (e.g., OBS scene, input source). Bindings are optional and executor-specific.
 
 **Validation**  
-The process of verifying that a Media Cue can be executed successfully. Validation occurs pre-live and outputs READY, WARNING, or BLOCKED status.
+The process of verifying that a Media Cue can be executed successfully. Validation occurs pre-live (on Stage) or immediately upon live insertion (on TrainerView), and outputs READY, WARNING, or BLOCKED status.
 
 ---
 
@@ -135,7 +140,9 @@ MediaCue {
 
 ### Creation Rules
 
-Media Cues may only be created on Stage, only pre-live.
+Media Cues may be created:
+- **Pre-live**: On Stage only
+- **Live**: On TrainerView, but only ahead of `currentPosition` (insertion only)
 
 **Creation is a single atomic action** that results in a real object (no drafts), consistent with Focus philosophy.
 
@@ -157,9 +164,24 @@ System assigns:
 - `createdAt` (timestamp)
 - `validation.status` (initially "unvalidated")
 
-System stores cue in session staging state.
+System stores cue in session staging state (pre-live) or live session state (live insertion).
 
-Stage immediately runs validation and sets `validation.status`.
+Validation is triggered immediately:
+- **Pre-live**: Stage immediately runs validation and sets `validation.status`
+- **Live**: TrainerView triggers immediate validation upon insertion; validation status determines if insertion is allowed
+
+### Live Insertion Rules
+
+During live sessions, TrainerView may insert new media cues with the following constraints:
+
+1. **Position Constraint**: Cues must be inserted strictly ahead of `currentPosition` (i.e., `position > currentPosition`)
+2. **Immediate Validation**: Inserted cues must be validated immediately
+3. **Validation Outcomes**:
+   - **BLOCKED**: Insertion denied, cue not added to stack
+   - **WARNING**: Insertion allowed, but cue marked as non-executable until validation resolved
+   - **READY**: Insertion allowed and cue immediately executable
+4. **Initial State**: Inserted cues start with `validation.status = "unvalidated"` before validation runs
+5. **No Silent Failures**: Trainer must see clear feedback on validation outcome
 
 ### Prohibitions During Creation
 
@@ -176,9 +198,10 @@ Stage immediately runs validation and sets `validation.status`.
 ### Validation Trigger
 
 Validation occurs:
-- Immediately after Media Cue creation
+- Immediately after Media Cue creation (pre-live on Stage)
+- Immediately upon live insertion (live on TrainerView)
 - On demand (trainer-initiated revalidation)
-- Before session reaches "Staged" readiness
+- Before session reaches "Staged" readiness (pre-live only)
 
 ### Validation Criteria
 
@@ -235,7 +258,17 @@ If Media Cue has binding (`sceneId` or `inputName`):
 
 - **READY**: Cue can be executed
 - **WARNING**: Cue may work, but proceed with caution
-- **BLOCKED**: Cue cannot be executed (prevents STAGED if required)
+- **BLOCKED**: Cue cannot be executed (prevents STAGED if required, prevents live insertion)
+
+### Live Validation During Insertion
+
+When a media cue is inserted during a live session:
+
+1. **Validation runs immediately** upon insertion attempt
+2. **BLOCKED status** → Insertion is denied, trainer sees error message
+3. **WARNING status** → Insertion allowed, but execution disabled until validation resolved
+4. **READY status** → Insertion allowed and cue immediately executable
+5. **No silent failures**: Trainer must receive clear feedback on validation outcome
 
 ---
 
@@ -308,7 +341,8 @@ Where `state` may be:
 
 ### TrainerView Owns
 
-- Play/Stop triggers only (live)
+- Play/Stop triggers (live)
+- Insert new media cues ahead of `currentPosition` (live, with immediate validation)
 - Displaying current cue status (based on ACKs)
 
 ### OBS Pipeline Owns
@@ -342,15 +376,29 @@ Where `state` may be:
 - Media Cues are snapshotted into session state at Live transition
 - Session state contains Media Cues but does not execute them
 
+### Unified Cue Stack Contract
+
+- Media cues now exist within a unified cue stack alongside focus cues
+- Media cue execution remains unchanged (routes to Executor Pipeline)
+- Media cue validation remains unchanged (routes to validation system)
+- Media cues are immutable once validated (preserves validation guarantee)
+- Live insertion of media cues is allowed ahead of `currentPosition`
+
 ---
 
 ## Editing and Deletion
 
 ### Editing Rules
 
-Media Cues may only be edited pre-live on Stage.
+**Pre-live:**
+- All media cues editable on Stage
 
-**Editable fields:**
+**Live:**
+- Media cues may only be edited if `validation.status === "unvalidated"` (newly inserted, not yet validated)
+- Once validated (`status === "ready" | "warning" | "blocked"`), media cues become immutable
+- Executed media cues are always immutable
+
+**Editable fields** (when editing is allowed):
 - `label`
 - `source.type`
 - `source.url` (for youtube/googleslides)
@@ -434,20 +482,24 @@ Media Cues must never:
    - Never play automatically
    - Always require explicit trainer trigger
 
-2. **Modify During Live**
-   - Never allow editing once session is live
+2. **Modify Validated Cues During Live**
+   - Never allow editing of validated media cues once session is live
+   - Never allow editing of executed media cues
    - Never allow deletion once session is live
+3. **Insert Behind Current Position**
+   - Never allow insertion of cues at or before `currentPosition`
 
-3. **Bypass Validation**
+4. **Bypass Validation**
    - Never execute unvalidated cues
    - Never skip validation checks
+   - Never allow insertion without immediate validation
 
-4. **Accept Live Configuration**
+5. **Accept Live Configuration**
    - Never accept URLs from TrainerView
    - Never accept binding config from TrainerView
    - Never accept playback settings from TrainerView
 
-5. **Expose to Audience**
+6. **Expose to Audience**
    - Never show Media Cue list to audience
    - Never allow audience to trigger execution
 
@@ -457,7 +509,7 @@ Media Cues must never:
 
 **Socket events (implementation surface):**
 - **Stage actions**: `media:cue:create`, `media:cue:edit`, `media:cue:delete`, `media:cue:reorder`, `media:cue:validate`
-- **TrainerView triggers**: `media:cue:play`, `media:cue:stop`
+- **TrainerView actions**: `media:cue:insert` (live insertion), `media:cue:play`, `media:cue:stop`
 - **Executor ACKs**: `media:cue:ack`, `media:cue:error`
 - **State sync**: `media:cue:state` (trainer-only)
 
