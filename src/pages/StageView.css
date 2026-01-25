@@ -58,11 +58,10 @@
 }
 
 .stage-header-content {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
 }
 
 .stage-header-left {
@@ -84,14 +83,22 @@
   flex-wrap: wrap;
 }
 
+.stage-header-systems {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
 .stage-subsystem-status {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-left: 12px;
-  margin-left: 4px;
-  border-left: 1px solid #e9ecef;
   flex-wrap: wrap;
+}
+
+.stage-subsystem-status--compact {
+  justify-content: flex-end;
 }
 
 .subsystem-item {
@@ -127,12 +134,8 @@
   width: auto;
 }
 
-.btn-secondary.header-validate-btn {
-  background: #28a745;
-}
-
-.btn-secondary.header-validate-btn:hover {
-  background: #218838;
+.header-validate-btn {
+  white-space: nowrap;
 }
 
 .status-badge {
@@ -274,8 +277,7 @@
   border-radius: 12px;
   background: #ffffff;
   overflow: hidden;
-  min-height: 320px;
-  display: flex;
+  display: block;
 }
 
 .stage-live-preview-placeholder {
@@ -313,9 +315,10 @@
 
 .stage-live-preview-embed-shell {
   position: relative;
-  flex: 1;
   width: 100%;
-  display: flex;
+  aspect-ratio: 16 / 9;
+  background: #000000;
+  overflow: hidden;
 }
 
 .stage-live-preview-embed-shell--googleslides::after {
@@ -332,7 +335,8 @@
 }
 
 .stage-live-preview-embed {
-  flex: 1;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   border: 0;
@@ -1139,7 +1143,12 @@
   }
 
   .stage-header-content {
+    grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .stage-header-systems {
+    align-items: flex-start;
   }
 
   .stage-header-actions {

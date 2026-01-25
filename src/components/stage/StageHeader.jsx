@@ -55,6 +55,20 @@ export default function StageHeader({
 
   const executorStatus = normalizeSubsystemStatus(validationSummary?.executor?.status);
   const slideControlStatus = normalizeSubsystemStatus(validationSummary?.slideControl?.status);
+  const slideControlRequired = !!requirements?.slideControlRequired;
+
+  const slideOkForCompact =
+    slideControlStatus === 'ready' ||
+    (!slideControlRequired && slideControlStatus === 'unvalidated');
+
+  const systemsReady = executorStatus === 'ready' && slideOkForCompact;
+
+  const shouldShowSubsystemDetails = !systemsReady;
+  const shouldPromoteValidate =
+    executorStatus !== 'ready' ||
+    (slideControlRequired && slideControlStatus !== 'ready') ||
+    slideControlStatus === 'warning' ||
+    slideControlStatus === 'blocked';
 
   return (
     <div className="stage-header">
@@ -65,10 +79,18 @@ export default function StageHeader({
             <span className={getStatusBadgeClass(sessionState)}>
               {sessionState || 'DRAFT'}
             </span>
-            <span className={`readiness-indicator ${readinessState === 'STAGED' ? 'ready' : ''}`}>
+            <span
+              className={`readiness-indicator ${readinessState === 'STAGED' ? 'ready' : 'warning'}`}
+              title="Readiness"
+            >
               {getReadinessText()}
             </span>
-            <div className="stage-subsystem-status" aria-label="System validation status">
+          </div>
+        </div>
+
+        <div className="stage-header-systems" aria-label="System validation status">
+          {shouldShowSubsystemDetails ? (
+            <div className="stage-subsystem-status">
               <span className="subsystem-item">
                 <span className="subsystem-label">Executor</span>
                 <span className={`validation-badge ${executorStatus}`}>{executorStatus.toUpperCase()}</span>
@@ -78,23 +100,28 @@ export default function StageHeader({
                 <span className={`validation-badge ${slideControlStatus}`}>{slideControlStatus.toUpperCase()}</span>
               </span>
             </div>
-          </div>
-        </div>
+          ) : (
+            <div className="stage-subsystem-status stage-subsystem-status--compact">
+              <span className="validation-badge ready">SYSTEMS READY</span>
+            </div>
+          )}
 
-        <div className="stage-header-actions">
           <label className="header-toggle">
             <input
               type="checkbox"
-              checked={!!requirements?.slideControlRequired}
+              checked={slideControlRequired}
               onChange={(e) => onToggleSlideControlRequired?.(e.target.checked)}
               disabled={!!isReadOnly}
             />
-            Slide Control Required
+            Slide control required
           </label>
+        </div>
+
+        <div className="stage-header-actions">
 
           <button
             type="button"
-            className="btn-secondary header-validate-btn"
+            className={`${shouldPromoteValidate ? 'btn-primary' : 'btn-secondary'} header-validate-btn`}
             onClick={() => onValidateAll?.()}
             disabled={!!isReadOnly || !onValidateAll}
             title={isReadOnly ? 'Stage is read-only while LIVE' : 'Validate executor, slide control, and media'}
