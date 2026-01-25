@@ -51,7 +51,7 @@
 /* Stage Header */
 .stage-header {
   background: white;
-  padding: 20px;
+  padding: 16px;
   border-radius: 8px;
   margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -61,6 +61,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stage-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 260px;
 }
 
 .stage-header h1 {
@@ -72,6 +81,58 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stage-subsystem-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 12px;
+  margin-left: 4px;
+  border-left: 1px solid #e9ecef;
+  flex-wrap: wrap;
+}
+
+.subsystem-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.subsystem-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.stage-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.header-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #495057;
+  user-select: none;
+}
+
+.header-toggle input {
+  width: auto;
+}
+
+.btn-secondary.header-validate-btn {
+  background: #28a745;
+}
+
+.btn-secondary.header-validate-btn:hover {
+  background: #218838;
 }
 
 .status-badge {
@@ -169,11 +230,119 @@
 .media-cues-panel,
 .entry-state-panel,
 .readiness-panel,
-.unified-cue-stack-panel {
+.unified-cue-stack-panel,
+.stage-live-preview {
   background: white;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stage-live-preview-focus {
+  background: #fff4e6;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.stage-live-preview-focus-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.stage-live-preview-focus-text {
+  font-size: 28px;
+  font-weight: 650;
+  color: #1a1a1a;
+  line-height: 1.12;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.stage-live-preview-slides {
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+  min-height: 320px;
+  display: flex;
+}
+
+.stage-live-preview-placeholder {
+  width: 100%;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  color: #1a1a1a;
+}
+
+.stage-live-preview-placeholder-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #4a4a4a;
+}
+
+.stage-live-preview-placeholder-subtle {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.35;
+}
+
+.stage-live-preview-source {
+  font-size: 12px;
+  color: #495057;
+  word-break: break-all;
+  max-width: 100%;
+}
+
+.stage-live-preview-embed-shell {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  display: flex;
+}
+
+.stage-live-preview-embed-shell--googleslides::after {
+  /* Google Slides embeds often include a small bottom control strip.
+     LiveView has no controls (video feed), so we visually mask the strip here. */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 44px;
+  background: #ffffff;
+  pointer-events: none;
+}
+
+.stage-live-preview-embed {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.stage-live-preview-embed-overlay {
+  position: absolute;
+  inset: 0;
+  /* Hard rule: no interaction */
+  background: transparent;
 }
 
 .panel-header {
@@ -962,5 +1131,13 @@
 @media (max-width: 768px) {
   .stage-content {
     grid-template-columns: 1fr;
+  }
+
+  .stage-header-content {
+    align-items: stretch;
+  }
+
+  .stage-header-actions {
+    justify-content: flex-start;
   }
 }

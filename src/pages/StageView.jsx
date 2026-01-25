@@ -4,9 +4,9 @@ import { useSessionState } from '../hooks/useSessionState.js';
 import { useStageState } from '../hooks/useStageState.js';
 import StageHeader from '../components/stage/StageHeader.jsx';
 import UnifiedCueStackPanel from '../components/stage/UnifiedCueStackPanel.jsx';
-import EntryStatePanel from '../components/stage/EntryStatePanel.jsx';
 import ReadinessPanel from '../components/stage/ReadinessPanel.jsx';
 import ReadOnlyOverlay from '../components/stage/ReadOnlyOverlay.jsx';
+import StageLivePreviewPanel from '../components/stage/StageLivePreviewPanel.jsx';
 import './StageView.css';
 
 export default function StageView() {
@@ -93,6 +93,42 @@ export default function StageView() {
     );
   }
 
+  const resolvedCues = (stagingState?.cues || []).map((cue) => {
+    if (!cue || (cue.type !== 'media' && cue.type !== 'presentation')) {
+      return cue;
+    }
+
+    const validationFromSummary = stagingState?.validation?.media?.[cue.id];
+    if (!validationFromSummary) {
+      return cue;
+    }
+
+    return {
+      ...cue,
+      data: {
+        ...cue.data,
+        validation: validationFromSummary,
+      },
+    };
+  });
+
+  const shouldShowReadinessDetails = (() => {
+    const validation = stagingState?.validation;
+    const requirements = stagingState?.requirements;
+
+    const executorStatus = validation?.executor?.status;
+    const slideStatus = validation?.slideControl?.status;
+
+    const executorReady = executorStatus === 'ready';
+    const slideRequired = !!requirements?.slideControlRequired;
+    const slideReady = slideStatus === 'ready';
+
+    // Show details when executor is not ready/unvalidated, or when slide control is required but not ready/unvalidated.
+    if (!executorReady) return true;
+    if (slideRequired && !slideReady) return true;
+    return false;
+  })();
+
   return (
     <div className="stage-page">
       <ReadOnlyOverlay isVisible={isReadOnly} sessionId={sessionId} />
@@ -101,28 +137,24 @@ export default function StageView() {
         sessionState={sessionState}
         readinessState={readinessState}
         validationSummary={stagingState?.validation}
+        requirements={stagingState?.requirements}
+        isReadOnly={isReadOnly}
+        onValidateAll={() => requestValidation('all')}
+        onToggleSlideControlRequired={(slideControlRequired) =>
+          updateRequirements({ slideControlRequired })
+        }
       />
 
       <div className="stage-content">
         <div className="stage-main-panels">
           <UnifiedCueStackPanel
-            cues={stagingState?.cues || []}
+            cues={resolvedCues}
             currentPosition={stagingState?.currentPosition !== undefined ? stagingState.currentPosition : -1}
             defaultFocusCueId={stagingState?.entryState?.defaultFocusCueId}
             validation={stagingState?.validation}
             isReadOnly={isReadOnly}
-            onCreate={(type, data, position) => {
-              if (type === 'focus') {
-                createCue('focus', data, position);
-              } else if (type === 'media') {
-                createCue('media', data, position);
-              } else if (type === 'presentation') {
-                createCue('presentation', data, position);
-              }
-            }}
-            onEdit={(cueId, data) => {
-              editCue(cueId, data);
-            }}
+            onCreate={(type, data, position) => createCue(type, data, position)}
+            onEdit={(cueId, data) => editCue(cueId, data)}
             onDelete={deleteCue}
             onReorder={reorderCues}
             onSetDefault={(cueId) => {
@@ -132,23 +164,14 @@ export default function StageView() {
         </div>
 
         <div className="stage-config-panels">
-          <EntryStatePanel
-            entryState={stagingState?.entryState || {}}
+          <StageLivePreviewPanel
             cues={stagingState?.cues || []}
-            focusCues={stagingState?.focusCues || []}
-            isReadOnly={isReadOnly}
-            onUpdate={updateEntryState}
+            defaultFocusCueId={stagingState?.entryState?.defaultFocusCueId}
           />
 
-          <ReadinessPanel
-            validation={stagingState?.validation || {}}
-            requirements={stagingState?.requirements || {}}
-            cues={stagingState?.cues || []}
-            mediaCues={stagingState?.mediaCues || []}
-            isReadOnly={isReadOnly}
-            onRequirementToggle={updateRequirements}
-            onValidateRequest={requestValidation}
-          />
+          {shouldShowReadinessDetails && (
+            <ReadinessPanel validation={stagingState?.validation || {}} />
+          )}
         </div>
       </div>
 

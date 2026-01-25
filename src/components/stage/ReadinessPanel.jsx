@@ -3,24 +3,18 @@ import React from 'react';
 /**
  * ReadinessPanel Component
  * 
- * Displays system readiness status and requirement toggles
+ * Displays detailed readiness status and guidance.
  */
 export default function ReadinessPanel({
   validation,
-  requirements,
-  mediaCues, // Legacy: kept for backward compatibility
-  cues, // Unified stack: primary source
-  isReadOnly,
-  onRequirementToggle,
-  onValidateRequest,
 }) {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/4231279e-6952-4b85-bc1a-061d94f40485',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ReadinessPanel.jsx:render',message:'Rendering ReadinessPanel',data:{validation, requirements, mediaCues},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'4'})}).catch(()=>{});
-  // #endregion
   const getStatusBadge = (status) => {
-    const statusClass = `status-badge ${status}`;
-    const statusText = status?.toUpperCase() || 'UNKNOWN';
-    return <span className={statusClass}>{statusText}</span>;
+    const raw = status ? String(status).toLowerCase() : 'unvalidated';
+    const normalized =
+      raw === 'error' ? 'blocked' :
+      (['ready', 'warning', 'blocked', 'unvalidated'].includes(raw) ? raw : 'warning');
+    const label = normalized.toUpperCase();
+    return <span className={`validation-badge ${normalized}`}>{label}</span>;
   };
 
   const getStatusDetails = (subsystem) => {
@@ -114,31 +108,6 @@ export default function ReadinessPanel({
     );
   };
 
-  const getMediaSummary = () => {
-    // Get media cues from unified stack or legacy array
-    const mediaCuesList = cues
-      ? cues.filter(c => c.type === 'media')
-      : mediaCues || [];
-
-    if (!mediaCuesList || mediaCuesList.length === 0) {
-      return { ready: 0, warning: 0, blocked: 0 };
-    }
-
-    const summary = { ready: 0, warning: 0, blocked: 0 };
-    mediaCuesList.forEach((cue) => {
-      const status = cue.type === 'media' 
-        ? (cue.data.validation?.status || 'unvalidated')
-        : (cue.validation?.status || 'unvalidated');
-      if (status === 'ready') summary.ready++;
-      else if (status === 'warning') summary.warning++;
-      else if (status === 'blocked') summary.blocked++;
-    });
-
-    return summary;
-  };
-
-  const mediaSummary = getMediaSummary();
-
   return (
     <div className="readiness-panel">
       <div className="panel-header">
@@ -164,60 +133,7 @@ export default function ReadinessPanel({
           </div>
           {getStatusDetails('slideControl')}
         </div>
-
-        <div className="readiness-item">
-          <div className="readiness-item-header">
-            <span className="readiness-item-label">Media Cues</span>
-            <span className="media-summary">
-              {mediaSummary.ready} ready, {mediaSummary.warning} warning,{' '}
-              {mediaSummary.blocked} blocked
-            </span>
-          </div>
-          {((!cues || cues.filter(c => c.type === 'media').length === 0) && (!mediaCues || mediaCues.length === 0)) && (
-            <div className="status-details">
-              <div className="status-guidance">
-                <p>No Media Cues to validate. Add Media Cues in the left panel to validate their URLs.</p>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
-
-      <div className="requirements-section">
-        <h3>Requirements</h3>
-        <div className="requirement-toggles">
-          <label>
-            <input
-              type="checkbox"
-              checked={true}
-              disabled={true}
-            />
-            Stage Executor (Required)
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={requirements?.slideControlRequired || false}
-              onChange={(e) =>
-                onRequirementToggle({ slideControlRequired: e.target.checked })
-              }
-              disabled={isReadOnly}
-            />
-            Slide Control Required
-          </label>
-        </div>
-      </div>
-
-      {!isReadOnly && (
-        <div className="readiness-actions">
-          <button
-            onClick={() => onValidateRequest('all')}
-            className="validate-all-btn"
-          >
-            Validate All
-          </button>
-        </div>
-      )}
     </div>
   );
 }
